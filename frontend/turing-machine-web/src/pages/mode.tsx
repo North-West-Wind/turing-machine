@@ -1,3 +1,3 @@
 export default function ModePage() {
-	return <></>;
+	return <div>TODO: mode</div>;
 }

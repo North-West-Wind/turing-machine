@@ -1,3 +1,7 @@
+import { useParams } from "react-router-dom";
+
 export default function LevelPage() {
-	return <></>;
+	const params = useParams();
+
+	return <div>TODO: level {params.id}</div>;
 }

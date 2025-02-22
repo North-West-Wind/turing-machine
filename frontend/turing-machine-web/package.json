@@ -9,11 +9,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "preact": "^10.25.4",
-    "preact-iso": "^2.9.0"
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.2.0"
   },
   "devDependencies": {
-    "@preact/preset-vite": "^2.10.1",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-react": "^4.3.4",
     "typescript": "~5.7.2",
     "vite": "^6.1.0"
   }
