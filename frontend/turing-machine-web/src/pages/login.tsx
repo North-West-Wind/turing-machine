@@ -1,3 +1,6 @@
+import { useLocation } from "react-router-dom";
+
 export default function LoginPage() {
-	return <></>;
+	const location = useLocation();
+	return <div>TODO: login ({location.pathname})</div>;
 }
