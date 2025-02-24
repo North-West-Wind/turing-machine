@@ -1,0 +1,59 @@
+.designer-container {
+	position: fixed;
+	width: 100%;
+	height: 100%;
+	top: 0;
+	left: 0;
+	display: flex;
+}
+
+.designer-fill-height {
+	height: 100%;
+}
+
+.designer-fill-flex {
+	flex-grow: 1;
+}
+
+.designer-left {
+	background-color: #12534d;
+}
+
+.designer-right {
+	display: flex;
+	flex-direction: column-reverse;
+}
+
+.designer-bottom {	
+	background-color: #0f403b;
+	width: 100%;
+}
+
+.designer-resizer {
+	background-color: inherit;
+	filter: brightness(50%);
+}
+
+.designer-resizer:hover {
+	filter: brightness(30%);
+}
+
+.designer-resizer.hori {
+	margin-bottom: auto;
+	width: 100%;
+	height: .5vmax;
+}
+
+.designer-resizer.hori:hover {
+	cursor: row-resize;
+}
+
+.designer-resizer.vert {
+	margin-left: auto;
+	width: .5vmax;
+	height: 100%;
+}
+
+.designer-resizer.vert:hover {
+	cursor: col-resize;
+}
