@@ -1,10 +1,15 @@
 import React, { createRef, RefObject } from "react";
+import { Vec2 } from "../../helpers/designer/math";
+import graph from "../../helpers/designer/graph";
 
 type Props = { height: number };
 
 export default class DesignerGraph extends React.Component<Props> {
 	ref: RefObject<HTMLCanvasElement | null>;
 	observer?: ResizeObserver;
+
+	// canvas rendering properties
+	position = Vec2.ZERO;
 
 	constructor(props: Props) {
 		super(props);
@@ -39,19 +44,24 @@ export default class DesignerGraph extends React.Component<Props> {
 		const ctx = this.ref.current?.getContext("2d");
 		if (!ctx) return;
 
+		// fill background
 		ctx.fillStyle = "#232323";
 		ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+		
+		// draw graph
+		ctx.translate(this.position.x, this.position.y);
+		graph.drawEdges(ctx);
+		graph.drawVertices(ctx);
+		ctx.resetTransform();
 
+		// draw overlays (pos, scale)
 		ctx.fillStyle = "#fff";
-		this.drawCircle(ctx, ctx.canvas.width / 2, ctx.canvas.height / 2, ctx.canvas.height / 4);
+		ctx.font = ` ${ctx.canvas.height / 30}px Courier New`;
+		ctx.textAlign = "left";
+		ctx.textBaseline = "top";
+		ctx.fillText(`(${this.position.x}, ${this.position.y})`, 10, 10);
 
 		requestAnimationFrame(this.draw.bind(this));
-	}
-
-	private drawCircle(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number) {
-		ctx.beginPath();
-		ctx.arc(x, y, radius, 0, Math.PI * 2);
-		ctx.fill();
 	}
 
 	render() {
