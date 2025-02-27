@@ -7,9 +7,26 @@ export class Vec2 {
 
 	readonly x: number;
 	readonly y: number;
+	private readonly initX: number;
+	private readonly initY: number;
 
-	constructor(x: number, y: number) {
+	constructor(x: number, y: number, init?: { x: number, y: number }) {
 		this.x = x;
 		this.y = y;
+		if (init) {
+			this.initX = init.x;
+			this.initY = init.y;
+		} else {
+			this.initX = x;
+			this.initY = y;
+		}
+	}
+
+	offset(x: number, y: number) {
+		return new Vec2(this.initX + x, this.initY + y, { x: this.initX, y: this.initY })
+	}
+
+	finalize() {
+		return new Vec2(this.x, this.y);
 	}
 }

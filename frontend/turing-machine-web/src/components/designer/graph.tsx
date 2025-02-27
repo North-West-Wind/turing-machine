@@ -2,6 +2,8 @@ import React, { createRef, RefObject } from "react";
 import { Vec2 } from "../../helpers/designer/math";
 import graph from "../../helpers/designer/graph";
 
+const RIGHT_CLICK = 2;
+
 type Props = { height: number };
 
 export default class DesignerGraph extends React.Component<Props> {
@@ -10,6 +12,9 @@ export default class DesignerGraph extends React.Component<Props> {
 
 	// canvas rendering properties
 	position = Vec2.ZERO;
+
+	// event handling properties
+	mouseDownPos?: Vec2;
 
 	constructor(props: Props) {
 		super(props);
@@ -64,7 +69,28 @@ export default class DesignerGraph extends React.Component<Props> {
 		requestAnimationFrame(this.draw.bind(this));
 	}
 
+	private onMouseDown(ev: React.MouseEvent) {
+		if (ev.button == RIGHT_CLICK) {
+			const startPos = new Vec2(ev.clientX, ev.clientY);
+			const onMouseMove = (ev: MouseEvent) => {
+				this.position = this.position.offset(ev.clientX - startPos.x, ev.clientY - startPos.y);
+			};
+
+			window.addEventListener("mousemove", onMouseMove);
+			window.addEventListener("mouseup", () => {
+				this.position = this.position.finalize();
+				window.removeEventListener("mousemove", onMouseMove);
+			});
+		}
+	}
+
 	render() {
-		return <canvas ref={this.ref} className="designer-fill-flex" style={{ height: this.props.height * window.innerHeight }} />;
+		return <canvas
+			ref={this.ref}
+			className="designer-fill-flex"
+			style={{ height: this.props.height * window.innerHeight }}
+			onMouseDown={this.onMouseDown.bind(this)}
+			onContextMenu={(e) => e.preventDefault()}
+		/>;
 	}
 }
