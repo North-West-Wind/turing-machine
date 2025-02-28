@@ -1,0 +1,6 @@
+@TuringMachine.Backend.Server_HostAddress = http://localhost:5066
+
+GET {{TuringMachine.Backend.Server_HostAddress}}/api/try-get-response/
+Accept: application/json
+
+###
