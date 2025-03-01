@@ -66,4 +66,8 @@ export class Vec2 {
 	finalize() {
 		return new Vec2(this.x, this.y);
 	}
+
+	toString() {
+		return `(${this.x.toFixed(2)}, ${this.y.toFixed(2)})`;
+	}
 }
