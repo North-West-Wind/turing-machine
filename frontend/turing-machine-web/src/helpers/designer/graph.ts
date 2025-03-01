@@ -1,5 +1,7 @@
 import { CommonNumbers, Vec2 } from "./math";
 
+const VERTEX_RADIUS = 20;
+
 export class StateTransition {
 	readonly destination: number;
 	readonly read: string;
@@ -33,7 +35,7 @@ export class StateVertex {
 	draw(ctx: CanvasRenderingContext2D) {
 		ctx.fillStyle = "#7f7f7f";
 		ctx.beginPath();
-		ctx.arc(this.position.x, this.position.y, 20, 0, CommonNumbers.PI2);
+		ctx.arc(this.position.x, this.position.y, VERTEX_RADIUS, 0, CommonNumbers.PI2);
 		ctx.fill();
 
 		ctx.fillStyle = "#fff";
@@ -72,7 +74,6 @@ export class StateEdge {
 	}
 
 	draw(ctx: CanvasRenderingContext2D) {
-		ctx.strokeStyle = "#fff";
 		ctx.beginPath();
 		ctx.moveTo(this.start.x, this.start.y);
 		if (this.mid) {
@@ -80,7 +81,22 @@ export class StateEdge {
 			ctx.lineTo(this.mid.x, this.mid.y);
 		}
 		ctx.lineTo(this.end.x, this.end.y);
+		ctx.strokeStyle = "#fff";
 		ctx.stroke();
+
+		// draw arrow head
+		const endInv = (this.mid || this.start).subVec(this.end).withMagnitude(VERTEX_RADIUS);
+		const tip = this.end.addVec(endInv);
+		ctx.beginPath();
+		ctx.moveTo(tip.x, tip.y);
+		const side = endInv.perpendicular().scale(0.5);
+		const p1 = tip.addVec(endInv).addVec(side);
+		const p2 = tip.addVec(endInv).subVec(side);
+		ctx.lineTo(p1.x, p1.y);
+		ctx.lineTo(p2.x, p2.y);
+		ctx.fillStyle = "#fff";
+		ctx.fill();
+		//console.log("filling (%d, %d), (%d, %d), (%d, %d)", tip.x, tip.y, p1.x, p1.y, p2.x, p2.y);
 	}
 }
 
