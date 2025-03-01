@@ -27,6 +27,8 @@
 .designer-bottom {	
 	background-color: #0f403b;
 	width: 100%;
+	display: flex;
+	flex-direction: column;
 }
 
 .designer-resizer {
@@ -56,4 +58,19 @@
 
 .designer-resizer.vert:hover {
 	cursor: col-resize;
+}
+
+.designer-console {
+	border: none;
+	margin: .5vmax;
+	padding: .5vmax;
+	resize: none;
+	flex: 1;
+	background-color: black;
+	font-size: 1vmax;
+	font-family: 'Courier New', Courier, monospace;
+}
+
+.designer-console:focus-visible {
+	outline: none;
 }
