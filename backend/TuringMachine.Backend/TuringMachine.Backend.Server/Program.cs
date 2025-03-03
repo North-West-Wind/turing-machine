@@ -1,5 +1,9 @@
 
-using TuringMachine.Backend.Server.Model.ServerResponses;
+using System.Data.Common;
+using System.Security.Cryptography;
+using System.Text;
+using Microsoft.AspNetCore.Http;
+using TuringMachine.Backend.Server.Models.ServerResponses;
 
 namespace TuringMachine.Backend.Server
 {
@@ -7,7 +11,9 @@ namespace TuringMachine.Backend.Server
     {
         public static void Main(string[] args)
         {
-            var builder = WebApplication.CreateBuilder(args);
+            RSA rsa = RSA.Create();
+
+            WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
             builder.Services.AddAuthorization();
@@ -16,7 +22,7 @@ namespace TuringMachine.Backend.Server
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
-            var app = builder.Build();
+            WebApplication app = builder.Build();
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
@@ -29,12 +35,18 @@ namespace TuringMachine.Backend.Server
 
             app.UseAuthorization();
 
+
             #region Register API
             #region Server API
             app.MapGet("/api/try-get-response" , (HttpContext httpContext) => new ServerResponse("Server responded."))
                .WithName("TryGetServerResponse")
                .WithOpenApi();
+
+            app.MapGet("/api/get-rsa-key" , (HttpContext httpContext) => new ServerResponse((object)rsa.ExportRSAPublicKeyPem()))
+               .WithName("GetRsaKey")
+               .WithOpenApi();
             #endregion
+
             #endregion
 
             app.Run();
