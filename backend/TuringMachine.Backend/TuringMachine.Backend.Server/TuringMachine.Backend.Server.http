@@ -2,5 +2,8 @@
 
 GET {{TuringMachine.Backend.Server_HostAddress}}/api/try-get-response/
 Accept: application/json
+###
 
+GET {{TuringMachine.Backend.Server_HostAddress}}/api/get-rsa-key/
+Accept: application/json
 ###
