@@ -36,10 +36,10 @@ export default function LoginPage() {
 				:
 				<></> 
 			}
-	
+			<div className='login'>
 			<LoginArrangement isRegistering={isToggled} user={User} password={Pw} licenseKey={Key}/>
 			<button onClick={()=>setIsToggled(!isToggled)}>{registerNback}</button>
-	
+			</div>
 		</div>
 	);
 }
