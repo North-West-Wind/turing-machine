@@ -42,7 +42,7 @@ namespace TuringMachine.Backend.Server
                .WithName("TryGetServerResponse")
                .WithOpenApi();
 
-            app.MapGet("/api/get-rsa-key" , (HttpContext httpContext) => new ServerResponse((object)rsa.ExportRSAPublicKeyPem()))
+            app.MapGet("/api/get-rsa-key" , (HttpContext httpContext) => new ServerResponse("Success", (object)rsa.ExportRSAPublicKeyPem()))
                .WithName("GetRsaKey")
                .WithOpenApi();
             #endregion

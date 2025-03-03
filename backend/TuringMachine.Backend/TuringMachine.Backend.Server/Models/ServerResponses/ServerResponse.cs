@@ -13,5 +13,6 @@
         public ServerResponse() { }
         public ServerResponse(string message) { Message = message; }
         public ServerResponse(object data) { Data = data; }
+        public ServerResponse(string message , object data) { Message = message; Data = data; }
     }
 }
