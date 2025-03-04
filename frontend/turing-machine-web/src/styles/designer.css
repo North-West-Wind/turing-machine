@@ -17,6 +17,8 @@
 
 .designer-left {
 	background-color: #12534d;
+	display: flex;
+	flex-direction: row-reverse;
 }
 
 .designer-right {
@@ -51,7 +53,6 @@
 }
 
 .designer-resizer.vert {
-	margin-left: auto;
 	width: .5vmax;
 	height: 100%;
 }
@@ -73,4 +74,65 @@
 
 .designer-console:focus-visible {
 	outline: none;
+}
+
+.designer-simulation {
+	display: flex;
+	flex-direction: column;
+}
+
+.designer-simulation-controller {
+	display: flex;
+	width: 100%;
+}
+
+.designer-simulation-button {
+	background-color: #0d3c37;
+	transition: filter .25s ease;
+}
+
+.designer-simulation-button:hover {
+	filter: brightness(80%);
+	cursor: pointer;
+}
+
+.designer-simulation-button img {
+	position: relative;
+	width: 20%;
+	padding: 10%;
+}
+
+.designer-simulation-machine {
+	display: flex;
+	flex-direction: column;
+}
+
+.designer-simulation-machine .title {
+	text-align: left;
+	padding: 1vw;
+	font-size: 1vmax;
+}
+
+.designer-simulation-tape {
+	position: relative;
+	display: flex;
+	padding: 1% 0.5%;
+	background-color: rgb(194, 194, 194);
+	margin-bottom: 2%;
+}
+
+.designer-simulation-cell {
+	flex: 1;
+	background-color: #007bb8;
+	margin: 1%;
+	aspect-ratio: 1 / 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 3vmin;
+}
+
+.designer-simulation-cell.head {
+	outline: #00acd7 1.5vmin solid;
+	z-index: 1;
 }
