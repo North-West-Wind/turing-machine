@@ -136,3 +136,33 @@
 	outline: #00acd7 1.5vmin solid;
 	z-index: 1;
 }
+
+.designer-graph-control {
+	position: absolute;
+	top: .5vmax;
+	right: .5vmax;
+	display: flex;
+	flex-direction: column;
+}
+
+.designer-graph-button img {
+	width: 2vmax;
+}
+
+.designer-graph-button {
+	transition: filter .25s ease;
+	border-radius: .5vmax;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: .25vmax;
+}
+
+.designer-graph-button:hover {
+	filter: brightness(80%);
+	cursor: pointer;
+}
+
+.designer-graph-button.active {
+	background-color: #7f7f7f;
+}

@@ -1,15 +1,22 @@
 import React, { createRef, RefObject } from "react";
 import { Vec2 } from "../../helpers/designer/math";
 import graph from "../../helpers/designer/graph";
+import DesignerGraphControl from "./graph/control";
 
 const RIGHT_CLICK = 2;
 
 type Props = { height: number };
 
+enum Buttons {
+	NONE,
+	TEXTBOX = "text",
+	RECTANGLE = "crosshair",
+}
+
 export default class DesignerGraph extends React.Component<Props> {
 	ref: RefObject<HTMLCanvasElement | null>;
 	observer?: ResizeObserver;
-	state: { cursor?: string };
+	state: { cursor: string, buttonActive: Buttons };
 
 	// canvas rendering properties
 	position = Vec2.ZERO;
@@ -19,7 +26,7 @@ export default class DesignerGraph extends React.Component<Props> {
 	constructor(props: Props) {
 		super(props);
 		this.ref = createRef<HTMLCanvasElement>();
-		this.state = { cursor: "grab" };
+		this.state = { cursor: "grab", buttonActive: Buttons.NONE };
 	}
 
 	componentDidMount() {
@@ -105,14 +112,29 @@ export default class DesignerGraph extends React.Component<Props> {
 	}
 
 	render() {
-		return <canvas
-			ref={this.ref}
-			className="designer-fill-flex"
-			style={{ height: this.props.height * window.innerHeight, cursor: this.state.cursor }}
-			onMouseDown={this.onMouseDown.bind(this)}
-			onMouseMove={this.onMouseMove.bind(this)}
-			onContextMenu={(e) => e.preventDefault()}
-			onWheel={this.onWheel.bind(this)}
-		/>;
+		const controlStateSetter = (button: Buttons) => (() => {
+			this.setState({
+				buttonActive: this.state.buttonActive != button ? button : Buttons.NONE,
+				cursor: this.state.buttonActive == Buttons.NONE ? button : "grab"
+			});
+		});
+
+		return <>
+			<canvas
+				ref={this.ref}
+				className="designer-fill-flex"
+				style={{ height: this.props.height * window.innerHeight, cursor: this.state.cursor }}
+				onMouseDown={this.onMouseDown.bind(this)}
+				onMouseMove={this.onMouseMove.bind(this)}
+				onContextMenu={(e) => e.preventDefault()}
+				onWheel={this.onWheel.bind(this)}
+			/>
+			<DesignerGraphControl
+				text={this.state.buttonActive == Buttons.TEXTBOX}
+				rect={this.state.buttonActive == Buttons.RECTANGLE}
+				onText={controlStateSetter(Buttons.TEXTBOX)}
+				onRect={controlStateSetter(Buttons.RECTANGLE)}
+			/>
+		</>;
 	}
 }
