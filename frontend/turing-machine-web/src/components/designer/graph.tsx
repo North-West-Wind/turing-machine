@@ -3,6 +3,7 @@ import { Vec2 } from "../../helpers/designer/math";
 import graph from "../../helpers/designer/graph";
 import DesignerGraphControl from "./graph/control";
 
+const LEFT_CLICK = 0;
 const RIGHT_CLICK = 2;
 
 type Props = { height: number };
@@ -22,6 +23,10 @@ export default class DesignerGraph extends React.Component<Props> {
 	position = Vec2.ZERO;
 	cursorPosition = Vec2.ZERO;
 	scale = 1;
+
+	// movement logic properties
+	hovered?: number;
+	grabbed?: number;
 
 	constructor(props: Props) {
 		super(props);
@@ -93,6 +98,21 @@ export default class DesignerGraph extends React.Component<Props> {
 				this.position = this.position.finalize();
 				window.removeEventListener("mousemove", onMouseMove);
 			});
+		} else if (ev.button == LEFT_CLICK) {
+			if (this.hovered !== undefined) {
+				this.setState({ cursor: "grabbing" });
+				this.grabbed = this.hovered;
+				const onMouseMove = () => {
+					if (this.grabbed)
+						graph.getVertex(this.grabbed)?.setPosition(this.cursorPosition);
+				};
+
+				window.addEventListener("mousemove", onMouseMove);
+				window.addEventListener("mouseup", () => {
+					this.setState({ cursor: "grab" });
+					window.removeEventListener("mousemove", onMouseMove);
+				});
+			}
 		}
 	}
 
@@ -102,6 +122,7 @@ export default class DesignerGraph extends React.Component<Props> {
 		if (!canvas) return;
 		const clientCursorPosition = new Vec2(ev.clientX - canvas.offsetLeft, ev.clientY - canvas.offsetTop);
 		this.cursorPosition = clientCursorPosition.scale(1 / this.scale).subVec(this.position);
+		this.hovered = graph.mouseTick(this.cursorPosition);
 	}
 
 	private onWheel(ev: React.WheelEvent) {
