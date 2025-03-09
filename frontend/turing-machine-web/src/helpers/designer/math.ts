@@ -9,7 +9,8 @@ export class Vec2 {
 	readonly y: number;
 	private readonly initX: number;
 	private readonly initY: number;
-	readonly magnitude: number;
+	// square root is expensive, so we cache magnitude
+	private mag?: number;
 
 	constructor(x: number, y: number, init?: { x: number, y: number }) {
 		this.x = x;
@@ -21,7 +22,6 @@ export class Vec2 {
 			this.initX = x;
 			this.initY = y;
 		}
-		this.magnitude = Math.sqrt(x * x + y * y);
 	}
 
 	add(x: number, y: number): Vec2 {
@@ -49,14 +49,35 @@ export class Vec2 {
 		return new Vec2(this.x * x, this.y * y);
 	}
 
+	magnitudeSqr() {
+		return this.x * this.x + this.y * this.y;
+	}
+
+	magnitude() {
+		if (this.mag !== undefined) return this.mag;
+		return this.mag = Math.sqrt(this.magnitudeSqr());
+	}
+
 	withMagnitude(mag: number) {
-		return this.scale(mag / this.magnitude);
+		return this.scale(mag / this.magnitude());
 	}
 
 	perpendicular() {
 		// in a top-right == quadrant 1 system, this turns it anti-clockwise by 90 degrees
 		// on a computer screen where y-axis is flipped, this goes clockwise
 		return new Vec2(-this.y, this.x);
+	}
+
+	unit() {
+		return this.withMagnitude(1);
+	}
+
+	dot(vec: Vec2) {
+		return this.x * vec.x + this.y * vec.y;
+	}
+
+	projectTo(vec: Vec2) {
+		return vec.scale(this.dot(vec) / vec.magnitudeSqr());
 	}
 
 	offset(x: number, y: number) {

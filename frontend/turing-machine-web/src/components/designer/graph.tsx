@@ -69,8 +69,7 @@ export default class DesignerGraph extends React.Component<Props> {
 		// draw graph
 		ctx.scale(this.scale, this.scale);
 		ctx.translate(this.position.x, this.position.y);
-		graph.drawEdges(ctx);
-		graph.drawVertices(ctx);
+		graph.draw(ctx);
 		ctx.resetTransform();
 
 		// draw overlays (pos, scale)
@@ -122,7 +121,7 @@ export default class DesignerGraph extends React.Component<Props> {
 		if (!canvas) return;
 		const clientCursorPosition = new Vec2(ev.clientX - canvas.offsetLeft, ev.clientY - canvas.offsetTop);
 		this.cursorPosition = clientCursorPosition.scale(1 / this.scale).subVec(this.position);
-		this.hovered = graph.mouseTick(this.cursorPosition);
+		this.hovered = graph.mouseTick(this.cursorPosition, this.scale);
 	}
 
 	private onWheel(ev: React.WheelEvent) {

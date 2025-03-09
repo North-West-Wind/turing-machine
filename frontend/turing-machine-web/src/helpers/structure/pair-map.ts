@@ -62,4 +62,16 @@ export class PairMap<A, B, V> {
 	forEach(cb: (v: V, a: A, b: B) => any) {
 		this.aMap.forEach((map, a) => map.forEach((v, b) => cb(v, a, b)));
 	}
+
+	forEachOfA(a: A, cb: (v: V, b: B) => any) {
+		this.aMap.get(a)?.forEach(cb);
+	}
+
+	forEachOfB(b: B, cb: (v: V, a: A) => any) {
+		this.bMap.get(b)?.forEach(cb);
+	}
+
+	entries() {
+		return Array.from(this.aMap.entries()).map(([a, map]) => Array.from(map.entries()).map(([b, v]) => [a, b, v] as [A, B, V])).flat();
+	}
 }

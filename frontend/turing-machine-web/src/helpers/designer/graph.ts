@@ -1,7 +1,9 @@
 import { PairMap } from "../structure/pair-map";
+import { IDrawable, IHoverable } from "./canvas";
 import { CommonNumbers, Vec2 } from "./math";
 
 const VERTEX_RADIUS = 20;
+const EDGE_HITBOX = 10;
 
 export class StateTransition {
 	readonly destination: number;
@@ -21,12 +23,12 @@ export class StateTransition {
 	}
 }
 
-export class StateVertex {
+export class StateVertex implements IDrawable, IHoverable {
 	readonly id: number;
 	private position: Vec2;
 	transitions: StateTransition[] = [];
 	graph?: StateGraph;
-	hovered: boolean;
+	hovered = false;
 
 	constructor(id: number, position: Vec2) {
 		this.id = id;
@@ -61,13 +63,18 @@ export class StateVertex {
 		ctx.textAlign = "center";
 		ctx.fillText(this.id.toString(), this.position.x, this.position.y);
 	}
+
+	isHovered(position: Vec2) {
+		return this.hovered = position.subVec(this.position).magnitudeSqr() <= VERTEX_RADIUS * VERTEX_RADIUS;
+	}
 }
 
-export class StateEdge {
+export class StateEdge implements IDrawable, IHoverable {
 	private start: Vec2;
 	private end: Vec2;
 	private mid?: Vec2;
 	private transitions: string[];
+	hovered = false;
 
 	constructor(start: Vec2, end: Vec2) {
 		this.start = start;
@@ -105,7 +112,8 @@ export class StateEdge {
 			ctx.lineTo(this.mid.x, this.mid.y);
 		}
 		ctx.lineTo(this.end.x, this.end.y);
-		ctx.strokeStyle = "#fff";
+		if (this.hovered) ctx.strokeStyle = "#0f0";
+		else ctx.strokeStyle = "#fff";
 		ctx.stroke();
 
 		// draw arrow head
@@ -118,7 +126,8 @@ export class StateEdge {
 		const p2 = tip.addVec(endInv).subVec(side);
 		ctx.lineTo(p1.x, p1.y);
 		ctx.lineTo(p2.x, p2.y);
-		ctx.fillStyle = "#fff";
+		if (this.hovered) ctx.fillStyle = "#0f0";
+		else ctx.fillStyle = "#fff";
 		ctx.fill();
 		
 		// draw text
@@ -129,7 +138,7 @@ export class StateEdge {
 			start = this.start;
 		} else {
 			const off1 = this.end.subVec(this.mid).scale(0.5), off2 = this.mid.subVec(this.start).scale(0.5);
-			if (off1.magnitude > off2.magnitude) {
+			if (off1.magnitude() > off2.magnitude()) {
 				offset = off1;
 				start = this.mid;
 			} else {
@@ -151,13 +160,40 @@ export class StateEdge {
 		}
 		const pos = start.addVec(offset).addVec(perpendicular.withMagnitude(10));
 		ctx.fillText(this.transitions.join("\n"), pos.x, pos.y);
+	}
 
+	private isSegmentHovered(position: Vec2, scale: number, a: Vec2, b: Vec2) {
+		// project vec from start to perpendicular of arrow
+		const arrow = b.subVec(a);
+		const magSqr = position.subVec(a).projectTo(arrow.perpendicular()).magnitudeSqr();
+		const hovered = magSqr <= (EDGE_HITBOX * scale * EDGE_HITBOX * scale);
+		if (hovered) {
+			// project vec from start to parallel of arrow
+			const proj = position.subVec(a).projectTo(arrow);
+			const magSqr = proj.magnitudeSqr();
+			if (proj.dot(arrow) < 0) {
+				// projection is reverse direction
+				return magSqr + arrow.magnitudeSqr() <= (EDGE_HITBOX * scale * EDGE_HITBOX * scale);
+			} else {
+				// projection is same direction
+				return magSqr - arrow.magnitudeSqr() <= (EDGE_HITBOX * scale * EDGE_HITBOX * scale);
+			}
+		} else return false;
+	}
+
+	isHovered(position: Vec2, scale: number) {
+		if (this.mid) {
+			return this.hovered = this.isSegmentHovered(position, scale, this.start, this.mid) || this.isSegmentHovered(position, scale, this.mid, this.end);
+		} else {
+			return this.hovered = this.isSegmentHovered(position, scale, this.start, this.end);
+		}
 	}
 }
 
-class StateGraph {
+class StateGraph implements IDrawable {
 	private vertices = new Map<number, StateVertex>();
 	private edges = new PairMap<number, number, StateEdge>;
+	private hoveredEdge?: [number, number];
 
 	addVertex(vertex: StateVertex) {
 		vertex.graph = this;
@@ -181,39 +217,39 @@ class StateGraph {
 	updateVertex(id: number) {
 		const vertex = this.vertices.get(id);
 		if (!vertex) return;
-		this.edges.deleteA(vertex.id);
-		vertex.transitions.forEach(trans => {
-			const dest = this.vertices.get(trans.destination);
-			if (dest) {
-				let edge: StateEdge;
-				if (this.edges.has(vertex.id, dest.id)) edge = this.edges.get(vertex.id, dest.id)!;
-				else this.edges.set(vertex.id, dest.id, edge = new StateEdge(vertex.getPosition(), dest.getPosition()));
-				edge.addTransition(trans.toEdgeString());
-			}
-		});
-		this.edges.getB(id)?.forEach(edge => edge.setEnd(vertex.getPosition()));
+		this.edges.forEachOfA(vertex.id, edge => edge.setStart(vertex.getPosition()));
+		this.edges.forEachOfB(vertex.id, edge => edge.setEnd(vertex.getPosition()));
 	}
 
-	drawEdges(ctx: CanvasRenderingContext2D) {
-		this.edges.forEach(edge => {
-			edge.draw(ctx);
-		});
+	draw(ctx: CanvasRenderingContext2D): void {
+		this.drawEdges(ctx);
+		this.drawVertices(ctx);
 	}
 
-	drawVertices(ctx: CanvasRenderingContext2D) {
+	private drawEdges(ctx: CanvasRenderingContext2D) {
+		let topEdge: StateEdge | undefined;
+		this.edges.forEach((edge, src, dest) => {
+			if (this.hoveredEdge && this.hoveredEdge[0] == src && this.hoveredEdge[1] == dest) topEdge = edge;
+			else edge.draw(ctx);
+		});
+		topEdge?.draw(ctx);
+	}
+
+	private drawVertices(ctx: CanvasRenderingContext2D) {
 		this.vertices.forEach(v => v.draw(ctx));
 	}
 	
-	mouseTick(position: Vec2) {
-		let hovered: number | undefined;
-		for (const [id, vertex] of this.vertices.entries()) {
-			if (hovered !== undefined || position.subVec(vertex.getPosition()).magnitude > VERTEX_RADIUS) vertex.hovered = false;
-			else {
-				vertex.hovered = true;
-				hovered = id;
-			}
-		}
-		return hovered;
+	mouseTick(position: Vec2, scale: number) {
+		let hovVertex: number | undefined;
+		let hovEdge: [number, number] | undefined;
+		for (const [id, vertex] of this.vertices.entries())
+			if (vertex.isHovered(position) && hovVertex === undefined)
+				hovVertex = id;
+		for (const [src, dest, edge] of this.edges.entries())
+			if (edge.isHovered(position, scale) && hovEdge === undefined)
+				hovEdge = [src, dest];
+		this.hoveredEdge = hovEdge;
+		return hovVertex;
 	}
 }
 
