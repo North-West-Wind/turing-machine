@@ -6,6 +6,7 @@ import DesignerSimulationMachine from "./simulation/machine";
 import DesignerPropertiesEmpty from "./properties/empty";
 import DesignerPropertiesTitle from "./properties/title";
 import DesignerPropertiesEdge from "./properties/edges";
+import { Hovered } from "../../helpers/designer/graph";
 
 enum Tabs {
 	SIMULATION,
@@ -24,17 +25,17 @@ export default function DesignerSimulation(props: { onWidthChange: (factor: numb
 	}, [factor]);
 
 	const [tab, setTab] = useState(Tabs.SIMULATION);
-	const [vertex, setVertex] = useState<number | undefined>();
+	const [editing, setEditing] = useState<Hovered | undefined>();
 	const tabChanger = (tab: Tabs) => () => setTab(tab);
 
 	useEffect(() => {
-		const onVertexEdit = (ev: CustomEventInit<number>) => {
+		const onTmEdit = (ev: CustomEventInit<Hovered>) => {
 			setTab(Tabs.PROPERTIES);
-			setVertex(ev.detail);
+			setEditing(ev.detail);
 		};
 
-		window.addEventListener("tm:vertex-edit", onVertexEdit);
-		return () => window.removeEventListener("tm:vertex-edit", onVertexEdit);
+		window.addEventListener("tm:edit", onTmEdit);
+		return () => window.removeEventListener("tm:edit", onTmEdit);
 	}, []);
 
 	return <div className="designer-fill-height designer-left" style={{ width: x * (1 - factor) }}>
@@ -47,11 +48,14 @@ export default function DesignerSimulation(props: { onWidthChange: (factor: numb
 				<DesignerSimulationMachine name="M2" color="#55846a" tapes={["_c_"]} />
 			</>}
 			{tab == Tabs.PROPERTIES && <>
-				{vertex === undefined && <DesignerPropertiesEmpty />}
-				{vertex !== undefined && <>
-					<DesignerPropertiesTitle id={vertex} />
-					<DesignerPropertiesEdge id={vertex} out />
-					<DesignerPropertiesEdge id={vertex} />
+				{editing === undefined && <DesignerPropertiesEmpty />}
+				{editing?.type == "vertex" && <>
+					<DesignerPropertiesTitle prefix="Vertex" id={editing.id} />
+					<DesignerPropertiesEdge id={editing.id} out />
+					<DesignerPropertiesEdge id={editing.id} />
+				</>}
+				{editing?.type == "rect" && <>
+					<DesignerPropertiesTitle prefix="Box" id={editing.id} />
 				</>}
 			</>}
 			<div className="designer-simulation-tab">

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Vec2 } from "../../helpers/designer/math";
-import graph from "../../helpers/designer/graph";
+import graph, { Hovered, StateRect } from "../../helpers/designer/graph";
 import DesignerGraphControl from "./graph/control";
 
 const LEFT_CLICK = 0;
@@ -19,9 +19,9 @@ let cursorPosition = Vec2.ZERO;
 let scale = 1;
 
 // movement logic properties
-let hovered: number | undefined;
-let grabbed: number | undefined;
-let lastGrabbed = { time: Date.now(), id: undefined as (typeof grabbed) };
+let hovered: Hovered | undefined;
+let grabbed: Hovered | undefined;
+let lastGrabbed = { time: Date.now(), hovered: undefined as (typeof grabbed) };
 
 export default function DesignerGraph(props: { width: number, height: number }) {
 	const ref = useRef<HTMLCanvasElement>(null);
@@ -33,7 +33,7 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 		position = cursorPosition = Vec2.ZERO;
 		scale = 1;
 		hovered = grabbed = undefined;
-		lastGrabbed = { time: Date.now(), id: undefined as (typeof grabbed) };
+		lastGrabbed = { time: Date.now(), hovered: undefined as (typeof grabbed) };
 	}, []);
 
 	useEffect(() => {
@@ -95,24 +95,55 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 			}, { once: true });
 		} else if (ev.button == LEFT_CLICK) {
 			if (hovered !== undefined) {
-				setCursor("grabbing");
-				grabbed = hovered;
+				if (hovered.type == "vertex") {
+					// vertex click handler
+					setCursor("grabbing");
+					grabbed = hovered;
+					// when mouse moves, set the vertex position to the cursor position
+					const onMouseMove = () => {
+						if (grabbed)
+							graph.getVertex(grabbed.id)?.setPosition(cursorPosition);
+					};
+	
+					window.addEventListener("mousemove", onMouseMove);
+					window.addEventListener("mouseup", () => {
+						setCursor("grab");
+						window.removeEventListener("mousemove", onMouseMove);
+						// check for double click
+						if (Date.now() - lastGrabbed.time <= DOUBLE_CLICK_WINDOW && lastGrabbed.hovered == grabbed) {
+							// if double-clicked, send a custom event to simulation.tsx
+							window.dispatchEvent(new CustomEvent("tm:edit", { detail: grabbed }));
+						}
+						lastGrabbed.time = Date.now();
+						lastGrabbed.hovered = grabbed;
+					}, { once: true });
+				} else if (hovered.type == "rect") {
+					// rect click handler
+					setCursor("grabbing");
+					grabbed = hovered;
+					window.addEventListener("mouseup", () => {
+						// check for double click
+						if (Date.now() - lastGrabbed.time <= DOUBLE_CLICK_WINDOW && lastGrabbed.hovered == grabbed) {
+							// if double-clicked, send a custom event to simulation.tsx
+							window.dispatchEvent(new CustomEvent("tm:edit", { detail: grabbed }));
+						}
+						lastGrabbed.time = Date.now();
+						lastGrabbed.hovered = grabbed;
+					}, { once: true });
+				}
+			} else if (buttonActive == Buttons.RECTANGLE) {
+				// draw a rectangle
+				const rect = new StateRect(cursorPosition, cursorPosition, Math.floor(16777216 * Math.random()));
+				graph.addRect(rect);
+				// when mouse moves, set the rectangle end position to the cursor position
 				const onMouseMove = () => {
-					if (grabbed)
-						graph.getVertex(grabbed)?.setPosition(cursorPosition);
+					rect.setEnd(cursorPosition);
 				};
 
 				window.addEventListener("mousemove", onMouseMove);
 				window.addEventListener("mouseup", () => {
-					setCursor("grab");
 					window.removeEventListener("mousemove", onMouseMove);
-					// check for double click
-					if (Date.now() - lastGrabbed.time <= DOUBLE_CLICK_WINDOW) {
-						window.dispatchEvent(new CustomEvent("tm:vertex-edit", { detail: grabbed }));
-					}
-					lastGrabbed.time = Date.now();
-					lastGrabbed.id = grabbed;
-				}, { once: true });
+				});
 			}
 		}
 	};

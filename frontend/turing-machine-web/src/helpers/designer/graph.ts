@@ -5,6 +5,11 @@ import { CommonNumbers, Vec2 } from "./math";
 const VERTEX_RADIUS = 20;
 const EDGE_HITBOX = 10;
 
+export type Hovered = {
+	type: "vertex" | "rect";
+	id: number;
+}
+
 export class StateTransition {
 	readonly destination: number;
 	readonly read: string;
@@ -191,10 +196,53 @@ export class StateEdge implements IDrawable, IHoverable {
 	}
 }
 
+export class StateRect implements IDrawable, IHoverable {
+	private start: Vec2;
+	private end: Vec2;
+	private size: Vec2;
+	private color: number;
+	hovered = false;
+
+	constructor(start: Vec2, end: Vec2, color: number) {
+		this.start = start;
+		this.end = end;
+		this.size = this.end.subVec(this.start);
+		this.color = color;
+	}
+
+	setStart(start: Vec2) {
+		this.start = start;
+		this.size = this.end.subVec(this.start);
+	}
+
+	setEnd(end: Vec2) {
+		this.end = end;
+		this.size = this.end.subVec(this.start);
+	}
+
+	draw(ctx: CanvasRenderingContext2D) {
+		ctx.fillStyle = `#${this.color.toString(16).padStart(6, "0")}`;
+		ctx.fillRect(this.start.x, this.start.y, this.size.x, this.size.y);
+	}
+
+	isHovered(position: Vec2) {
+		const offset = position.subVec(this.start);
+		const hori = this.size.scale(1, 0);
+		const vert = this.size.scale(0, 1);
+		const horiProj = offset.projectTo(hori);
+		const vertProj = offset.projectTo(vert);
+		return this.hovered = horiProj.dot(hori) > 0 && vertProj.dot(vert) > 0 && // same direction
+			horiProj.magnitudeSqr() <= this.size.x * this.size.x && // inside horizontally
+			vertProj.magnitudeSqr() <= this.size.y * this.size.y // inside vertically
+	}
+}
+
 class StateGraph implements IDrawable {
 	private vertices = new Map<number, StateVertex>();
 	private edges = new PairMap<number, number, StateEdge>;
+	private rects = new Map<number, StateRect>();
 	private hoveredEdge?: [number, number];
+	private rectCounter = 0;
 
 	addVertex(vertex: StateVertex) {
 		vertex.graph = this;
@@ -222,9 +270,18 @@ class StateGraph implements IDrawable {
 		this.edges.forEachOfB(vertex.id, edge => edge.setEnd(vertex.getPosition()));
 	}
 
+	addRect(rect: StateRect) {
+		this.rects.set(this.rectCounter++, rect);
+	}
+
 	draw(ctx: CanvasRenderingContext2D): void {
+		this.drawRects(ctx);
 		this.drawEdges(ctx);
 		this.drawVertices(ctx);
+	}
+
+	private drawRects(ctx: CanvasRenderingContext2D) {
+		this.rects.forEach(r => r.draw(ctx));
 	}
 
 	private drawEdges(ctx: CanvasRenderingContext2D) {
@@ -241,16 +298,19 @@ class StateGraph implements IDrawable {
 	}
 	
 	mouseTick(position: Vec2, scale: number) {
-		let hovVertex: number | undefined;
+		let hovered: Hovered | undefined;
 		let hovEdge: [number, number] | undefined;
 		for (const [id, vertex] of this.vertices.entries())
-			if (vertex.isHovered(position) && hovVertex === undefined)
-				hovVertex = id;
+			if (vertex.isHovered(position) && hovered === undefined)
+				hovered = { type: "vertex", id };
 		for (const [src, dest, edge] of this.edges.entries())
 			if (edge.isHovered(position, scale) && hovEdge === undefined)
 				hovEdge = [src, dest];
+		for (const [id, rect] of this.rects.entries())
+			if (rect.isHovered(position) && hovered === undefined)
+				hovered = { type: "rect", id };
 		this.hoveredEdge = hovEdge;
-		return hovVertex;
+		return hovered;
 	}
 
 	getInEdges(id: number) {
