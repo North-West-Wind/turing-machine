@@ -5,6 +5,7 @@ import DesignerGraphControl from "./graph/control";
 
 const LEFT_CLICK = 0;
 const RIGHT_CLICK = 2;
+const DOUBLE_CLICK_WINDOW = 300; // 300 ms
 
 enum Buttons {
 	NONE,
@@ -20,6 +21,7 @@ let scale = 1;
 // movement logic properties
 let hovered: number | undefined;
 let grabbed: number | undefined;
+let lastGrabbed = { time: Date.now(), id: undefined as (typeof grabbed) };
 
 export default function DesignerGraph(props: { width: number, height: number }) {
 	const ref = useRef<HTMLCanvasElement>(null);
@@ -31,6 +33,7 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 		position = cursorPosition = Vec2.ZERO;
 		scale = 1;
 		hovered = grabbed = undefined;
+		lastGrabbed = { time: Date.now(), id: undefined as (typeof grabbed) };
 	}, []);
 
 	useEffect(() => {
@@ -89,7 +92,7 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 				setCursor("grab");
 				position = position.finalize();
 				window.removeEventListener("mousemove", onMouseMove);
-			});
+			}, { once: true });
 		} else if (ev.button == LEFT_CLICK) {
 			if (hovered !== undefined) {
 				setCursor("grabbing");
@@ -103,7 +106,13 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 				window.addEventListener("mouseup", () => {
 					setCursor("grab");
 					window.removeEventListener("mousemove", onMouseMove);
-				});
+					// check for double click
+					if (Date.now() - lastGrabbed.time <= DOUBLE_CLICK_WINDOW) {
+						window.dispatchEvent(new CustomEvent("tm:vertex-edit", { detail: grabbed }));
+					}
+					lastGrabbed.time = Date.now();
+					lastGrabbed.id = grabbed;
+				}, { once: true });
 			}
 		}
 	};

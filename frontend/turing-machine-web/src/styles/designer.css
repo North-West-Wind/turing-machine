@@ -137,6 +137,29 @@
 	z-index: 1;
 }
 
+.designer-simulation-tab {
+	margin-top: auto;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.designer-simulation-tab div {
+	padding: 1vmax;
+	flex: 1;
+	transition: filter .25s ease;
+}
+
+.designer-simulation-tab div:hover {
+	cursor: pointer;
+	filter: brightness(70%);
+}
+
+.designer-simulation-tab .unselected {
+	filter: brightness(80%);
+	background-color: #11534d;
+}
+
 .designer-graph-control {
 	position: absolute;
 	top: .5vmax;
@@ -165,4 +188,51 @@
 
 .designer-graph-button.active {
 	background-color: #7f7f7f;
+}
+
+.designer-properties-section {
+	display: flex;
+	flex-direction: column;
+	text-align: left;
+}
+
+.designer-properties-section > * {
+	padding: .5vmax;
+}
+
+.designer-properties-section .header {
+	transition: filter .25s ease;
+}
+
+.designer-properties-section .header:hover {
+	cursor: pointer;
+	filter: brightness(80%);
+}
+
+.designer-properties-out {
+	background-color: #187543;
+}
+
+.designer-properties-out.header {
+	background-color: #1e9355;
+}
+
+.designer-properties-in {
+	background-color: #931e1e;
+}
+
+.designer-properties-in.header {
+	background-color: #b12424;
+}
+
+.designer-properties-empty {
+	font-size: 3vmax;
+	text-align: center;
+	padding: 2vmax;
+	color: #afafaf;
+}
+
+.designer-properties-title {
+	font-size: 2vmax;
+	padding: 1.5vmax;
 }

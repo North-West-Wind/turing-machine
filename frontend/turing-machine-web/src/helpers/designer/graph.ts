@@ -73,7 +73,7 @@ export class StateEdge implements IDrawable, IHoverable {
 	private start: Vec2;
 	private end: Vec2;
 	private mid?: Vec2;
-	private transitions: string[];
+	transitions: StateTransition[];
 	hovered = false;
 
 	constructor(start: Vec2, end: Vec2) {
@@ -100,7 +100,7 @@ export class StateEdge implements IDrawable, IHoverable {
 			this.mid = undefined;
 	}
 
-	addTransition(transition: string) {
+	addTransition(transition: StateTransition) {
 		this.transitions.push(transition);
 	}
 
@@ -160,7 +160,7 @@ export class StateEdge implements IDrawable, IHoverable {
 		}
 		const pos = start.addVec(offset).addVec(perpendicular.withMagnitude(10));
 		ctx.font = ` ${ctx.canvas.height / 30}px Courier New`;
-		ctx.fillText(this.transitions.join("\n"), pos.x, pos.y);
+		ctx.fillText(this.transitions.map(trans => trans.toEdgeString()).join("\n"), pos.x, pos.y);
 	}
 
 	private isSegmentHovered(position: Vec2, scale: number, a: Vec2, b: Vec2) {
@@ -206,7 +206,7 @@ class StateGraph implements IDrawable {
 				let edge: StateEdge;
 				if (this.edges.has(vertex.id, dest.id)) edge = this.edges.get(vertex.id, dest.id)!;
 				else this.edges.set(vertex.id, dest.id, edge = new StateEdge(vertex.getPosition(), dest.getPosition()));
-				edge.addTransition(trans.toEdgeString());
+				edge.addTransition(trans);
 			}
 		});
 	}
@@ -251,6 +251,14 @@ class StateGraph implements IDrawable {
 				hovEdge = [src, dest];
 		this.hoveredEdge = hovEdge;
 		return hovVertex;
+	}
+
+	getInEdges(id: number) {
+		return this.edges.getB(id);
+	}
+
+	getOutEdges(id: number) {
+		return this.edges.getA(id);
 	}
 }
 
