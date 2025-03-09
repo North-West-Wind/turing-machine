@@ -12,7 +12,7 @@ export default function DesignerPage() {
 		<DesignerSimulation onWidthChange={setRightWidth} />
 		<div className="designer-fill-height designer-fill-flex designer-right" style={{ width: rightWidth * window.innerWidth }}>
 			<DesignerConsole onHeightChange={factor => setTopHeight(1 - factor)} />
-			<DesignerGraph height={topHeight} />
+			<DesignerGraph width={rightWidth} height={topHeight} />
 		</div>
 	</div>;
 }

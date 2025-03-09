@@ -1,4 +1,4 @@
-import React, { createRef, RefObject } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Vec2 } from "../../helpers/designer/math";
 import graph from "../../helpers/designer/graph";
 import DesignerGraphControl from "./graph/control";
@@ -6,155 +6,144 @@ import DesignerGraphControl from "./graph/control";
 const LEFT_CLICK = 0;
 const RIGHT_CLICK = 2;
 
-type Props = { height: number };
-
 enum Buttons {
 	NONE,
 	TEXTBOX = "text",
 	RECTANGLE = "crosshair",
 }
 
-export default class DesignerGraph extends React.Component<Props> {
-	ref: RefObject<HTMLCanvasElement | null>;
-	observer?: ResizeObserver;
-	state: { cursor: string, buttonActive: Buttons };
+// canvas rendering properties
+let position = Vec2.ZERO;
+let cursorPosition = Vec2.ZERO;
+let scale = 1;
 
-	// canvas rendering properties
-	position = Vec2.ZERO;
-	cursorPosition = Vec2.ZERO;
-	scale = 1;
+// movement logic properties
+let hovered: number | undefined;
+let grabbed: number | undefined;
 
-	// movement logic properties
-	hovered?: number;
-	grabbed?: number;
+export default function DesignerGraph(props: { width: number, height: number }) {
+	const ref = useRef<HTMLCanvasElement>(null);
+	const [cursor, setCursor] = useState("grab");
+	const [buttonActive, setButtonActive] = useState(Buttons.NONE);
 
-	constructor(props: Props) {
-		super(props);
-		this.ref = createRef<HTMLCanvasElement>();
-		this.state = { cursor: "grab", buttonActive: Buttons.NONE };
-	}
+	useEffect(() => {
+		// reset properties outside function
+		position = cursorPosition = Vec2.ZERO;
+		scale = 1;
+		hovered = grabbed = undefined;
+	}, []);
 
-	componentDidMount() {
-		this.observer = new ResizeObserver(this.onCanvasResize.bind(this));
-		const canvas = this.ref.current;
+	useEffect(() => {
+		const canvas = ref.current;
+		if (canvas) {
+			canvas.width = props.width * window.innerWidth;
+			canvas.height = props.height * window.innerHeight;
+		}
+	}, [props.width, props.height]);
+
+	useEffect(() => {
+		const draw = () => {
+			const ctx = ref.current?.getContext("2d");
+			if (!ctx) return;
+	
+			// fill background
+			ctx.fillStyle = "#232323";
+			ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+			
+			// draw graph
+			ctx.scale(scale, scale);
+			ctx.translate(position.x, position.y);
+			graph.draw(ctx);
+			ctx.resetTransform();
+	
+			// draw overlays (pos, scale)
+			ctx.fillStyle = "#fff";
+			ctx.font = ` ${ctx.canvas.height / 30}px Courier New`;
+			ctx.textAlign = "left";
+			ctx.textBaseline = "top";
+			ctx.fillText(`Pos: ${position.toString()} Cur: ${cursorPosition.toString()} Zoom: ${Math.round(scale * 100)}%`, 10, 10);
+	
+			requestAnimationFrame(draw);
+		};
+
+		const canvas = ref.current;
 		if (canvas) {
 			canvas.width = canvas.clientWidth;
 			canvas.height = canvas.clientHeight;
-			this.observer.observe(canvas);
 
-			this.draw();
+			draw();
 		}
-	}
-
-	componentWillUnmount() {
-		if (this.observer) this.observer.disconnect();
-	}
-
-	private onCanvasResize() {
-		const canvas = this.ref.current;
-		if (canvas) {
-			canvas.width = canvas.clientWidth;
-			canvas.height = canvas.clientHeight;
-		}
-	}
-
-	private draw() {
-		const ctx = this.ref.current?.getContext("2d");
-		if (!ctx) return;
-
-		// fill background
-		ctx.fillStyle = "#232323";
-		ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-		
-		// draw graph
-		ctx.scale(this.scale, this.scale);
-		ctx.translate(this.position.x, this.position.y);
-		graph.draw(ctx);
-		ctx.resetTransform();
-
-		// draw overlays (pos, scale)
-		ctx.fillStyle = "#fff";
-		ctx.font = ` ${ctx.canvas.height / 30}px Courier New`;
-		ctx.textAlign = "left";
-		ctx.textBaseline = "top";
-		ctx.fillText(`Pos: ${this.position.toString()} Cur: ${this.cursorPosition.toString()} Zoom: ${Math.round(this.scale * 100)}%`, 10, 10);
-
-		requestAnimationFrame(this.draw.bind(this));
-	}
+	}, []);
 
 	// used to track grabbing
-	private onMouseDown(ev: React.MouseEvent) {
+	const onMouseDown = (ev: React.MouseEvent) => {
 		if (ev.button == RIGHT_CLICK) {
-			this.setState({ cursor: "grabbing" });
+			setCursor("grabbing");
 			const startPos = new Vec2(ev.clientX, ev.clientY);
 			const onMouseMove = (ev: MouseEvent) => {
-				this.position = this.position.offset((ev.clientX - startPos.x) / this.scale, (ev.clientY - startPos.y) / this.scale);
+				position = position.offset((ev.clientX - startPos.x) / scale, (ev.clientY - startPos.y) / scale);
 			};
 
 			window.addEventListener("mousemove", onMouseMove);
 			window.addEventListener("mouseup", () => {
-				this.setState({ cursor: "grab" });
-				this.position = this.position.finalize();
+				setCursor("grab");
+				position = position.finalize();
 				window.removeEventListener("mousemove", onMouseMove);
 			});
 		} else if (ev.button == LEFT_CLICK) {
-			if (this.hovered !== undefined) {
-				this.setState({ cursor: "grabbing" });
-				this.grabbed = this.hovered;
+			if (hovered !== undefined) {
+				setCursor("grabbing");
+				grabbed = hovered;
 				const onMouseMove = () => {
-					if (this.grabbed)
-						graph.getVertex(this.grabbed)?.setPosition(this.cursorPosition);
+					if (grabbed)
+						graph.getVertex(grabbed)?.setPosition(cursorPosition);
 				};
 
 				window.addEventListener("mousemove", onMouseMove);
 				window.addEventListener("mouseup", () => {
-					this.setState({ cursor: "grab" });
+					setCursor("grab");
 					window.removeEventListener("mousemove", onMouseMove);
 				});
 			}
 		}
-	}
+	};
 
 	// used to track cursor position
-	private onMouseMove(ev: React.MouseEvent) {
-		const canvas = this.ref.current;
+	const onMouseMove = (ev: React.MouseEvent) => {
+		const canvas = ref.current;
 		if (!canvas) return;
 		const clientCursorPosition = new Vec2(ev.clientX - canvas.offsetLeft, ev.clientY - canvas.offsetTop);
-		this.cursorPosition = clientCursorPosition.scale(1 / this.scale).subVec(this.position);
-		this.hovered = graph.mouseTick(this.cursorPosition, this.scale);
-	}
+		cursorPosition = clientCursorPosition.scale(1 / scale).subVec(position);
+		hovered = graph.mouseTick(cursorPosition, scale);
+	};
 
-	private onWheel(ev: React.WheelEvent) {
-		const offset = this.position.inv().subVec(this.cursorPosition);
-		this.position = this.position.addVec(offset.scale(1 / this.scale));
-		this.scale -= ev.deltaY / 4000;
-		this.position = this.position.subVec(offset.scale(1 / this.scale));
-	}
+	const onWheel = (ev: React.WheelEvent) => {
+		const offset = position.inv().subVec(cursorPosition);
+		position = position.addVec(offset.scale(1 / scale));
+		scale -= ev.deltaY / 4000;
+		position = position.addVec(offset.scale(1 / scale));
+	};
 
-	render() {
-		const controlStateSetter = (button: Buttons) => (() => {
-			this.setState({
-				buttonActive: this.state.buttonActive != button ? button : Buttons.NONE,
-				cursor: this.state.buttonActive == Buttons.NONE ? button : "grab"
-			});
-		});
+	const controlStateSetter = (button: Buttons) => (() => {
+		setButtonActive(buttonActive != button ? button : Buttons.NONE);
+		setCursor(buttonActive == Buttons.NONE ? button as string : "grab");
+	});
 
-		return <>
-			<canvas
-				ref={this.ref}
-				className="designer-fill-flex"
-				style={{ height: this.props.height * window.innerHeight, cursor: this.state.cursor }}
-				onMouseDown={this.onMouseDown.bind(this)}
-				onMouseMove={this.onMouseMove.bind(this)}
-				onContextMenu={(e) => e.preventDefault()}
-				onWheel={this.onWheel.bind(this)}
-			/>
-			<DesignerGraphControl
-				text={this.state.buttonActive == Buttons.TEXTBOX}
-				rect={this.state.buttonActive == Buttons.RECTANGLE}
-				onText={controlStateSetter(Buttons.TEXTBOX)}
-				onRect={controlStateSetter(Buttons.RECTANGLE)}
-			/>
-		</>;
-	}
+	return <>
+		<canvas
+			ref={ref}
+			className="designer-fill-flex"
+			style={{ height: props.height * window.innerHeight, cursor }}
+			onMouseDown={onMouseDown}
+			onMouseMove={onMouseMove}
+			onContextMenu={(e) => e.preventDefault()}
+			onWheel={onWheel}
+		/>
+		<DesignerGraphControl
+			text={buttonActive == Buttons.TEXTBOX}
+			rect={buttonActive == Buttons.RECTANGLE}
+			onText={controlStateSetter(Buttons.TEXTBOX)}
+			onRect={controlStateSetter(Buttons.RECTANGLE)}
+		/>
+	</>;
 }

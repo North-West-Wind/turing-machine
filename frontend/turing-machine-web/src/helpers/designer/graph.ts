@@ -159,6 +159,7 @@ export class StateEdge implements IDrawable, IHoverable {
 			else ctx.textBaseline = "bottom"; // vector points up
 		}
 		const pos = start.addVec(offset).addVec(perpendicular.withMagnitude(10));
+		ctx.font = ` ${ctx.canvas.height / 30}px Courier New`;
 		ctx.fillText(this.transitions.join("\n"), pos.x, pos.y);
 	}
 

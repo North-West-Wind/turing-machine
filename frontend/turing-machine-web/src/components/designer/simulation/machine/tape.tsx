@@ -9,7 +9,7 @@ export default function DesignerSimulationMachineTape(props: { values: string })
 	for (let ii = 0; ii < tape.length; ii++) {
 		let char = tape.charAt(ii);
 		if (char == "_") char = "";
-		cell.push(<div className={"designer-simulation-cell" + (ii == 3 ? " head" : "")}>{char}</div>)
+		cell.push(<div className={"designer-simulation-cell" + (ii == 3 ? " head" : "")} key={ii}>{char}</div>)
 	}
 
 	return <div className="designer-simulation-tape">
