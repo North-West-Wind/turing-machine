@@ -60,6 +60,7 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 			ctx.resetTransform();
 	
 			// draw overlays (pos, scale)
+			graph.drawOverlay(ctx, cursorPosition);
 			ctx.fillStyle = "#fff";
 			ctx.font = ` ${ctx.canvas.height / 30}px Courier New`;
 			ctx.textAlign = "left";

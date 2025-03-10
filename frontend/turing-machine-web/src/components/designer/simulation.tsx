@@ -7,6 +7,7 @@ import DesignerPropertiesEmpty from "./properties/empty";
 import DesignerPropertiesTitle from "./properties/title";
 import DesignerPropertiesEdge from "./properties/edges";
 import { Hovered } from "../../helpers/designer/graph";
+import DesignerPropertiesLabel from "./properties/label";
 
 enum Tabs {
 	SIMULATION,
@@ -51,6 +52,7 @@ export default function DesignerSimulation(props: { onWidthChange: (factor: numb
 				{editing === undefined && <DesignerPropertiesEmpty />}
 				{editing?.type == "vertex" && <>
 					<DesignerPropertiesTitle prefix="Vertex" id={editing.id} />
+					<DesignerPropertiesLabel id={editing} />
 					<DesignerPropertiesEdge id={editing.id} out />
 					<DesignerPropertiesEdge id={editing.id} />
 				</>}

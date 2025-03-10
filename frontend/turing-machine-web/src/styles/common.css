@@ -1,0 +1,15 @@
+.editable-box {
+	margin-left: .5vmax;
+	background-color: #333;
+	transition: background-color .25s ease;
+	border: none;
+}
+
+.editable-box.stable {
+	background-color: transparent;
+	outline: none;
+}
+
+.editable-box:focus-visible {
+	outline: none;
+}

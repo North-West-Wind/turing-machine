@@ -34,6 +34,7 @@ export class StateVertex implements IDrawable, IHoverable {
 	transitions: StateTransition[] = [];
 	graph?: StateGraph;
 	hovered = false;
+	label?: string;
 
 	constructor(id: number, position: Vec2) {
 		this.id = id;
@@ -241,6 +242,7 @@ class StateGraph implements IDrawable {
 	private vertices = new Map<number, StateVertex>();
 	private edges = new PairMap<number, number, StateEdge>;
 	private rects = new Map<number, StateRect>();
+	private hovered?: Hovered;
 	private hoveredEdge?: [number, number];
 	private rectCounter = 0;
 
@@ -274,7 +276,11 @@ class StateGraph implements IDrawable {
 		this.rects.set(this.rectCounter++, rect);
 	}
 
-	draw(ctx: CanvasRenderingContext2D): void {
+	getRect(id: number) {
+		return this.rects.get(id);
+	}
+
+	draw(ctx: CanvasRenderingContext2D) {
 		this.drawRects(ctx);
 		this.drawEdges(ctx);
 		this.drawVertices(ctx);
@@ -296,21 +302,38 @@ class StateGraph implements IDrawable {
 	private drawVertices(ctx: CanvasRenderingContext2D) {
 		this.vertices.forEach(v => v.draw(ctx));
 	}
+
+	drawOverlay(ctx: CanvasRenderingContext2D, cursorPosition: Vec2) {
+		if (this.hovered?.type == "vertex") {
+			const vertex = this.vertices.get(this.hovered.id);
+			if (vertex?.label) {
+				const size = ctx.canvas.height / 30;
+				ctx.font = `${size}px Courier New`;
+				ctx.fillStyle = "#333333";
+				const width = ctx.measureText(vertex.label).width;
+				ctx.fillRect(cursorPosition.x, cursorPosition.y, width + size, size * 2);
+				ctx.textAlign = "left";
+				ctx.textBaseline = "top";
+				ctx.fillStyle = "#fff";
+				ctx.fillText(vertex.label, cursorPosition.x + size * 0.5, cursorPosition.y + size * 0.5);
+			}
+		}
+	}
 	
 	mouseTick(position: Vec2, scale: number) {
-		let hovered: Hovered | undefined;
+		this.hovered = undefined;
 		let hovEdge: [number, number] | undefined;
 		for (const [id, vertex] of this.vertices.entries())
-			if (vertex.isHovered(position) && hovered === undefined)
-				hovered = { type: "vertex", id };
+			if (vertex.isHovered(position) && this.hovered === undefined)
+				this.hovered = { type: "vertex", id };
 		for (const [src, dest, edge] of this.edges.entries())
 			if (edge.isHovered(position, scale) && hovEdge === undefined)
 				hovEdge = [src, dest];
 		for (const [id, rect] of this.rects.entries())
-			if (rect.isHovered(position) && hovered === undefined)
-				hovered = { type: "rect", id };
+			if (rect.isHovered(position) && this.hovered === undefined)
+				this.hovered = { type: "rect", id };
 		this.hoveredEdge = hovEdge;
-		return hovered;
+		return this.hovered;
 	}
 
 	getInEdges(id: number) {

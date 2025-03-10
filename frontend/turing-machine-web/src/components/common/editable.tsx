@@ -1,0 +1,29 @@
+import React, { useRef, useState } from "react"
+import "../../styles/common.css";
+
+export default function EditableBox(props: { value: string, onCommit: (value: string) => void }) {
+	const ref = useRef<HTMLInputElement>(null);
+	const [value, setValue] = useState(props.value);
+	const [edit, setEdit] = useState(false);
+
+	const onKeyDown = (ev: React.KeyboardEvent) => {
+		if (ev.key == "Enter") {
+			props.onCommit(value);
+			setEdit(false);
+			ref.current?.blur();
+		}
+	};
+
+	const onMouseDown = (ev: React.MouseEvent) => {
+		if (ev.button == 0) setEdit(true);
+	};
+
+	return <input
+		className={`editable-box ${edit ? "" : "stable"}`}
+		value={value}
+		onChange={ev => setValue(ev.currentTarget.value)}
+		onKeyDown={onKeyDown}
+		onMouseDown={onMouseDown}
+		onBlur={() => setEdit(false)}
+	/>;
+}

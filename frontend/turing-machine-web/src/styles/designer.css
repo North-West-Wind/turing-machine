@@ -236,3 +236,7 @@
 	font-size: 2vmax;
 	padding: 1.5vmax;
 }
+
+.designer-properties-label {
+	background-color: rgb(19, 159, 159);
+}
