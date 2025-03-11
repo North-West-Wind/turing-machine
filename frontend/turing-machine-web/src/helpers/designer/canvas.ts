@@ -4,6 +4,10 @@ export interface IDrawable {
 	draw(ctx: CanvasRenderingContext2D, scale: number): void;
 }
 
+export interface IDrawableOverlay {
+	drawOverlay(ctx: CanvasRenderingContext2D, cursorPosition: Vec2): void;
+}
+
 export interface IHoverable {
 	hovered: boolean;
 

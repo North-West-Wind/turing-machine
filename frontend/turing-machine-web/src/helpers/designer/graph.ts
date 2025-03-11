@@ -1,5 +1,5 @@
 import { PairMap } from "../structure/pair-map";
-import { IDrawable, IHoverable } from "./canvas";
+import { IDrawable, IDrawableOverlay, IHoverable } from "./canvas";
 import { CommonNumbers, Vec2 } from "./math";
 
 const VERTEX_RADIUS = 20;
@@ -28,13 +28,13 @@ export class StateTransition {
 	}
 }
 
-export class StateVertex implements IDrawable, IHoverable {
+export class StateVertex implements IDrawable, IDrawableOverlay, IHoverable {
 	readonly id: number;
 	private position: Vec2;
 	transitions: StateTransition[] = [];
 	graph?: StateGraph;
 	hovered = false;
-	label?: string;
+	private label?: string;
 
 	constructor(id: number, position: Vec2) {
 		this.id = id;
@@ -56,6 +56,15 @@ export class StateVertex implements IDrawable, IHoverable {
 		this.graph?.updateVertex(this.id);
 	}
 
+	getLabel() {
+		return this.label;
+	}
+
+	setLabel(label?: string) {
+		this.label = label;
+		return true;
+	}
+
 	draw(ctx: CanvasRenderingContext2D) {
 		if (this.hovered) ctx.fillStyle = "#fff";
 		else ctx.fillStyle = "#7f7f7f";
@@ -68,6 +77,20 @@ export class StateVertex implements IDrawable, IHoverable {
 		ctx.textBaseline = "middle";
 		ctx.textAlign = "center";
 		ctx.fillText(this.id.toString(), this.position.x, this.position.y);
+	}
+
+	drawOverlay(ctx: CanvasRenderingContext2D, cursorPosition: Vec2) {
+		if (this.hovered && this.label) {
+			const size = ctx.canvas.height / 30;
+			ctx.font = `${size}px Courier New`;
+			ctx.fillStyle = "#333333";
+			const width = ctx.measureText(this.label).width;
+			ctx.fillRect(cursorPosition.x, cursorPosition.y, width + size, size * 2);
+			ctx.textAlign = "left";
+			ctx.textBaseline = "top";
+			ctx.fillStyle = "#fff";
+			ctx.fillText(this.label, cursorPosition.x + size * 0.5, cursorPosition.y + size * 0.5);
+		}
 	}
 
 	isHovered(position: Vec2) {
@@ -201,14 +224,15 @@ export class StateRect implements IDrawable, IHoverable {
 	private start: Vec2;
 	private end: Vec2;
 	private size: Vec2;
-	private color: number;
+	private color: string;
 	hovered = false;
 
-	constructor(start: Vec2, end: Vec2, color: number) {
+	constructor(start: Vec2, end: Vec2, color: number | string) {
 		this.start = start;
 		this.end = end;
 		this.size = this.end.subVec(this.start);
-		this.color = color;
+		if (typeof color == "string") this.color = color;
+		else this.color = color.toString(16).padStart(6, "0");
 	}
 
 	setStart(start: Vec2) {
@@ -221,8 +245,24 @@ export class StateRect implements IDrawable, IHoverable {
 		this.size = this.end.subVec(this.start);
 	}
 
+	getColor() {
+		return this.color;
+	}
+
+	setColor(color: number | string) {
+		const old = this.color;
+		if (typeof color == "string") this.color = color;
+		else this.color = color.toString(16).padStart(6, "0");
+
+		if (!/^[0-9a-fA-F]{6}$/.test(this.color)) {
+			this.color = old;
+			return false;
+		}
+		return true;
+	}
+
 	draw(ctx: CanvasRenderingContext2D) {
-		ctx.fillStyle = `#${this.color.toString(16).padStart(6, "0")}`;
+		ctx.fillStyle = `#${this.color}`;
 		ctx.fillRect(this.start.x, this.start.y, this.size.x, this.size.y);
 	}
 
@@ -238,7 +278,7 @@ export class StateRect implements IDrawable, IHoverable {
 	}
 }
 
-class StateGraph implements IDrawable {
+class StateGraph implements IDrawable, IDrawableOverlay {
 	private vertices = new Map<number, StateVertex>();
 	private edges = new PairMap<number, number, StateEdge>;
 	private rects = new Map<number, StateRect>();
@@ -304,20 +344,7 @@ class StateGraph implements IDrawable {
 	}
 
 	drawOverlay(ctx: CanvasRenderingContext2D, cursorPosition: Vec2) {
-		if (this.hovered?.type == "vertex") {
-			const vertex = this.vertices.get(this.hovered.id);
-			if (vertex?.label) {
-				const size = ctx.canvas.height / 30;
-				ctx.font = `${size}px Courier New`;
-				ctx.fillStyle = "#333333";
-				const width = ctx.measureText(vertex.label).width;
-				ctx.fillRect(cursorPosition.x, cursorPosition.y, width + size, size * 2);
-				ctx.textAlign = "left";
-				ctx.textBaseline = "top";
-				ctx.fillStyle = "#fff";
-				ctx.fillText(vertex.label, cursorPosition.x + size * 0.5, cursorPosition.y + size * 0.5);
-			}
-		}
+		this.vertices.forEach(v => v.drawOverlay(ctx, cursorPosition));
 	}
 	
 	mouseTick(position: Vec2, scale: number) {

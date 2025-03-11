@@ -6,8 +6,8 @@ import DesignerSimulationMachine from "./simulation/machine";
 import DesignerPropertiesEmpty from "./properties/empty";
 import DesignerPropertiesTitle from "./properties/title";
 import DesignerPropertiesEdge from "./properties/edges";
-import { Hovered } from "../../helpers/designer/graph";
-import DesignerPropertiesLabel from "./properties/label";
+import { Hovered, StateRect, StateVertex } from "../../helpers/designer/graph";
+import DesignerPropertiesText from "./properties/text";
 
 enum Tabs {
 	SIMULATION,
@@ -51,13 +51,14 @@ export default function DesignerSimulation(props: { onWidthChange: (factor: numb
 			{tab == Tabs.PROPERTIES && <>
 				{editing === undefined && <DesignerPropertiesEmpty />}
 				{editing?.type == "vertex" && <>
-					<DesignerPropertiesTitle prefix="Vertex" id={editing.id} />
-					<DesignerPropertiesLabel id={editing} />
+					<DesignerPropertiesTitle id={editing.id} prefix="Vertex" />
+					<DesignerPropertiesText id={editing} prefix="Label" getValue={thing => (thing as StateVertex).getLabel() || ""} onCommit={(thing, value) => (thing as StateVertex).setLabel(value)} />
 					<DesignerPropertiesEdge id={editing.id} out />
 					<DesignerPropertiesEdge id={editing.id} />
 				</>}
 				{editing?.type == "rect" && <>
 					<DesignerPropertiesTitle prefix="Box" id={editing.id} />
+					<DesignerPropertiesText id={editing} prefix="Color" getValue={thing => (thing as StateRect).getColor()} onCommit={(thing, value) => (thing as StateRect).setColor(value)} />
 				</>}
 			</>}
 			<div className="designer-simulation-tab">

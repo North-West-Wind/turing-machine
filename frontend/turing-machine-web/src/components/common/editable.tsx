@@ -1,10 +1,14 @@
-import React, { useRef, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import "../../styles/common.css";
 
 export default function EditableBox(props: { value: string, onCommit: (value: string) => void }) {
 	const ref = useRef<HTMLInputElement>(null);
 	const [value, setValue] = useState(props.value);
 	const [edit, setEdit] = useState(false);
+
+	useEffect(() => {
+		setValue(props.value);
+	}, [props.value]);
 
 	const onKeyDown = (ev: React.KeyboardEvent) => {
 		if (ev.key == "Enter") {
