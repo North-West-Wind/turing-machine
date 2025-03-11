@@ -15,7 +15,8 @@ enum Buttons {
 
 // canvas rendering properties
 let position = Vec2.ZERO;
-let cursorPosition = Vec2.ZERO;
+let cursorPosition = Vec2.ZERO; // cursor pos relative to translation
+let mousePosition = Vec2.ZERO; // cursor pos relative to window
 let scale = 1;
 
 // movement logic properties
@@ -60,7 +61,7 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 			ctx.resetTransform();
 	
 			// draw overlays (pos, scale)
-			graph.drawOverlay(ctx, cursorPosition);
+			graph.drawOverlay(ctx, mousePosition);
 			ctx.fillStyle = "#fff";
 			ctx.font = ` ${ctx.canvas.height / 30}px Courier New`;
 			ctx.textAlign = "left";
@@ -153,8 +154,8 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 	const onMouseMove = (ev: React.MouseEvent) => {
 		const canvas = ref.current;
 		if (!canvas) return;
-		const clientCursorPosition = new Vec2(ev.clientX - canvas.offsetLeft, ev.clientY - canvas.offsetTop);
-		cursorPosition = clientCursorPosition.scale(1 / scale).subVec(position);
+		mousePosition = new Vec2(ev.clientX - canvas.offsetLeft, ev.clientY - canvas.offsetTop);
+		cursorPosition = mousePosition.scale(1 / scale).subVec(position);
 		hovered = graph.mouseTick(cursorPosition, scale);
 	};
 

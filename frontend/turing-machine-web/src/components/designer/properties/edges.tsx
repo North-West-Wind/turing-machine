@@ -1,14 +1,14 @@
 import { JSX, useState } from "react";
-import graph from "../../../helpers/designer/graph";
+import { StateEdge } from "../../../helpers/designer/graph";
 
-export default function DesignerPropertiesEdge(props: { id: number, out?: boolean }) {
+export default function DesignerPropertiesEdge(props: { edges: Iterable<[number, StateEdge]>, out?: boolean }) {
 	const [collapsed, setCollapsed] = useState(false);
 
 	const baseClassName = `designer-properties-${props.out ? "out" : "in"}`;
 	const toFrom = props.out ? "To" : "From";
 
 	const list: JSX.Element[] = [];
-	for (const [id, edge] of (props.out ? graph.getOutEdges(props.id) : graph.getInEdges(props.id))?.entries() || []) {
+	for (const [id, edge] of props.edges) {
 		let inner: string;
 		if (edge.transitions.length == 1) {
 			const trans = edge.transitions[0];

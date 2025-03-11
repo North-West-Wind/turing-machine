@@ -5,7 +5,7 @@ export interface IDrawable {
 }
 
 export interface IDrawableOverlay {
-	drawOverlay(ctx: CanvasRenderingContext2D, cursorPosition: Vec2): void;
+	drawOverlay(ctx: CanvasRenderingContext2D, mousePosition: Vec2): void;
 }
 
 export interface IHoverable {

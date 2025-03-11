@@ -54,6 +54,8 @@ export class StateVertex implements IDrawable, IDrawableOverlay, IHoverable {
 	setPosition(position: Vec2) {
 		this.position = position;
 		this.graph?.updateVertex(this.id);
+		window.dispatchEvent(new Event("tm:edit-prop"));
+		return true;
 	}
 
 	getLabel() {
@@ -79,17 +81,17 @@ export class StateVertex implements IDrawable, IDrawableOverlay, IHoverable {
 		ctx.fillText(this.id.toString(), this.position.x, this.position.y);
 	}
 
-	drawOverlay(ctx: CanvasRenderingContext2D, cursorPosition: Vec2) {
+	drawOverlay(ctx: CanvasRenderingContext2D, mousePosition: Vec2) {
 		if (this.hovered && this.label) {
 			const size = ctx.canvas.height / 30;
 			ctx.font = `${size}px Courier New`;
 			ctx.fillStyle = "#333333";
 			const width = ctx.measureText(this.label).width;
-			ctx.fillRect(cursorPosition.x, cursorPosition.y, width + size, size * 2);
+			ctx.fillRect(mousePosition.x, mousePosition.y, width + size, size * 2);
 			ctx.textAlign = "left";
 			ctx.textBaseline = "top";
 			ctx.fillStyle = "#fff";
-			ctx.fillText(this.label, cursorPosition.x + size * 0.5, cursorPosition.y + size * 0.5);
+			ctx.fillText(this.label, mousePosition.x + size * 0.5, mousePosition.y + size * 0.5);
 		}
 	}
 
@@ -235,14 +237,26 @@ export class StateRect implements IDrawable, IHoverable {
 		else this.color = color.toString(16).padStart(6, "0");
 	}
 
+	getStart() {
+		return this.start;
+	}
+
 	setStart(start: Vec2) {
 		this.start = start;
 		this.size = this.end.subVec(this.start);
+		window.dispatchEvent(new Event("tm:edit-prop"));
+		return true;
+	}
+
+	getEnd() {
+		return this.end;
 	}
 
 	setEnd(end: Vec2) {
 		this.end = end;
 		this.size = this.end.subVec(this.start);
+		window.dispatchEvent(new Event("tm:edit-prop"));
+		return true;
 	}
 
 	getColor() {
@@ -343,8 +357,8 @@ class StateGraph implements IDrawable, IDrawableOverlay {
 		this.vertices.forEach(v => v.draw(ctx));
 	}
 
-	drawOverlay(ctx: CanvasRenderingContext2D, cursorPosition: Vec2) {
-		this.vertices.forEach(v => v.drawOverlay(ctx, cursorPosition));
+	drawOverlay(ctx: CanvasRenderingContext2D, mousePosition: Vec2) {
+		this.vertices.forEach(v => v.drawOverlay(ctx, mousePosition));
 	}
 	
 	mouseTick(position: Vec2, scale: number) {

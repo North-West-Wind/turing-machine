@@ -240,3 +240,11 @@
 .designer-properties-label {
 	background-color: rgb(19, 159, 159);
 }
+
+.designer-properties-vec2 {
+	background-color: #483290;
+}
+
+.designer-properties-vec2.header {
+	background-color: #5e41bd;
+}

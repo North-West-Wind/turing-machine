@@ -6,8 +6,9 @@ import DesignerSimulationMachine from "./simulation/machine";
 import DesignerPropertiesEmpty from "./properties/empty";
 import DesignerPropertiesTitle from "./properties/title";
 import DesignerPropertiesEdge from "./properties/edges";
-import { Hovered, StateRect, StateVertex } from "../../helpers/designer/graph";
+import graph, { Hovered, StateEdge } from "../../helpers/designer/graph";
 import DesignerPropertiesText from "./properties/text";
+import DesignerPropertiesVec2 from "./properties/vec2";
 
 enum Tabs {
 	SIMULATION,
@@ -36,31 +37,57 @@ export default function DesignerSimulation(props: { onWidthChange: (factor: numb
 		};
 
 		window.addEventListener("tm:edit", onTmEdit);
-		return () => window.removeEventListener("tm:edit", onTmEdit);
+		return () => {
+			window.removeEventListener("tm:edit", onTmEdit);
+		}
 	}, []);
 
-	return <div className="designer-fill-height designer-left" style={{ width: x * (1 - factor) }}>
-		<DesignerResizer vertical onChangeProportion={change => setFactor(initFactor - change)} onSettle={change => setInitFactor(initFactor - change)} />
-		<div className="designer-fill-flex designer-simulation">
-			{tab == Tabs.SIMULATION && <>
+	let innerSimulation = <></>;
+	switch (tab) {
+		case Tabs.SIMULATION:
+			innerSimulation = <>
 				<DesignerSimulationController paused />
 				{/* Currently hardcoded for testing purposes. Need to integrate with logic components later */}
 				<DesignerSimulationMachine name="M1" color="#845884" tapes={["_______", "_a__ab_"]} />
 				<DesignerSimulationMachine name="M2" color="#55846a" tapes={["_c_"]} />
-			</>}
-			{tab == Tabs.PROPERTIES && <>
-				{editing === undefined && <DesignerPropertiesEmpty />}
-				{editing?.type == "vertex" && <>
-					<DesignerPropertiesTitle id={editing.id} prefix="Vertex" />
-					<DesignerPropertiesText id={editing} prefix="Label" getValue={thing => (thing as StateVertex).getLabel() || ""} onCommit={(thing, value) => (thing as StateVertex).setLabel(value)} />
-					<DesignerPropertiesEdge id={editing.id} out />
-					<DesignerPropertiesEdge id={editing.id} />
-				</>}
-				{editing?.type == "rect" && <>
-					<DesignerPropertiesTitle prefix="Box" id={editing.id} />
-					<DesignerPropertiesText id={editing} prefix="Color" getValue={thing => (thing as StateRect).getColor()} onCommit={(thing, value) => (thing as StateRect).setColor(value)} />
-				</>}
-			</>}
+			</>;
+			break;
+		case Tabs.PROPERTIES:
+			switch (editing?.type) {
+				case "vertex":
+					const vertex = graph.getVertex(editing.id);
+					if (!vertex) break;
+					const outs: [number, StateEdge][] = [], ins: [number, StateEdge][] = [];
+					graph.getOutEdges(editing.id)?.forEach((edge, dest) => outs.push([dest, edge]));
+					graph.getInEdges(editing.id)?.forEach((edge, src) => ins.push([src, edge]));
+					innerSimulation = <>
+						<DesignerPropertiesTitle value={`Vertex ${editing.id}`} />
+						<DesignerPropertiesText value={vertex.getLabel() || ""} prefix="Label" onCommit={value => vertex.setLabel(value)} />
+						<DesignerPropertiesVec2 vec={vertex.getPosition()} prefix="Position" onCommit={vec => vertex.setPosition(vec)} key={vertex.id} />
+						<DesignerPropertiesEdge edges={outs} out />
+						<DesignerPropertiesEdge edges={ins} />
+					</>;
+					break;
+				case "rect":
+					const rect = graph.getRect(editing.id);
+					if (!rect) break;
+					innerSimulation = <>
+						<DesignerPropertiesTitle value={`Box ${editing.id}`} />
+						<DesignerPropertiesText value={rect.getColor()} prefix="Color" onCommit={value => rect.setColor(value)} />
+						<DesignerPropertiesVec2 vec={rect.getStart()} prefix="Start" onCommit={vec => rect.setStart(vec)} key={editing.id} />
+						<DesignerPropertiesVec2 vec={rect.getEnd()} prefix="End" onCommit={vec => rect.setEnd(vec)} key={editing.id} />
+					</>;
+					break;
+				default:
+					innerSimulation = <DesignerPropertiesEmpty />
+			}
+			break;
+	}
+
+	return <div className="designer-fill-height designer-left" style={{ width: x * (1 - factor) }}>
+		<DesignerResizer vertical onChangeProportion={change => setFactor(initFactor - change)} onSettle={change => setInitFactor(initFactor - change)} />
+		<div className="designer-fill-flex designer-simulation">
+			{innerSimulation}
 			<div className="designer-simulation-tab">
 				<div className={tab == Tabs.SIMULATION ? "" : "unselected"} onClick={tabChanger(Tabs.SIMULATION)}>Simulation</div>
 				<div className={tab == Tabs.PROPERTIES ? "" : "unselected"} onClick={tabChanger(Tabs.PROPERTIES)}>Properties</div>

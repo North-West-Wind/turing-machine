@@ -1,3 +1,3 @@
-export default function DesignerPropertiesTitle(props: { id: number, prefix: string }) {
-	return <div className="designer-properties-title">{props.prefix} {props.id}</div>;
+export default function DesignerPropertiesTitle(props: { value: string }) {
+	return <div className="designer-properties-title">{props.value}</div>;
 }
