@@ -190,8 +190,12 @@ export class StateEdge implements IDrawable, IHoverable {
 			else ctx.textBaseline = "bottom"; // vector points up
 		}
 		const pos = start.addVec(offset).addVec(perpendicular.withMagnitude(10));
-		ctx.font = ` ${ctx.canvas.height / 30}px Courier New`;
-		ctx.fillText(this.transitions.map(trans => trans.toEdgeString()).join("\n"), pos.x, pos.y);
+		const size = ctx.canvas.height / 30;
+		ctx.font = ` ${size}px Courier New`;
+		if (perpendicular.y < 0) {
+			// special case: text is rendered above line segment
+			this.transitions.reverse().forEach((trans, ii) => ctx.fillText(trans.toEdgeString(), pos.x, pos.y - ii * size * 1.2));
+		} else this.transitions.forEach((trans, ii) => ctx.fillText(trans.toEdgeString(), pos.x, pos.y + ii * size * 1.2));
 	}
 
 	private isSegmentHovered(position: Vec2, scale: number, a: Vec2, b: Vec2) {
@@ -443,5 +447,8 @@ class StateGraph implements IDrawable, IDrawableOverlay {
 const graph = new StateGraph();
 // testing
 graph.addVertex(new StateVertex(2, new Vec2(200, 150)));
-graph.addVertex(new StateVertex(1, new Vec2(100, 200)).addTransitions(new StateTransition(2, "a", "b", "L")));
+graph.addVertex(new StateVertex(1, new Vec2(100, 200)).addTransitions(
+	new StateTransition(2, "a", "b", "L"),
+	new StateTransition(2, "b", "a", "R")
+));
 export default graph;
