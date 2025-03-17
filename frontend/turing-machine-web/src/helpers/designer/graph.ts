@@ -6,7 +6,7 @@ const VERTEX_RADIUS = 20;
 const EDGE_HITBOX = 10;
 
 export type Hovered = {
-	type: "vertex" | "rect";
+	type: "vertex" | "rect" | "text";
 	id: number;
 }
 
@@ -169,7 +169,7 @@ export class StateEdge implements IDrawable, IHoverable {
 			start = this.start;
 		} else {
 			const off1 = this.end.subVec(this.mid).scale(0.5), off2 = this.mid.subVec(this.start).scale(0.5);
-			if (off1.magnitude() > off2.magnitude()) {
+			if (off1.magnitudeSqr() > off2.magnitudeSqr()) {
 				offset = off1;
 				start = this.mid;
 			} else {
@@ -284,11 +284,60 @@ export class StateRect implements IDrawable, IHoverable {
 		const offset = position.subVec(this.start);
 		const hori = this.size.scale(1, 0);
 		const vert = this.size.scale(0, 1);
-		const horiProj = offset.projectTo(hori);
-		const vertProj = offset.projectTo(vert);
-		return this.hovered = horiProj.dot(hori) > 0 && vertProj.dot(vert) > 0 && // same direction
-			horiProj.magnitudeSqr() <= this.size.x * this.size.x && // inside horizontally
-			vertProj.magnitudeSqr() <= this.size.y * this.size.y // inside vertically
+		return this.hovered =
+			offset.dot(hori) > 0 && offset.dot(hori) <= this.size.x * this.size.x && // inside horizontally
+			offset.dot(vert) > 0 && offset.dot(vert) <= this.size.y * this.size.y // inside vertically
+	}
+}
+
+export class StateText implements IDrawable, IHoverable {
+	private value: string;
+	private position: Vec2;
+	hovered = false;
+	// properties used for determining hovered
+	private width = 0;
+	private height = 0;
+
+	constructor(value: string, position: Vec2) {
+		this.value = value;
+		this.position = position;
+	}
+
+	draw(ctx: CanvasRenderingContext2D) {
+		const size = ctx.canvas.height / 30;
+		ctx.font = `${size}px Courier New`;
+		if (this.hovered) ctx.fillStyle = "#0ff";
+		else ctx.fillStyle = "#fff";
+		ctx.textAlign = "center";
+		ctx.textBaseline = "middle";
+		ctx.fillText(this.value, this.position.x, this.position.y);
+
+		this.width = ctx.measureText(this.value).width;
+		this.height = size;
+	}
+
+	isHovered(position: Vec2) {
+		const offset = position.subVec(this.position);
+		return this.hovered = Math.abs(offset.x) <= this.width * 0.5 && Math.abs(offset.y) <= this.height * 0.5;
+	}
+
+	getValue() {
+		return this.value;
+	}
+
+	setValue(value: string) {
+		if (!value) return false;
+		this.value = value;
+		return true;
+	}
+
+	getPosition() {
+		return this.position;
+	}
+
+	setPosition(position: Vec2) {
+		this.position = position;
+		return true;
 	}
 }
 
@@ -296,9 +345,10 @@ class StateGraph implements IDrawable, IDrawableOverlay {
 	private vertices = new Map<number, StateVertex>();
 	private edges = new PairMap<number, number, StateEdge>;
 	private rects = new Map<number, StateRect>();
+	private texts = new Map<number, StateText>();
 	private hovered?: Hovered;
 	private hoveredEdge?: [number, number];
-	private rectCounter = 0;
+	private componentCounter = 0;
 
 	addVertex(vertex: StateVertex) {
 		vertex.graph = this;
@@ -327,33 +377,34 @@ class StateGraph implements IDrawable, IDrawableOverlay {
 	}
 
 	addRect(rect: StateRect) {
-		this.rects.set(this.rectCounter++, rect);
+		this.rects.set(this.componentCounter++, rect);
 	}
 
 	getRect(id: number) {
 		return this.rects.get(id);
 	}
 
+	addText(text: StateText) {
+		this.texts.set(this.componentCounter++, text);
+	}
+
+	getText(id: number) {
+		return this.texts.get(id);
+	}
+
 	draw(ctx: CanvasRenderingContext2D) {
-		this.drawRects(ctx);
-		this.drawEdges(ctx);
-		this.drawVertices(ctx);
-	}
-
-	private drawRects(ctx: CanvasRenderingContext2D) {
+		// draw rectangles
 		this.rects.forEach(r => r.draw(ctx));
-	}
-
-	private drawEdges(ctx: CanvasRenderingContext2D) {
+		// draw texts
+		this.texts.forEach(t => t.draw(ctx));
+		// draw edges
 		let topEdge: StateEdge | undefined;
 		this.edges.forEach((edge, src, dest) => {
 			if (this.hoveredEdge && this.hoveredEdge[0] == src && this.hoveredEdge[1] == dest) topEdge = edge;
 			else edge.draw(ctx);
 		});
 		topEdge?.draw(ctx);
-	}
-
-	private drawVertices(ctx: CanvasRenderingContext2D) {
+		// draw vertices
 		this.vertices.forEach(v => v.draw(ctx));
 	}
 
@@ -370,6 +421,9 @@ class StateGraph implements IDrawable, IDrawableOverlay {
 		for (const [src, dest, edge] of this.edges.entries())
 			if (edge.isHovered(position, scale) && hovEdge === undefined)
 				hovEdge = [src, dest];
+		for (const [id, text] of this.texts.entries())
+			if (text.isHovered(position) && this.hovered === undefined)
+				this.hovered = { type: "text", id };
 		for (const [id, rect] of this.rects.entries())
 			if (rect.isHovered(position) && this.hovered === undefined)
 				this.hovered = { type: "rect", id };

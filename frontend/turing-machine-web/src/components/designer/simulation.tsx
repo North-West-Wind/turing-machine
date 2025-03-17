@@ -78,6 +78,15 @@ export default function DesignerSimulation(props: { onWidthChange: (factor: numb
 						<DesignerPropertiesVec2 vec={rect.getEnd()} prefix="End" onCommit={vec => rect.setEnd(vec)} key={editing.id} />
 					</>;
 					break;
+				case "text":
+					const text = graph.getText(editing.id);
+					if (!text) break;
+					innerSimulation = <>
+						<DesignerPropertiesTitle value={`Text ${editing.id}`} />
+						<DesignerPropertiesText value={text.getValue()} prefix="Value" onCommit={value => text.setValue(value)} />
+						<DesignerPropertiesVec2 vec={text.getPosition()} prefix="Position" onCommit={vec => text.setPosition(vec)} />
+					</>;
+					break;
 				default:
 					innerSimulation = <DesignerPropertiesEmpty />
 			}

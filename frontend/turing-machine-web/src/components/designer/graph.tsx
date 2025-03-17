@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Vec2 } from "../../helpers/designer/math";
-import graph, { Hovered, StateRect } from "../../helpers/designer/graph";
+import graph, { Hovered, StateRect, StateText } from "../../helpers/designer/graph";
 import DesignerGraphControl from "./graph/control";
 
 const LEFT_CLICK = 0;
@@ -96,7 +96,27 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 				window.removeEventListener("mousemove", onMouseMove);
 			}, { once: true });
 		} else if (ev.button == LEFT_CLICK) {
-			if (hovered !== undefined) {
+			if (buttonActive == Buttons.RECTANGLE) {
+				// draw a rectangle
+				const rect = new StateRect(cursorPosition, cursorPosition, Math.floor(16777216 * Math.random()));
+				graph.addRect(rect);
+				// when mouse moves, set the rectangle end position to the cursor position
+				const onMouseMove = () => {
+					rect.setEnd(cursorPosition);
+				};
+
+				window.addEventListener("mousemove", onMouseMove);
+				window.addEventListener("mouseup", () => {
+					window.removeEventListener("mousemove", onMouseMove);
+				});
+			} else if (buttonActive == Buttons.TEXTBOX) {
+				// add a textbox
+				const res = prompt("String for the textbox:");
+				if (res) {
+					const text = new StateText(res, cursorPosition);
+					graph.addText(text);
+				}
+			} else if (hovered !== undefined) {
 				if (hovered.type == "vertex") {
 					// vertex click handler
 					setCursor("grabbing");
@@ -119,8 +139,8 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 						lastGrabbed.time = Date.now();
 						lastGrabbed.hovered = grabbed;
 					}, { once: true });
-				} else if (hovered.type == "rect") {
-					// rect click handler
+				} else {
+					// rect/textbox click handler
 					setCursor("grabbing");
 					grabbed = hovered;
 					window.addEventListener("mouseup", () => {
@@ -133,19 +153,6 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 						lastGrabbed.hovered = grabbed;
 					}, { once: true });
 				}
-			} else if (buttonActive == Buttons.RECTANGLE) {
-				// draw a rectangle
-				const rect = new StateRect(cursorPosition, cursorPosition, Math.floor(16777216 * Math.random()));
-				graph.addRect(rect);
-				// when mouse moves, set the rectangle end position to the cursor position
-				const onMouseMove = () => {
-					rect.setEnd(cursorPosition);
-				};
-
-				window.addEventListener("mousemove", onMouseMove);
-				window.addEventListener("mouseup", () => {
-					window.removeEventListener("mousemove", onMouseMove);
-				});
 			}
 		}
 	};
