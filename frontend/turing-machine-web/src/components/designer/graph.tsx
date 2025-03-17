@@ -117,6 +117,19 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 					graph.addText(text);
 				}
 			} else if (hovered !== undefined) {
+				const setupMouseUp = (extra?: () => void) => {
+					window.addEventListener("mouseup", () => {
+						if (extra) extra();
+						setCursor("grab");
+						// check for double click
+						if (Date.now() - lastGrabbed.time <= DOUBLE_CLICK_WINDOW && lastGrabbed.hovered == grabbed) {
+							// if double-clicked, send a custom event to simulation.tsx
+							window.dispatchEvent(new CustomEvent("tm:edit", { detail: grabbed }));
+						}
+						lastGrabbed.time = Date.now();
+						lastGrabbed.hovered = grabbed;
+					}, { once: true });
+				}
 				if (hovered.type == "vertex") {
 					// vertex click handler
 					setCursor("grabbing");
@@ -128,30 +141,24 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 					};
 	
 					window.addEventListener("mousemove", onMouseMove);
-					window.addEventListener("mouseup", () => {
-						setCursor("grab");
-						window.removeEventListener("mousemove", onMouseMove);
-						// check for double click
-						if (Date.now() - lastGrabbed.time <= DOUBLE_CLICK_WINDOW && lastGrabbed.hovered == grabbed) {
-							// if double-clicked, send a custom event to simulation.tsx
-							window.dispatchEvent(new CustomEvent("tm:edit", { detail: grabbed }));
-						}
-						lastGrabbed.time = Date.now();
-						lastGrabbed.hovered = grabbed;
-					}, { once: true });
-				} else {
-					// rect/textbox click handler
+					setupMouseUp(() => window.removeEventListener("mousemove", onMouseMove));
+				} else if (hovered.type == "rect") {
+					// rect click handler
 					setCursor("grabbing");
 					grabbed = hovered;
-					window.addEventListener("mouseup", () => {
-						// check for double click
-						if (Date.now() - lastGrabbed.time <= DOUBLE_CLICK_WINDOW && lastGrabbed.hovered == grabbed) {
-							// if double-clicked, send a custom event to simulation.tsx
-							window.dispatchEvent(new CustomEvent("tm:edit", { detail: grabbed }));
-						}
-						lastGrabbed.time = Date.now();
-						lastGrabbed.hovered = grabbed;
-					}, { once: true });
+					setupMouseUp();
+				} else if (hovered.type == "text") {
+					// textbox click handler
+					setCursor("grabbing");
+					grabbed = hovered;
+					// when mouse moves, set the textbox position to the cursor position
+					const onMouseMove = () => {
+						if (grabbed)
+							graph.getText(grabbed.id)?.setPosition(cursorPosition);
+					};
+	
+					window.addEventListener("mousemove", onMouseMove);
+					setupMouseUp(() => window.removeEventListener("mousemove", onMouseMove));
 				}
 			}
 		}
