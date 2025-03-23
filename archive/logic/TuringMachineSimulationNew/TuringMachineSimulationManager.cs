@@ -253,7 +253,7 @@ namespace TuringMachineSimulation.Logic
         }
 
         /// <summary>
-        /// Simulates for one steps for each machine.
+        /// Simulates one step for each machine.
         /// </summary>
         /// <exception cref="NotImplementedException"></exception>
         public static void Update()
@@ -262,7 +262,7 @@ namespace TuringMachineSimulation.Logic
             
             bool hasUpdated = false;
             
-            // For each tape, let position maps to a list of head ID
+            // For each tape, let position maps to a list of head ID, for visualization only
             List<Dictionary<int, List<Tuple<int, int>>>> headPositionsForTapes = new List<Dictionary<int, List<Tuple<int, int>>>>();
             for (int i = 0; i < _tapes.Count; i++)
             {
@@ -328,12 +328,7 @@ namespace TuringMachineSimulation.Logic
                 hasUpdated = true;
             }
             
-            if (!hasUpdated)
-            {
-                _isRunning = false;
-                Console.WriteLine("Simulation finished. Please reset the system before continuing.");
-            }
-            else
+            if (hasUpdated)
             {
                 // Update the tape contents
                 foreach (var tape in _tapes)
@@ -359,6 +354,11 @@ namespace TuringMachineSimulation.Logic
                     Console.WriteLine($"Machine {machineIndex} state: {_runningNodes[machineIndex].StateID}");
                 }
             }
+            else
+            {
+                _isRunning = false;
+                Console.WriteLine("Simulation finished. Please reset the system before continuing.");
+            }
             
             Console.WriteLine("----------------------------------------");
         }
@@ -370,38 +370,38 @@ namespace TuringMachineSimulation.Logic
         {
             var state = new SystemState();
             
-            // 1. Handle tapes with boundaries and symbols
+            // Step 1. Handle tapes with boundaries and symbols
             if (_tapes == null)
             {
                 Console.WriteLine("Warning: _tapes is null in UpdateSystemState");
                 return;
             }
 
-            for (int tapeId = 0; tapeId < _tapes.Count; tapeId++)
+            for (int tapeIndex = 0; tapeIndex < _tapes.Count; tapeIndex++)
             {
-                if (_tapes[tapeId] == null)
+                if (_tapes[tapeIndex] == null)
                     continue;
                 
-                var tape = _tapes[tapeId];
+                var tape = _tapes[tapeIndex];
                 state.Tapes.Add(new TapeState
                 {
-                    ID = tapeId,
+                    ID = tapeIndex,
                     Content = tape?.GetContentsAsString() ?? "(null)",
-                    LeftBoundary = tape?.LeftBoundary ?? -1,
-                    RightBoundary = tape?.RightBoundary ?? -1
+                    LeftBoundary = tape.LeftBoundary,
+                    RightBoundary = tape.RightBoundary
                 });
             }
 
-            // 2. Handle machines with explicit head-tape relationships
+            // Step 2. Handle machines with explicit head-tape relationships
             if (_machines == null)
             {
                 Console.WriteLine("Warning: _machines is null in UpdateSystemState");
                 return;
             }
 
-            for (int machineId = 0; machineId < _machines.Count; machineId++)
+            for (int machineIndex = 0; machineIndex < _machines.Count; machineIndex++)
             {
-                var machine = _machines[machineId];
+                var machine = _machines[machineIndex];
                 
                 if (machine == null)
                 {
@@ -411,16 +411,15 @@ namespace TuringMachineSimulation.Logic
 
                 var machineState = new MachineState
                 {
-                    ID = machineId,
-                    CurrentState = _runningNodes.Count > machineId ? 
-                        _runningNodes[machineId]?.StateID ?? -1 : -1,
+                    ID = machineIndex,
+                    CurrentState = _runningNodes[machineIndex].StateID,
                     IsHalted = machine.IsHalted
                 };
 
-                // 3. Handle heads with explicit tape references
+                // Step 3. Handle heads with explicit tape references
                 if (machine.Heads == null)
                 {
-                    Console.WriteLine($"Warning: Machine {machineId} has null Heads");
+                    Console.WriteLine($"Warning: Machine {machineIndex} has null Heads");
                 }
                 else
                 {
@@ -428,7 +427,7 @@ namespace TuringMachineSimulation.Logic
                     {
                         if (head == null)
                         {
-                            Console.WriteLine($"Warning: Machine {machineId} has null Head");
+                            Console.WriteLine($"Warning: Machine {machineIndex} has null Head");
                             continue;
                         }
 
