@@ -22,10 +22,10 @@ export default function DesignerPropertiesVec2(props: { vec: Vec2, prefix: strin
 
 	return <div className="designer-properties-section">
 		{collapsed && <div className="designer-properties-vec2 header" onClick={() => setCollapsed(false)}>
-			{props.prefix}: {vec.x.toFixed(2)}, {vec.y.toFixed(2)}
+			▶ {props.prefix}: {vec.x.toFixed(2)}, {vec.y.toFixed(2)}
 		</div>}
 		{!collapsed && <>
-			<div className="designer-properties-vec2 header" onClick={() => setCollapsed(true)}>{props.prefix}</div>
+			<div className="designer-properties-vec2 header" onClick={() => setCollapsed(true)}>▼ {props.prefix}</div>
 			<div className="designer-properties-vec2">
 				x: <EditableBox value={vec.x.toFixed(4)} onCommit={onCommit(true)} key={reset ? 1 : 0} />
 			</div>

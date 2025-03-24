@@ -11,6 +11,7 @@ enum Buttons {
 	NONE,
 	TEXTBOX = "text",
 	RECTANGLE = "crosshair",
+	EDGE = "grab"
 }
 
 // canvas rendering properties
@@ -116,6 +117,23 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 					const text = new StateText(res, cursorPosition);
 					graph.addText(text);
 				}
+			} else if (buttonActive == Buttons.EDGE) {
+				// create edge
+				if (hovered !== undefined && hovered.type == "vertex") {
+					setCursor("grabbing");
+					const edge = graph.createTmpEdge(hovered.id, cursorPosition);
+					if (!edge) return;
+					const onMouseMove = () => {
+						edge.setEnd(cursorPosition);
+					}
+
+					window.addEventListener("mousemove", onMouseMove);
+					window.addEventListener("mouseup", () => {
+						window.removeEventListener("mousemove", onMouseMove);
+						// finalize the edge
+						graph.finalizeTmpEdge(hovered?.id);
+					}, { once: true });
+				}
 			} else if (hovered !== undefined) {
 				const setupMouseUp = (extra?: () => void) => {
 					window.addEventListener("mouseup", () => {
@@ -196,10 +214,33 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 			onWheel={onWheel}
 		/>
 		<DesignerGraphControl
-			text={buttonActive == Buttons.TEXTBOX}
-			rect={buttonActive == Buttons.RECTANGLE}
-			onText={controlStateSetter(Buttons.TEXTBOX)}
-			onRect={controlStateSetter(Buttons.RECTANGLE)}
+			buttons={{
+				add: false,
+				edge: buttonActive == Buttons.EDGE,
+				text: buttonActive == Buttons.TEXTBOX,
+				rect: buttonActive == Buttons.RECTANGLE,
+			}}
+			on={key => {
+				switch (key) {
+					case "add": {
+						if (!ref.current) break;
+						graph.createVertex(position.add(ref.current.width * 0.5 / scale, ref.current.height * 0.5 / scale));
+						break;
+					}
+					case "edge": {
+						controlStateSetter(Buttons.EDGE)();
+						break;
+					}
+					case "text": {
+						controlStateSetter(Buttons.TEXTBOX)();
+						break;
+					}
+					case "rect": {
+						controlStateSetter(Buttons.RECTANGLE)();
+						break;
+					}
+				}
+			}}
 		/>
 	</>;
 }
