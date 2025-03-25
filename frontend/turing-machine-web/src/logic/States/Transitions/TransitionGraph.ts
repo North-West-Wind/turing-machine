@@ -73,7 +73,7 @@ export class TransitionValue
 export class TransitionGraph
 {
     // 
-    private _transitions: Map<TransitionKey, TransitionValue> = new Map();
+    private _transitions: Map<number, TransitionValue> = new Map();
 
     /**
      * Accepts a transition statement from UI. Add it to the graph.
@@ -96,8 +96,8 @@ export class TransitionGraph
         const value = new TransitionValue(statement.Target, headsWrites, headsMoves);
 
         // Try to add this statement. Do nothing if it already exists.
-        if (!this._transitions.has(key))
-            this._transitions.set(key, value);
+        if (!this._transitions.has(key.GetHashCode()))
+            this._transitions.set(key.GetHashCode(), value);
     }
 
     /**
@@ -107,8 +107,8 @@ export class TransitionGraph
      */
     public TryGetTransitionValue(key: TransitionKey): { success: boolean; value: TransitionValue | null }
     {
-        if (this._transitions.has(key))
-            return {success: true, value: this._transitions.get(key)!};
+        if (this._transitions.has(key.GetHashCode()))
+            return {success: true, value: this._transitions.get(key.GetHashCode())!};
         
         return {success: false, value: null};
     }
