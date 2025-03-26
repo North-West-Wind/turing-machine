@@ -1,5 +1,4 @@
-export class WriteOperation 
-{
+export class WriteOperation {
     Position: number;
     Content: string;
     MachineID: number;

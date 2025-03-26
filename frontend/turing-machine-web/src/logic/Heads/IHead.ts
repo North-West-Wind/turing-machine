@@ -1,8 +1,9 @@
 import { HeadTypes } from "./HeadTypes"
+import { ITape } from "../Tapes/ITape"
 
 export interface IHead 
 {
-    Type: HeadTypes;
+    readonly Type: HeadTypes;
     Position: number;
     TapeID: number;
 
@@ -28,7 +29,8 @@ export interface IHead
     TryWrite(content: string, machineID: number, headID: number): boolean;
 
     /**
-     *  Checks if the head is using the given tape. Implement later.
+     * Checks if the head is using the given tape.
+     * @returns True if the given ITape object is the same as the one this head is using, False otherwise.
      */
-    //IsUsesTape(): void;
+    IsUsesTape(tape: ITape): boolean;
 }

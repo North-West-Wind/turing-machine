@@ -2,10 +2,10 @@ import { TapeTypes } from "./TapeTypes"
 
 export interface ITape 
 {
+    readonly Type: TapeTypes; // Allow UIs to know which tape it is and render it correctly.
     LeftBoundary: number;
     RightBoundary: number;
-    Type: TapeTypes; // Allow UIs to know which tape it is and render it correctly.
-
+    
     /**
      * Checks whether the position is out of the tape.
      * @returns Return true if the position lies outside the boundaries, false otherwise.

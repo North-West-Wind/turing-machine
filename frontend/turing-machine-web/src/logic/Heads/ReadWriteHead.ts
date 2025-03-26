@@ -4,7 +4,11 @@ import { ITape } from "../Tapes/ITape"
 
 export class ReadWriteHead implements IHead
 {
-    public readonly Type: HeadTypes = HeadTypes.ReadWrite;
+    // Getter for the head type
+    public get Type(): HeadTypes {
+        return HeadTypes.ReadWrite;
+    }
+
     public Position: number = 0;
     public TapeID: number = 0;
 
@@ -51,5 +55,9 @@ export class ReadWriteHead implements IHead
         }
 
         return true;
+    }
+
+    public IsUsesTape(tape: ITape): boolean {
+        return tape === this._useTape;
     }
 }

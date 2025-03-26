@@ -5,17 +5,30 @@ import { TapeSymbols } from "./TapesUtilities/TapeSymbols"
 
 export class InfiniteTape implements ITape 
 {
-    public readonly Type: TapeTypes = TapeTypes.Infinite;
-    public LeftBoundary: number = 0;
-    public RightBoundary: number = 0;
+    // Getter for the tape type
+    public get Type(): TapeTypes {
+        return TapeTypes.Infinite;
+    }
+
+    private _leftBoundary: number = 0;
+    private _rightBoundary: number = 0;
+
+    // Public getters for boundaries
+    public get LeftBoundary(): number {
+        return this._leftBoundary;
+    }
+
+    public get RightBoundary(): number {
+        return this._rightBoundary;
+    }
 
     private _tape: Map<number, string> = new Map();
     private _writeQueue: WriteOperation[] = [];
 
-    constructor(leftBoundary: number = 0, RightBoundary: number = 0)
+    constructor(_leftBoundary: number = 0, _rightBoundary: number = 0)
     {
-        this.LeftBoundary = leftBoundary;
-        this.RightBoundary = RightBoundary;
+        this._leftBoundary = _leftBoundary;
+        this._rightBoundary = _rightBoundary;
     }
 
     public IsOutOfRange(): boolean 
@@ -43,6 +56,9 @@ export class InfiniteTape implements ITape
 
     public ScheduleWrite(position: number, content: string, machineID: number, headID: number): void 
     {
+        if (content.length != 1)
+            throw new RangeError("The write content must be a single character.");
+        
         for (let op of this._writeQueue)
         {
             if (op.Position == position)
@@ -89,15 +105,15 @@ export class InfiniteTape implements ITape
     public UpdateBoundaries(headPosition: number): void 
     {
         // Updates the boundaries based on how far the heads are going.
-        this.LeftBoundary = Math.min(this.LeftBoundary, headPosition);
-        this.RightBoundary = Math.max(this.RightBoundary, headPosition);
+        this._leftBoundary = Math.min(this._leftBoundary, headPosition);
+        this._rightBoundary = Math.max(this._rightBoundary, headPosition);
     }
 
     public GetContentsAsString()
     {
         let contents = "";
 
-        for (let i = this.LeftBoundary; i <= this.RightBoundary; i++) {
+        for (let i = this._leftBoundary; i <= this._rightBoundary; i++) {
             if (this._tape.has(i))
                 contents += this._tape.get(i)!; // Use non-null assertion operator (!) because we know the value exists
             else
