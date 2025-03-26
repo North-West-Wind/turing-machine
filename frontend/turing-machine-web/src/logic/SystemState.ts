@@ -1,33 +1,54 @@
 /**
  * Tape state: Content, left/right boundaries, and symbols (e.g., '_', '>', '<').
  */
-class TapeState
+export class TapeState
 {
     public ID: number = -1;
     public Content: string = "";
     public LeftBoundary: number = 0;
     public RightBoundary: number = 0;
+
+    constructor(id: number, content: string, leftBoundary: number, rightBoundary: number)
+    {
+        this.ID = id;
+        this.Content = content;
+        this.LeftBoundary = leftBoundary;
+        this.RightBoundary = rightBoundary;
+    }
 }
 
 /**
  * Head state: Position on its associated tape.
  */
-class HeadState
+export class HeadState
 {
     public TapeID: number = -1;
     public Position: number = 0;
+
+    constructor(tapeID: number, position: number)
+    {
+        this.TapeID = tapeID;
+        this.Position = position
+    }
 }
 
 /**
  * Machine state: Current state, heads (with tape references), and status.
  * Each machine has its own set of heads.
  */
-class MachineState
+export class MachineState
 {
     public ID: number = -1;
     public CurrentState: number = -1;
     public Heads: HeadState[] = [];
     public IsHalted: boolean = false;
+
+    constructor(id: number, currentState: number, isHalted: boolean)
+    {
+        this.ID = id;
+        this.CurrentState = currentState;
+        this.IsHalted = isHalted;
+    }
 }
 
 /**
