@@ -78,6 +78,7 @@ export class TransitionGraph
     /**
      * Accepts a transition statement from UI. Add it to the graph.
      * @param statement A transition statement. @see {@link TransitionStatement}
+     * @throws {RangeError} when the read or write content has length not equal to 1.
      */
     public AddTransition(statement: TransitionStatement): void
     {
@@ -87,6 +88,9 @@ export class TransitionGraph
 
         for (let headTransition of statement.Conditions)
         {
+            if (headTransition.Read.length != 1 || headTransition.Write.length != 1)
+                throw new RangeError("Read or write content has length not equal to 1.")
+
             headsReads += headTransition.Read;
             headsWrites += headTransition.Write;
             headsMoves.push(headTransition.Move);

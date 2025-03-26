@@ -52,6 +52,8 @@ export class ReadWriteHead implements IHead
             } else {
                 console.log("An unknown error occurred.");
             }
+
+            return false;
         }
 
         return true;

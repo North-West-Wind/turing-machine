@@ -98,7 +98,8 @@ export class TuringMachineSimulator
      * Adds a new Turing Machine for simulating.
      * @param config The machine configuration.
      * @returns An ID to the newly created machine.
-     * @throws when a new Turing machine is inserted during simulation.
+     * @throws {Error} when a new Turing machine is inserted during simulation.
+     * @throws {Error} when the tape referencing does not exist
      */
     public static AddMachine(config: TuringMachineConfig): number
     {
@@ -109,9 +110,13 @@ export class TuringMachineSimulator
         const newMachineID = this._nextMachineID;
 
         // Converts the tape reference to ITape objects
-        const useTapes: ITape[] = config.TapesReference
-        .map(tapeID => this._tapes[tapeID])
-        .filter((tape): tape is ITape => tape !== null && tape !== undefined);
+        const useTapes: ITape[] = config.TapesReference.map(tapeID => {
+            const tape = this._tapes[tapeID];
+            if (tape === null || tape === undefined) {
+                throw new Error(`Missing tape reference for ID: ${tapeID}`);
+            }
+            return tape;
+        });
 
         // Sets start state
         this._runningNodes.push(config.StartNode);
@@ -307,8 +312,15 @@ export class TuringMachineSimulator
             hasUpdated = true;
         }
 
-        if (!hasUpdated)
-        {
+        // Finally, update the tape contents
+        if (hasUpdated) {
+            for (let tape of this._tapes)
+            {
+                if (tape != null)
+                    tape.CommitWrite();
+            }
+        }
+        else {
             this._isRunning = false;
             console.log("Simulation finished. Please reset the system before continuing.");
         }
