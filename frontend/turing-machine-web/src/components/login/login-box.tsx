@@ -2,15 +2,16 @@ import {ChangeEvent} from 'react';
 
 interface Props {
 	BoxChange: (value: string) => void;
+	default_holder: string;
 }
   
-export default function Login_box({ BoxChange }: Props) {
+export default function LoginBox({ BoxChange, default_holder }: Props) {
 	function handleChange(event: ChangeEvent<HTMLInputElement>) {
 		BoxChange(event.target.value);
 	}
 
 	// Signal a interrupt
-	return <input type="text" onChange={handleChange} />;
+	return <input type="text" placeholder={default_holder} onChange={handleChange} /> ;
 }
 // Change event means the input even change. It contains value
 // onchange need a function. Its argument is function to change and return nothing
