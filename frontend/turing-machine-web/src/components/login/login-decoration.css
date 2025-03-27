@@ -1,0 +1,46 @@
+.commonButton {
+    width: 95px;
+    height: 50px;
+   
+    padding: 15px 6px;
+    border-radius: 30px;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    color: white;
+    
+    background: #000000;
+    border: none;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  
+}
+  
+.commonButton:hover {
+    background: #8f98cf;
+}
+
+.startButton {
+    width: 95px;
+    height: 50px;
+    font-size: 12px;
+    padding: 18px 6px;
+    border-radius: 30px;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    color: white;
+    
+    background: #000000;
+    border: none;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  
+}
+  
+.startButton:hover {
+    background: #8f98cf;
+}
+
+
+
