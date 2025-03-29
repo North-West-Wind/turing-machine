@@ -7,6 +7,12 @@ interface Props{
 	licenseKey : string;
 }
 
+interface User {
+	id: number;
+	name: string;
+
+}
+
 export default function LoginArrangement({isRegistering, user, password, licenseKey}:Props){
 	const navigate = useNavigate();
 
@@ -24,14 +30,36 @@ export default function LoginArrangement({isRegistering, user, password, license
 
 	}
 
+
+/*
+	function verify_License(licenseKey:string) {
+		fetch('http://localhost:8000/users')
+			.then(res => {
+				return res.json()
+			})
+			.then((data)=> {
+				
+				let license:User[] 
+				license = data.users;
+				
+				console.log(license[0].id) 
+				//console.log(data)
+				
+			})
+	
+	}
+*/
+
+
+
 	// ? true : false`
 	return (
 		<>
 		{
 		isRegistering ? 
-		<button onClick={function(){verify_License(licenseKey)}}>Start Register</button> 
+		<button className="commonButton" onClick={function(){verify_License(licenseKey)}}>Submit</button> 
 		:
-		<button onClick={function(){verify_Login(user, password)}}>Login</button> 
+		<button className="commonButton" onClick={function(){verify_Login(user, password)}}>Sign</button> 
 		}
 		</>
 	);
