@@ -1,4 +1,3 @@
-
 using System.Data.Common;
 using System.Security.Cryptography;
 using System.Text;
@@ -7,6 +6,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using TuringMachine.Backend.Server.Data;
 using TuringMachine.Backend.Server.Data.SqlDataModel.Progress;
+using TuringMachine.Backend.Server.Data.SqlDataModel.UserManagement;
 using TuringMachine.Backend.Server.Models.ServerResponses;
 
 namespace TuringMachine.Backend.Server
@@ -18,7 +18,7 @@ namespace TuringMachine.Backend.Server
             RSA rsa = RSA.Create();
 
             WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
-            
+
             // Add services to the container.
             builder.Services.AddAuthorization();
 
@@ -26,10 +26,10 @@ namespace TuringMachine.Backend.Server
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
             builder.Services.AddDbContext<DataContext>(options =>
-                    {
-                        options.UseSqlServer(builder.Configuration["ConnectionStrings:DatabaseConnection"]);
-                    }
-                );
+                {
+                    options.UseSqlServer(builder.Configuration["ConnectionStrings:DatabaseConnection"]);
+                }
+            );
 
             WebApplication app = builder.Build();
 
@@ -46,14 +46,28 @@ namespace TuringMachine.Backend.Server
 
 
             #region Register API
-            #region Server API
-            app.MapGet("/api/try-get-response" , (HttpContext httpContext) => new ServerResponse("Server responded."))
+            #region Landing
+            app.MapGet("/api/try-get-response" , (HttpContext httpContext) => new ServerResponse<string>("Server responded."))
                .WithName("TryGetServerResponse")
                .WithOpenApi();
 
-            app.MapGet("/api/get-rsa-key" , (HttpContext httpContext) => new ServerResponse("Success", (object)rsa.ExportRSAPublicKeyPem()))
+            app.MapGet("/api/validate" , async (string accessToken , DataContext db) =>
+                   {
+                        // @formatter:off
+                        return db.Users.Any(u => u.AccessToken == accessToken) ? new ServerResponse<string>("Success")
+                                                                               : new ServerResponse<string>("Invalid access token.");
+                       // @formatter:on
+                   }
+               )
+               .WithName("GetValidation")
+               .WithOpenApi();
+            #endregion
+
+            #region Login
+            app.MapGet("/api/get-rsa-key" , () => new ServerResponse<string>("Success" , rsa.ExportRSAPublicKeyPem()))
                .WithName("GetRsaKey")
                .WithOpenApi();
+            #endregion
             #endregion
 
             #endregion
