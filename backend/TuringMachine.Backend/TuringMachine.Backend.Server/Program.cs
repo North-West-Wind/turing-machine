@@ -3,6 +3,10 @@ using System.Data.Common;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using TuringMachine.Backend.Server.Data;
+using TuringMachine.Backend.Server.Data.SqlDataModel.Progress;
 using TuringMachine.Backend.Server.Models.ServerResponses;
 
 namespace TuringMachine.Backend.Server
@@ -14,13 +18,18 @@ namespace TuringMachine.Backend.Server
             RSA rsa = RSA.Create();
 
             WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
-
+            
             // Add services to the container.
             builder.Services.AddAuthorization();
 
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+            builder.Services.AddDbContext<DataContext>(options =>
+                    {
+                        options.UseSqlServer(builder.Configuration["ConnectionStrings:DatabaseConnection"]);
+                    }
+                );
 
             WebApplication app = builder.Build();
 
