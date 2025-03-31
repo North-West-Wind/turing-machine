@@ -6,9 +6,11 @@ import DesignerSimulationMachine from "./simulation/machine";
 import DesignerPropertiesEmpty from "./properties/empty";
 import DesignerPropertiesTitle from "./properties/title";
 import DesignerPropertiesEdge from "./properties/edges";
-import graph, { Hovered, StateEdge } from "../../helpers/designer/graph";
+import { Hovered, StateEdge, StateGraph } from "../../helpers/designer/graph";
 import DesignerPropertiesText from "./properties/text";
 import DesignerPropertiesVec2 from "./properties/vec2";
+import simulator, { TuringMachineEvent } from "../../helpers/designer/simulator";
+import { TuringMachineConfig } from "../../logic/TuringMachineConfig";
 
 enum Tabs {
 	SIMULATION,
@@ -28,6 +30,9 @@ export default function DesignerSimulation(props: { onWidthChange: (factor: numb
 
 	const [tab, setTab] = useState(Tabs.SIMULATION);
 	const [editing, setEditing] = useState<Hovered | undefined>();
+	const [graph, setGraph] = useState<StateGraph | undefined>();
+	const [machine, setMachine] = useState<number | undefined>();
+	const [machineLength, setMachineLength] = useState(simulator.getMachines().length);
 	const tabChanger = (tab: Tabs) => () => setTab(tab);
 
 	useEffect(() => {
@@ -35,10 +40,20 @@ export default function DesignerSimulation(props: { onWidthChange: (factor: numb
 			setTab(Tabs.PROPERTIES);
 			setEditing(ev.detail);
 		};
+		const onTmChangeMachine = (ev: CustomEventInit<number>) => {
+			if (ev.detail !== undefined) setGraph(simulator.getMachineGraph(ev.detail));
+		};
+		const onTmChangeMachineLength = (ev: CustomEventInit<number>) => {
+			if (ev.detail !== undefined) setMachineLength(ev.detail);
+		};
 
-		window.addEventListener("tm:edit", onTmEdit);
+		simulator.addEventListener(TuringMachineEvent.EDIT, onTmEdit);
+		simulator.addEventListener(TuringMachineEvent.CHANGE_MACHINE, onTmChangeMachine);
+		simulator.addEventListener(TuringMachineEvent.CHANGE_MACHINE_LENGTH, onTmChangeMachineLength);
 		return () => {
-			window.removeEventListener("tm:edit", onTmEdit);
+			simulator.removeEventListener(TuringMachineEvent.EDIT, onTmEdit);
+			simulator.removeEventListener(TuringMachineEvent.CHANGE_MACHINE, onTmChangeMachine);
+			simulator.removeEventListener(TuringMachineEvent.CHANGE_MACHINE_LENGTH, onTmChangeMachineLength);
 		}
 	}, []);
 
@@ -47,12 +62,23 @@ export default function DesignerSimulation(props: { onWidthChange: (factor: numb
 		case Tabs.SIMULATION:
 			innerSimulation = <>
 				<DesignerSimulationController paused />
-				{/* Currently hardcoded for testing purposes. Need to integrate with logic components later */}
-				<DesignerSimulationMachine name="M1" color="#845884" tapes={["_______", "_a__ab_"]} />
-				<DesignerSimulationMachine name="M2" color="#55846a" tapes={["_c_"]} />
+				{simulator.getMachines().map((conf, ii) => {
+					if (!conf) return null;
+					return <DesignerSimulationMachine
+						key={ii}
+						name={`M${ii}${machine === ii ? "*" : ""}`}
+						color={`#${conf.color}`}
+						tapes={conf.TapesReference}
+						onClick={() => {
+							simulator.dispatchChangeMachineEvent(ii);
+							setMachine(ii);
+						}}
+					/>
+				}).filter(conf => !!conf)}
 			</>;
 			break;
 		case Tabs.PROPERTIES:
+			if (!graph) break;
 			switch (editing?.type) {
 				case "vertex":
 					const vertex = graph.getVertex(editing.id);
@@ -95,7 +121,7 @@ export default function DesignerSimulation(props: { onWidthChange: (factor: numb
 
 	return <div className="designer-fill-height designer-left" style={{ width: x * (1 - factor) }}>
 		<DesignerResizer vertical onChangeProportion={change => setFactor(initFactor - change)} onSettle={change => setInitFactor(initFactor - change)} />
-		<div className="designer-fill-flex designer-simulation">
+		<div className="designer-fill-flex designer-simulation" key={machineLength}>
 			{innerSimulation}
 			<div className="designer-simulation-tab">
 				<div className={tab == Tabs.SIMULATION ? "" : "unselected"} onClick={tabChanger(Tabs.SIMULATION)}>Simulation</div>

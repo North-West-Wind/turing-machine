@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Vec2 } from "../../helpers/designer/math";
-import graph, { Hovered, StateRect, StateText } from "../../helpers/designer/graph";
+import { Hovered, StateGraph, StateRect, StateText } from "../../helpers/designer/graph";
 import DesignerGraphControl from "./graph/control";
+import simulator, { TuringMachineEvent } from "../../helpers/designer/simulator";
 
 const LEFT_CLICK = 0;
 const RIGHT_CLICK = 2;
@@ -15,6 +16,7 @@ enum Buttons {
 }
 
 // canvas rendering properties
+let graph: StateGraph | undefined;
 let position = Vec2.ZERO;
 let cursorPosition = Vec2.ZERO; // cursor pos relative to translation
 let mousePosition = Vec2.ZERO; // cursor pos relative to window
@@ -36,6 +38,15 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 		scale = 1;
 		hovered = grabbed = undefined;
 		lastGrabbed = { time: Date.now(), hovered: undefined as (typeof grabbed) };
+
+		const onTmChangeMachine = (ev: CustomEventInit<number>) => {
+			if (ev.detail !== undefined) graph = simulator.getMachineGraph(ev.detail);
+		};
+
+		simulator.addEventListener(TuringMachineEvent.CHANGE_MACHINE, onTmChangeMachine);
+		return () => {
+			simulator.removeEventListener(TuringMachineEvent.CHANGE_MACHINE, onTmChangeMachine);
+		};
 	}, []);
 
 	useEffect(() => {
@@ -58,11 +69,18 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 			// draw graph
 			ctx.scale(scale, scale);
 			ctx.translate(position.x, position.y);
-			graph.draw(ctx);
+			graph?.draw(ctx);
 			ctx.resetTransform();
 	
 			// draw overlays (pos, scale)
-			graph.drawOverlay(ctx, mousePosition);
+			if (graph) graph.drawOverlay(ctx, mousePosition);
+			else {
+				ctx.fillStyle = "#fff";
+				ctx.font = ` ${ctx.canvas.height / 20}px Courier New`;
+				ctx.textAlign = "center";
+				ctx.textBaseline = "middle";
+				ctx.fillText("Select/Add a machine to start!", ctx.canvas.width / 2, ctx.canvas.height / 2);
+			}
 			ctx.fillStyle = "#fff";
 			ctx.font = ` ${ctx.canvas.height / 30}px Courier New`;
 			ctx.textAlign = "left";
@@ -83,6 +101,7 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 
 	// used to track grabbing
 	const onMouseDown = (ev: React.MouseEvent) => {
+		if (!graph) return;
 		if (ev.button == RIGHT_CLICK) {
 			setCursor("grabbing");
 			const startPos = new Vec2(ev.clientX, ev.clientY);
@@ -131,7 +150,7 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 					window.addEventListener("mouseup", () => {
 						window.removeEventListener("mousemove", onMouseMove);
 						// finalize the edge
-						graph.finalizeTmpEdge(hovered?.id);
+						graph?.finalizeTmpEdge(hovered?.id);
 					}, { once: true });
 				}
 			} else if (hovered !== undefined) {
@@ -142,7 +161,7 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 						// check for double click
 						if (Date.now() - lastGrabbed.time <= DOUBLE_CLICK_WINDOW && lastGrabbed.hovered == grabbed) {
 							// if double-clicked, send a custom event to simulation.tsx
-							window.dispatchEvent(new CustomEvent("tm:edit", { detail: grabbed }));
+							simulator.dispatchEditEvent(grabbed);
 						}
 						lastGrabbed.time = Date.now();
 						lastGrabbed.hovered = grabbed;
@@ -155,7 +174,7 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 					// when mouse moves, set the vertex position to the cursor position
 					const onMouseMove = () => {
 						if (grabbed)
-							graph.getVertex(grabbed.id)?.setPosition(cursorPosition);
+							graph?.getVertex(grabbed.id)?.setPosition(cursorPosition);
 					};
 	
 					window.addEventListener("mousemove", onMouseMove);
@@ -172,7 +191,7 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 					// when mouse moves, set the textbox position to the cursor position
 					const onMouseMove = () => {
 						if (grabbed)
-							graph.getText(grabbed.id)?.setPosition(cursorPosition);
+							graph?.getText(grabbed.id)?.setPosition(cursorPosition);
 					};
 	
 					window.addEventListener("mousemove", onMouseMove);
@@ -188,14 +207,13 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 		if (!canvas) return;
 		mousePosition = new Vec2(ev.clientX - canvas.offsetLeft, ev.clientY - canvas.offsetTop);
 		cursorPosition = mousePosition.scale(1 / scale).subVec(position);
-		hovered = graph.mouseTick(cursorPosition, scale);
+		hovered = graph?.mouseTick(cursorPosition, scale);
 	};
 
 	const onWheel = (ev: React.WheelEvent) => {
-		const offset = position.inv().subVec(cursorPosition);
-		position = position.addVec(offset.scale(1 / scale));
+		const oldScale = scale;
 		scale -= ev.deltaY / 4000;
-		position = position.addVec(offset.scale(1 / scale));
+		position = cursorPosition.subVec(cursorPosition.subVec(position).scale(scale / oldScale));
 	};
 
 	const controlStateSetter = (button: Buttons) => (() => {
@@ -223,7 +241,7 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 			on={key => {
 				switch (key) {
 					case "add": {
-						if (!ref.current) break;
+						if (!ref.current || !graph) break;
 						graph.createVertex(position.add(ref.current.width * 0.5 / scale, ref.current.height * 0.5 / scale));
 						break;
 					}

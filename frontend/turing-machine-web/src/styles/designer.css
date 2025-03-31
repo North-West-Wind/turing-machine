@@ -102,6 +102,11 @@
 	padding: 10%;
 }
 
+.designer-simulation-controller.small .designer-simulation-button img {
+	width: 10%;
+	padding: 2%;
+}
+
 .designer-simulation-machine {
 	display: flex;
 	flex-direction: column;

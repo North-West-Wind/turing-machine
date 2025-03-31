@@ -14,9 +14,9 @@ export class StateTransition {
 	readonly destination: number;
 	readonly read: string;
 	readonly write: string;
-	readonly move: string;
+	readonly move: number;
 
-	constructor(dest: number, read: string, write: string, move: string) {
+	constructor(dest: number, read: string, write: string, move: number) {
 		this.destination = dest;
 		this.read = read;
 		this.write = write;
@@ -54,7 +54,6 @@ export class StateVertex implements IDrawable, IDrawableOverlay, IHoverable {
 	setPosition(position: Vec2) {
 		this.position = position;
 		this.graph?.updateVertexPosition(this.id);
-		window.dispatchEvent(new Event("tm:edit-prop"));
 		return true;
 	}
 
@@ -248,7 +247,6 @@ export class StateRect implements IDrawable, IHoverable {
 	setStart(start: Vec2) {
 		this.start = start;
 		this.size = this.end.subVec(this.start);
-		window.dispatchEvent(new Event("tm:edit-prop"));
 		return true;
 	}
 
@@ -259,7 +257,6 @@ export class StateRect implements IDrawable, IHoverable {
 	setEnd(end: Vec2) {
 		this.end = end;
 		this.size = this.end.subVec(this.start);
-		window.dispatchEvent(new Event("tm:edit-prop"));
 		return true;
 	}
 
@@ -345,7 +342,7 @@ export class StateText implements IDrawable, IHoverable {
 	}
 }
 
-class StateGraph implements IDrawable, IDrawableOverlay {
+export class StateGraph implements IDrawable, IDrawableOverlay {
 	private vertices = new Map<number, StateVertex>();
 	private edges = new PairMap<number, number, StateEdge>;
 	private tmpEdge?: { edge: StateEdge, start: number };
@@ -417,7 +414,7 @@ class StateGraph implements IDrawable, IDrawableOverlay {
 			this.tmpEdge = undefined;
 			return;
 		}
-		vert.addTransitions(new StateTransition(end, "t", "t", "-"));
+		vert.addTransitions(new StateTransition(end, "t", "t", 0));
 		this.updateVertexEdges(vert.id);
 		this.tmpEdge = undefined;
 	}
@@ -486,12 +483,3 @@ class StateGraph implements IDrawable, IDrawableOverlay {
 		return this.edges.getA(id);
 	}
 }
-
-const graph = new StateGraph();
-// testing
-graph.addVertex(new StateVertex(2, new Vec2(200, 150)));
-graph.addVertex(new StateVertex(1, new Vec2(100, 200)).addTransitions(
-	new StateTransition(2, "a", "b", "L"),
-	new StateTransition(2, "b", "a", "R")
-));
-export default graph;
