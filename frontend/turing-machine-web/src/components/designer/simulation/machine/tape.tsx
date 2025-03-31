@@ -1,10 +1,10 @@
 import React from "react";
 
-export default function DesignerSimulationMachineTape(props: { values: string }) {
-	let tape = props.values;
+export default function DesignerSimulationMachineTape(props: { values?: string, head: number }) {
+	let tape = props.values || "";
 	if (tape.length < 7) tape += Array(7 - tape.length).fill("_").join(""); // fill empty character to 7
-	else if (tape.length > 7) tape = tape.slice(0, 7); // truncate extra characters
-
+	tape = tape.slice(props.head - 3, props.head + 3);
+	
 	const cell: React.ReactNode[] = [];
 	for (let ii = 0; ii < tape.length; ii++) {
 		let char = tape.charAt(ii);

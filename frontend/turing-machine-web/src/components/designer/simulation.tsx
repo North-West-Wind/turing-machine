@@ -4,13 +4,12 @@ import DesignerResizer from "./resizer";
 import DesignerSimulationController from "./simulation/controller";
 import DesignerSimulationMachine from "./simulation/machine";
 import DesignerPropertiesEmpty from "./properties/empty";
-import DesignerPropertiesTitle from "./properties/title";
-import DesignerPropertiesEdge from "./properties/edges";
-import { Hovered, StateEdge, StateGraph } from "../../helpers/designer/graph";
-import DesignerPropertiesText from "./properties/text";
-import DesignerPropertiesVec2 from "./properties/vec2";
-import simulator, { TuringMachineEvent } from "../../helpers/designer/simulator";
-import { TuringMachineConfig } from "../../logic/TuringMachineConfig";
+import { StateGraph } from "../../helpers/designer/graph";
+import simulator, { Editable, TuringMachineEvent } from "../../helpers/designer/simulator";
+import DesignerPropertiesTextCombo from "./properties/combos/text";
+import DesignerPropertiesRectCombo from "./properties/combos/rect";
+import DesignerPropertiesVertexCombo from "./properties/combos/vertex";
+import DesignerPropertiesMachineCombo from "./properties/combos/machine";
 
 enum Tabs {
 	SIMULATION,
@@ -29,14 +28,14 @@ export default function DesignerSimulation(props: { onWidthChange: (factor: numb
 	}, [factor]);
 
 	const [tab, setTab] = useState(Tabs.SIMULATION);
-	const [editing, setEditing] = useState<Hovered | undefined>();
+	const [editing, setEditing] = useState<Editable | undefined>();
 	const [graph, setGraph] = useState<StateGraph | undefined>();
 	const [machine, setMachine] = useState<number | undefined>();
-	const [machineLength, setMachineLength] = useState(simulator.getMachines().length);
+	const [machineLength, setMachineLength] = useState(simulator.getMachineConfigs().length);
 	const tabChanger = (tab: Tabs) => () => setTab(tab);
 
 	useEffect(() => {
-		const onTmEdit = (ev: CustomEventInit<Hovered>) => {
+		const onTmEdit = (ev: CustomEventInit<Editable>) => {
 			setTab(Tabs.PROPERTIES);
 			setEditing(ev.detail);
 		};
@@ -62,13 +61,15 @@ export default function DesignerSimulation(props: { onWidthChange: (factor: numb
 		case Tabs.SIMULATION:
 			innerSimulation = <>
 				<DesignerSimulationController paused />
-				{simulator.getMachines().map((conf, ii) => {
+				{simulator.getMachineConfigs().map((conf, ii) => {
 					if (!conf) return null;
 					return <DesignerSimulationMachine
 						key={ii}
-						name={`M${ii}${machine === ii ? "*" : ""}`}
+						id={ii}
+						name={conf.label ? `${conf.label} (M${ii})` : `M${ii}`}
 						color={`#${conf.color}`}
 						tapes={conf.TapesReference}
+						selected={machine == ii}
 						onClick={() => {
 							simulator.dispatchChangeMachineEvent(ii);
 							setMachine(ii);
@@ -81,37 +82,16 @@ export default function DesignerSimulation(props: { onWidthChange: (factor: numb
 			if (!graph) break;
 			switch (editing?.type) {
 				case "vertex":
-					const vertex = graph.getVertex(editing.id);
-					if (!vertex) break;
-					const outs: [number, StateEdge][] = [], ins: [number, StateEdge][] = [];
-					graph.getOutEdges(editing.id)?.forEach((edge, dest) => outs.push([dest, edge]));
-					graph.getInEdges(editing.id)?.forEach((edge, src) => ins.push([src, edge]));
-					innerSimulation = <>
-						<DesignerPropertiesTitle value={`Vertex ${editing.id}`} />
-						<DesignerPropertiesText value={vertex.getLabel() || ""} prefix="Label" onCommit={value => vertex.setLabel(value)} />
-						<DesignerPropertiesVec2 vec={vertex.getPosition()} prefix="Position" onCommit={vec => vertex.setPosition(vec)} key={vertex.id} />
-						<DesignerPropertiesEdge edges={outs} out />
-						<DesignerPropertiesEdge edges={ins} />
-					</>;
+					innerSimulation = <DesignerPropertiesVertexCombo graph={graph} id={editing.id} />
 					break;
 				case "rect":
-					const rect = graph.getRect(editing.id);
-					if (!rect) break;
-					innerSimulation = <>
-						<DesignerPropertiesTitle value={`Box ${editing.id}`} />
-						<DesignerPropertiesText value={rect.getColor()} prefix="Color" onCommit={value => rect.setColor(value)} />
-						<DesignerPropertiesVec2 vec={rect.getStart()} prefix="Start" onCommit={vec => rect.setStart(vec)} key={editing.id} />
-						<DesignerPropertiesVec2 vec={rect.getEnd()} prefix="End" onCommit={vec => rect.setEnd(vec)} key={editing.id} />
-					</>;
+					innerSimulation = <DesignerPropertiesRectCombo graph={graph} id={editing.id} />
 					break;
 				case "text":
-					const text = graph.getText(editing.id);
-					if (!text) break;
-					innerSimulation = <>
-						<DesignerPropertiesTitle value={`Text ${editing.id}`} />
-						<DesignerPropertiesText value={text.getValue()} prefix="Value" onCommit={value => text.setValue(value)} />
-						<DesignerPropertiesVec2 vec={text.getPosition()} prefix="Position" onCommit={vec => text.setPosition(vec)} />
-					</>;
+					innerSimulation = <DesignerPropertiesTextCombo graph={graph} id={editing.id} />
+					break;
+				case "machine":
+					innerSimulation = <DesignerPropertiesMachineCombo id={editing.id} />
 					break;
 				default:
 					innerSimulation = <DesignerPropertiesEmpty />

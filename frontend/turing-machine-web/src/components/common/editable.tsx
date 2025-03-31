@@ -15,6 +15,9 @@ export default function EditableBox(props: { value: string, onCommit: (value: st
 			props.onCommit(value);
 			setEdit(false);
 			ref.current?.blur();
+		} else if (ev.key == "Escape") {
+			setEdit(false);
+			setValue(props.value);
 		}
 	};
 

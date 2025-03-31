@@ -2,7 +2,6 @@ import { useState } from "react";
 import DesignerSimulationButton from "./button";
 import simulator from "../../../helpers/designer/simulator";
 import { TuringMachineConfig } from "../../../logic/TuringMachineConfig";
-import { HeadTypes } from "../../../logic/Heads/HeadTypes";
 import { TransitionNode } from "../../../logic/States/Transitions/TransitionNode";
 
 export default function DesignerSimulationController(props: { paused: boolean }) {
@@ -10,7 +9,7 @@ export default function DesignerSimulationController(props: { paused: boolean })
 
 	const add = () => {
 		const start = new TransitionNode(0);
-		const id = simulator.addMachine(new TuringMachineConfig(1, [HeadTypes.ReadWrite], [0], [0], [start], [], start));
+		const id = simulator.addMachine(new TuringMachineConfig(0, [], [], [], [start], [], start));
 		simulator.dispatchChangeMachineEvent(id);
 	};
 

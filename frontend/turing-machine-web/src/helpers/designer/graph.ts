@@ -1,14 +1,13 @@
+import { TransitionNode } from "../../logic/States/Transitions/TransitionNode";
+import { HeadTransition, TransitionStatement } from "../../logic/States/Transitions/TransitionStatement";
+import { TuringMachineConfig } from "../../logic/TuringMachineConfig";
 import { PairMap } from "../structure/pair-map";
 import { IDrawable, IDrawableOverlay, IHoverable } from "./canvas";
 import { CommonNumbers, Vec2 } from "./math";
+import { Editable } from "./simulator";
 
 const VERTEX_RADIUS = 20;
 const EDGE_HITBOX = 10;
-
-export type Hovered = {
-	type: "vertex" | "rect" | "text";
-	id: number;
-}
 
 export class StateTransition {
 	readonly destination: number;
@@ -348,7 +347,7 @@ export class StateGraph implements IDrawable, IDrawableOverlay {
 	private tmpEdge?: { edge: StateEdge, start: number };
 	private rects = new Map<number, StateRect>();
 	private texts = new Map<number, StateText>();
-	private hovered?: Hovered;
+	private hovered?: Editable;
 	private hoveredEdge?: [number, number];
 	private componentCounter = 0;
 
@@ -481,5 +480,10 @@ export class StateGraph implements IDrawable, IDrawableOverlay {
 
 	getOutEdges(id: number) {
 		return this.edges.getA(id);
+	}
+
+	updateConfig(config: TuringMachineConfig) {
+		config.TransitionNodes = Array.from(this.vertices.keys()).map(key => new TransitionNode(key));
+		config.Statements = this.edges.entries().map(([src, dest, edge]) => new TransitionStatement(new TransitionNode(src), new TransitionNode(dest), edge.transitions.map(trans => new HeadTransition(trans.read, trans.write, trans.move))));
 	}
 }

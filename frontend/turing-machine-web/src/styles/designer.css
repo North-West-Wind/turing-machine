@@ -112,6 +112,24 @@
 	flex-direction: column;
 }
 
+.designer-simulation-machine .title-container {
+	display: flex;
+}
+
+.designer-simulation-machine .edit-button {
+	padding: 1vw;
+	font-size: 1vmax;
+	margin-left: auto;
+	background-color: rgba(0, 0, 0, .2);
+	cursor: pointer;
+	user-select: none;
+	transition: filter .25s ease;
+}
+
+.designer-simulation-machine .edit-button:hover {
+	filter: brightness(80%);
+}
+
 .designer-simulation-machine .title {
 	text-align: left;
 	padding: 1vw;
@@ -252,4 +270,49 @@
 
 .designer-properties-vec2.header {
 	background-color: #5e41bd;
+}
+
+.designer-properties-heads {
+	background-color: #8b3290;
+}
+
+.designer-properties-heads.header {
+	background-color: #a241bd;
+	display: flex;
+	padding: 0;
+}
+
+.designer-properties-heads.header:hover {
+	filter: none;
+}
+
+.designer-properties-heads.header .title {
+	padding: .5vmax;
+}
+
+.designer-properties-heads.header .title:hover {
+	filter: brightness(80%);
+}
+
+.designer-properties-heads.header .add-button {
+	padding: .5vmax;
+	font-size: 1vmax;
+	margin-left: auto;
+	background-color: rgba(0, 0, 0, .2);
+	cursor: pointer;
+	user-select: none;
+	transition: filter .25s ease;
+	align-items: center;
+	justify-content: center;
+	display: flex;
+}
+
+.designer-properties-heads.header .add-button:hover {
+	filter: brightness(80%);
+}
+
+.designer-properties-heads select {
+	background-color: rgba(0, 0, 0, .2);
+	border: none;
+	margin-right: 1vmax;
 }

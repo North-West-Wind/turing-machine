@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Vec2 } from "../../helpers/designer/math";
-import { Hovered, StateGraph, StateRect, StateText } from "../../helpers/designer/graph";
+import { StateGraph, StateRect, StateText } from "../../helpers/designer/graph";
 import DesignerGraphControl from "./graph/control";
-import simulator, { TuringMachineEvent } from "../../helpers/designer/simulator";
+import simulator, { Editable, TuringMachineEvent } from "../../helpers/designer/simulator";
 
 const LEFT_CLICK = 0;
 const RIGHT_CLICK = 2;
@@ -23,8 +23,8 @@ let mousePosition = Vec2.ZERO; // cursor pos relative to window
 let scale = 1;
 
 // movement logic properties
-let hovered: Hovered | undefined;
-let grabbed: Hovered | undefined;
+let hovered: Editable | undefined;
+let grabbed: Editable | undefined;
 let lastGrabbed = { time: Date.now(), hovered: undefined as (typeof grabbed) };
 
 export default function DesignerGraph(props: { width: number, height: number }) {

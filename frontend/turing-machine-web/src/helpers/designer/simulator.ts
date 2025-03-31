@@ -1,37 +1,37 @@
-import { SystemState } from "../../logic/SystemState";
 import { TapeConfig } from "../../logic/Tapes/TapesUtilities/TapeConfig";
-import { TapeTypes } from "../../logic/Tapes/TapeTypes";
 import { TuringMachineConfig } from "../../logic/TuringMachineConfig";
 import { TuringMachineSimulator } from "../../logic/TuringMachineSimulator";
-import { Hovered, StateGraph, StateTransition, StateVertex } from "./graph";
+import { StateGraph, StateTransition, StateVertex } from "./graph";
 import { Vec2 } from "./math";
+
+export type Editable = {
+	type: "vertex" | "rect" | "text" | "machine",
+	id: number
+}
 
 export enum TuringMachineEvent {
 	STEP = "tm:step",
 	EDIT = "tm:edit",
 	CHANGE_MACHINE = "tm:change-machine",
-	CHANGE_MACHINE_LENGTH = "tm:change-machine-length"
+	CHANGE_MACHINE_LENGTH = "tm:change-machine-length",
+	CHANGE_TAPE_LENGTH = "tm:change-tape-length",
 }
 
 class RenderingTuringMachineSimulator extends EventTarget {
-	private machineConfigs: ((TuringMachineConfig & { color: string }) | null)[] = [];
-	private systemState: SystemState;
-
-	constructor() {
-		super();
-		TuringMachineSimulator.Initialise();
-		this.systemState = TuringMachineSimulator.GetSystemState();
-	}
-
-	// Category: Data Retrieval
+	private machines: ((TuringMachineConfig & { color: string, label?: string }) | null)[] = [];
+	private tapes: (TapeConfig | null)[] = [];
+	private graphs: (StateGraph | null)[] = [];
+	
+	// Categpry: Pre-simulation
 
 	getMachineGraph(id: number) {
-		if (!this.machineConfigs[id]) throw new Error(`Machine with ID ${id} doesn't exist`);
+		if (!this.machines[id]) throw new Error(`Machine with ID ${id} doesn't exist`);
+		if (this.graphs[id]) return this.graphs[id];
 		const graph = new StateGraph();
 		// Transition is always more than vertices
 		// More efficient to iterate through transitions
 		const vertices: StateVertex[] = [];
-		for (const transition of this.machineConfigs[id].Statements) {
+		for (const transition of this.machines[id].Statements) {
 			const sourceId = transition.Source.StateID;
 			if (!vertices[sourceId]) {
 				// Vec2 for no position data: put vertices in a grid with interval 100, like
@@ -48,7 +48,7 @@ class RenderingTuringMachineSimulator extends EventTarget {
 			}
 			vertices[sourceId].addTransitions(...transition.Conditions.map(cond => new StateTransition(transition.Target.StateID, cond.Read, cond.Write, cond.Move)));
 		}
-		for (const vertex of this.machineConfigs[id].TransitionNodes) {
+		for (const vertex of this.machines[id].TransitionNodes) {
 			const id = vertex.StateID;
 			if (!vertices[id]) {
 				const shell = Math.floor(Math.sqrt(id)) + 1;
@@ -61,30 +61,36 @@ class RenderingTuringMachineSimulator extends EventTarget {
 			}
 		}
 		vertices.forEach(vert => graph.addVertex(vert));
-		return graph;
+		return this.graphs[id] = graph;
 	}
 
-	getMachineAndTape(id: number) {
-		if (!this.machineConfigs[id]) throw new Error(`Machine with ID ${id} doesn't exist`);
+	getMachineConfig(id: number) {
+		return this.machines[id];
 	}
 
-	getMachine(id: number) {
-		return this.systemState.Machines[id];
+	getMachineConfigs() {
+		return this.machines;
 	}
 
-	getMachines() {
-		return this.machineConfigs;
-	}
-
-	getTape(id: number) {
-		return this.systemState.Tapes[id].Content;
+	getTapeConfig(id: number) {
+		return this.tapes[id];
 	}
 
 	// Category: Simulation
 
+	// Import all configs stored within this class into the real simulator
+	build() {
+		TuringMachineSimulator.Initialise();
+		this.tapes.forEach(tape => tape && TuringMachineSimulator.AddTape(tape));
+		this.machines.forEach((machine, ii) => {
+			if (!machine) return;
+			if (this.graphs[ii]) this.graphs[ii].updateConfig(machine);
+			TuringMachineSimulator.AddMachine(machine);
+		});
+	}
+
 	step() {
 		TuringMachineSimulator.Update();
-		this.systemState = TuringMachineSimulator.GetSystemState();
 		this.dispatchEvent(new Event(TuringMachineEvent.STEP));
 	}
 
@@ -93,44 +99,51 @@ class RenderingTuringMachineSimulator extends EventTarget {
 	addMachine(config: TuringMachineConfig, color?: string) {
 		if (color === undefined) color = Math.floor(Math.random() * 16777216).toString(16).padStart(6, "0");
 		else if (color.startsWith("#")) color = color.slice(1);
-		const maxTapeRef = config.TapesReference.length ? config.TapesReference.reduce((a, b) => Math.max(a, b)) : 0;
-		for (let ii = 0; ii < maxTapeRef + 1 - this.systemState.Tapes.length; ii++) {
-			TuringMachineSimulator.AddTape(new TapeConfig(TapeTypes.Infinite, 0, ""));
+		for (let ii = 0; ii < this.machines.length; ii++) {
+			if (!this.machines[ii]) {
+				this.machines[ii] = { color, ...config };
+				return ii;
+			}
 		}
-		const id = TuringMachineSimulator.AddMachine(config);
-		this.machineConfigs[id] = { color, ...config };
+		this.machines.push({ color, ...config });
 		this.dispatchChangeMachineLengthEvent();
-		this.systemState = TuringMachineSimulator.GetSystemState();
-		return id;
+		return this.machines.length - 1;
 	}
 
 	deleteMachine(id: number) {
-		try {
-			TuringMachineSimulator.DeleteMachine(id);
-			this.machineConfigs[id] = null;
-			this.dispatchChangeMachineLengthEvent();
-			this.systemState = TuringMachineSimulator.GetSystemState();
-		} catch (err) { }
+		if (this.machines[id]) this.machines[id] = null;
+		if (this.graphs[id]) this.graphs[id] = null;
 	}
 
 	addTape(config: TapeConfig) {
-		const id = TuringMachineSimulator.AddTape(config);
-		return id;
+		for (let ii = 0; ii < this.machines.length; ii++) {
+			if (!this.tapes[ii]) {
+				this.tapes[ii] = config;
+				return ii;
+			}
+		}
+		this.tapes.push(config);
+		this.dispatchChangeMachineLengthEvent();
+		return this.tapes.length - 1;
 	}
 
 	// Category: Component communication
 
-	dispatchEditEvent(hovered?: Hovered) {
-		this.dispatchEvent(new CustomEvent(TuringMachineEvent.EDIT, { detail: hovered }));
+	dispatchEditEvent(editable?: Editable) {
+		this.dispatchEvent(new CustomEvent(TuringMachineEvent.EDIT, { detail: editable }));
 	}
 
 	dispatchChangeMachineEvent(id: number) {
-		if (!this.machineConfigs[id]) throw new Error(`Machine with ID ${id} doesn't exist`);
+		if (!this.machines[id]) throw new Error(`Machine with ID ${id} doesn't exist`);
 		this.dispatchEvent(new CustomEvent(TuringMachineEvent.CHANGE_MACHINE, { detail: id }));
 	}
 
 	dispatchChangeMachineLengthEvent() {
-		this.dispatchEvent(new CustomEvent(TuringMachineEvent.CHANGE_MACHINE_LENGTH, { detail: this.machineConfigs.length }));
+		this.dispatchEvent(new CustomEvent(TuringMachineEvent.CHANGE_MACHINE_LENGTH, { detail: this.machines.length }));
+	}
+
+	dispatchChangeTapeLengthEeent() {
+		this.dispatchEvent(new CustomEvent(TuringMachineEvent.CHANGE_TAPE_LENGTH, { detail: this.tapes.length }));
 	}
 }
 

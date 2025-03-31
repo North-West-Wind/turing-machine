@@ -3,6 +3,8 @@
 	background-color: #333;
 	transition: background-color .25s ease;
 	border: none;
+	position: relative;
+	width: 50%;
 }
 
 .editable-box.stable {
