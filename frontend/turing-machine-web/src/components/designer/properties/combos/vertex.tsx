@@ -24,7 +24,7 @@ export default function DesignerPropertiesVertexCombo(props: { graph: StateGraph
 		<DesignerPropertiesTitle value={`Vertex ${id}`} />
 		<DesignerPropertiesText value={vertex.getLabel() || ""} prefix="Label" onCommit={value => vertex.setLabel(value)} />
 		<DesignerPropertiesVec2 vec={vertex.getPosition()} prefix="Position" onCommit={vec => vertex.setPosition(vec)} />
-		<DesignerPropertiesEdge edges={outs} out />
-		<DesignerPropertiesEdge edges={ins} />
+		<DesignerPropertiesEdge graph={graph} id={props.id} edges={outs} out />
+		<DesignerPropertiesEdge graph={graph} id={props.id} edges={ins} />
 	</>;
 }

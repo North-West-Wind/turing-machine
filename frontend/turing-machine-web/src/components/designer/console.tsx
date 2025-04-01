@@ -1,6 +1,7 @@
 import { ChangeEvent, useEffect, useState } from "react";
 import useWindowSize from "../../hooks/useWindowSize";
 import DesignerResizer from "./resizer";
+import simulator, { TuringMachineEvent } from "../../helpers/designer/simulator";
 
 export default function DesignerConsole(props: { onHeightChange: (factor: number) => void }) {
 	const { y } = useWindowSize();
@@ -16,12 +17,34 @@ export default function DesignerConsole(props: { onHeightChange: (factor: number
 	const [lines, setLines] = useState<{ isInput: boolean, str: string }[]>([]);
 	const [lastLine, setLastLine] = useState("");
 
+	useEffect(() => {
+		const addLine = (str: string) => {
+			lines.push({ isInput: false, str });
+			setLines(Array.from(lines));
+		};
+
+		const onTmStart = () => addLine("Simulation started");
+		const onTmStop = () => addLine("Simulation stopped");
+		const onTmHalt = (ev: CustomEventInit<number>) => ev.detail !== undefined && addLine(`Machine ${ev.detail} halted`);
+
+		simulator.addEventListener(TuringMachineEvent.START, onTmStart);
+		simulator.addEventListener(TuringMachineEvent.STOP, onTmStop);
+		simulator.addEventListener(TuringMachineEvent.HALT, onTmHalt);
+		return () => {
+			simulator.removeEventListener(TuringMachineEvent.START, onTmStart);
+			simulator.removeEventListener(TuringMachineEvent.STOP, onTmStop);
+			simulator.removeEventListener(TuringMachineEvent.HALT, onTmHalt);
+		};
+	}, []);
+
 	const onChange = (ev: ChangeEvent<HTMLTextAreaElement>) => {
 		const splits = ev.currentTarget.value.split("\n");
 		const lastLineStr = splits.pop()!.slice(2);
 		if (splits.length - lines.length >= 1) {
 			// enter is pressed
-			setLines(lines.concat({ isInput: true, str: splits.pop()!.slice(2) }));
+			const line = splits.pop()!.slice(2);
+			simulator.appendInput(line);
+			setLines(lines.concat({ isInput: true, str: line }));
 			setLastLine("");
 		} else {
 			// other key presses

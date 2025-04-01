@@ -311,7 +311,7 @@
 	filter: brightness(80%);
 }
 
-.designer-properties-heads select {
+.designer-properties-section select {
 	background-color: rgba(0, 0, 0, .2);
 	border: none;
 	margin-right: 1vmax;

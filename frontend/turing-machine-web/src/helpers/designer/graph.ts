@@ -43,6 +43,14 @@ export class StateVertex implements IDrawable, IDrawableOverlay, IHoverable {
 
 	addTransitions(...transitions: StateTransition[]) {
 		this.transitions.push(...transitions);
+		this.graph?.updateVertexEdges(this.id);
+		return this;
+	}
+
+	setTransitions(...transitions: StateTransition[]) {
+		this.transitions = transitions;
+		console.log("setting transition for %d", this.id, this.transitions);
+		this.graph?.updateVertexEdges(this.id);
 		return this;
 	}
 
@@ -368,6 +376,10 @@ export class StateGraph implements IDrawable, IDrawableOverlay {
 
 	getVertex(id: number) {
 		return this.vertices.get(id);
+	}
+
+	getVertices() {
+		return this.vertices.entries();
 	}
 	
 	updateVertexPosition(id: number) {
