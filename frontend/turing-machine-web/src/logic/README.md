@@ -13,6 +13,9 @@ At this stage, the core simulator has been ported to frontend, where it achieves
  - Reset, step by step simulation
  - Dynamic add and delete of machines/tapes
  - System state feedbacks
+ - Variants of tapes
+
+ As for the requirement, only variants of heads and state control are still in progress.
 
 ## Structure
 
@@ -125,6 +128,42 @@ TuringMachineSimulator.Initialise();
 ```
 
 If you are still unsure about the simulations, you can refer to ``/test/simulator.test.ts`` to look at the test cases.
+
+### Tape Content Format Specification
+
+The tape contents are represented in string with indexed positions. Two key metadata fields define the positions:
+
+- ``LeftBoundary``: Starting index of the content window
+- ``RightBoundary``: Ending index of the content window
+
+Examples:
+```ts
+Tape 0 (InfiniteTape) content: "cbaabd"
+Tape 0 LeftBoundary: 0
+Tape 0 RightBoundary: 5
+// 'c' is at position 0, 'd' is at position 5
+// Note: Infinite tapes have no real boundaries,
+// these indices represent the current visible window
+
+Tape 1 (InfiniteTape) content: "ab__aabd__ac"
+Tape 1 LeftBoundary: -3
+Tape 1 RightBoundary: 8
+// First 'a' is at position -3, 'c' is at position 8
+// To read head position 4: content[4 - (-3)] = content[7] (which is 'd')
+
+Tape 2 (CircularTape) content: ">10112<"
+Tape 2 LeftBoundary: 0
+Tape 2 RightBoundary: 4
+// Data ranges from position 0 ('1') to 4 ('2')
+// '>' and '<' mark the real tape boundaries
+
+Tape 3 (LeftLimitedTape) content: ">__112344"
+Tape 3 LeftBoundary: 0
+Tape 3 RightBoundary: 7
+/// '>' marks permanent left boundary at position 0
+// First data '1' is at position 2, last '4' at position 7
+// Underscores represent blank
+```
 
 ## Side Note
 
