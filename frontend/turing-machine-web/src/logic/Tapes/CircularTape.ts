@@ -3,15 +3,13 @@ import { TapeTypes } from "./TapeTypes"
 import { WriteOperation } from "./TapesUtilities/WriteOperation"
 import { TapeSymbols } from "./TapesUtilities/TapeSymbols"
 
-export class InfiniteTape implements ITape 
+export class CircularTape implements ITape
 {
     // Getter for the tape type
     public get Type(): TapeTypes {
-        return TapeTypes.Infinite;
+        return TapeTypes.Circular;
     }
 
-    // Warning: Infinite tape does not have real boundaries
-    // These are for displaying the current window for the UI and users
     private _leftBoundary: number = 0;
     private _rightBoundary: number = 0;
 
@@ -31,11 +29,15 @@ export class InfiniteTape implements ITape
     {
         this._leftBoundary = _leftBoundary;
         this._rightBoundary = _rightBoundary;
+
+        // Stores the boundaries for displaying on the UI
+        this._tape.set(this._leftBoundary - 1, TapeSymbols.Start)
+        this._tape.set(this._rightBoundary + 1, TapeSymbols.End)
     }
 
     public IsOutOfRange(): boolean 
     {
-        // Infinite tape will never be out of range
+        // Circular tape will never be out of range
         return false;
     }
 
@@ -91,9 +93,16 @@ export class InfiniteTape implements ITape
         }
     }
 
-    public GetMovedPosition(position: number, moves: number): number 
-    {
-        return position + moves;
+    public GetMovedPosition(position: number, moves: number): number {
+        const tapeLength = this._rightBoundary - this._leftBoundary + 1;
+
+        let newPosition = position + moves;
+            
+        // Shift the range to [0, rightBoundary - leftBoundary]
+        // Obtain the new position, then shift back to the original range
+        newPosition = ((newPosition - this._leftBoundary) % tapeLength + tapeLength) % tapeLength + this._leftBoundary;
+            
+        return newPosition;
     }
 
     public InitializeContent(contents: string): void 
@@ -104,18 +113,16 @@ export class InfiniteTape implements ITape
         }
     }
 
-    public UpdateBoundaries(headPosition: number): void 
+    public UpdateBoundaries(): void 
     {
-        // Updates the boundaries based on how far the heads are going
-        this._leftBoundary = Math.min(this._leftBoundary, headPosition);
-        this._rightBoundary = Math.max(this._rightBoundary, headPosition);
+        // The boundaries of Circular tape is fixed
     }
 
     public GetContentsAsString()
     {
         let contents = "";
 
-        for (let i = this._leftBoundary; i <= this._rightBoundary; i++) {
+        for (let i = this._leftBoundary - 1; i <= this._rightBoundary + 1; i++) {
             if (this._tape.has(i))
                 contents += this._tape.get(i)!;
             else

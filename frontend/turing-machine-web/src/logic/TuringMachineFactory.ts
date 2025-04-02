@@ -10,6 +10,8 @@ import { HeadTypes } from "./Heads/HeadTypes"
 import { TuringMachineConfig } from "./TuringMachineConfig"
 import { SignalState } from "./States/SignalStates"
 import { TransitionGraph } from "./States/Transitions/TransitionGraph"
+import { CircularTape } from "./Tapes/CircularTape"
+import { LimitedTape } from "./Tapes/LimitedTape"
 
 export class TuringMachineFactory
 {
@@ -17,27 +19,48 @@ export class TuringMachineFactory
      * Method for simulator to make ITape objects.
      * @param config The configuration of the tape.
      * @throws {TypeError} when the tape type is invalid.
+     * @throws {RangeError} when the tape length is invalid.
      */
     public static MakeTape(config: TapeConfig): ITape
     {
+        // Skips for Infinite tape
+        if (config.TapeType != TapeTypes.Infinite)
+        {
+            if (config.TapeLength < 1)
+            {
+                throw new RangeError("Tape length must be greater than or equal to 1.")
+            }
+
+            if (config.TapeContent.length > config.TapeLength)
+            {
+                throw new RangeError(
+                    `Content length ${config.TapeContent.length} exceeds tape length ${config.TapeLength}`)
+            }
+        }
+
         let newTape;
         switch (config.TapeType)
         {
             case TapeTypes.Infinite:
                 newTape = new InfiniteTape(0, config.TapeContent.length - 1);
                 break;
+
             case TapeTypes.Circular:
-                throw new Error("NotImplementedException");
+                newTape = new CircularTape(0, config.TapeLength - 1);
                 break;
+
             case TapeTypes.LeftLimited:
-                throw new Error("NotImplementedException");
+                newTape = new LimitedTape(true, false, 0, config.TapeLength - 1);
                 break;
+
             case TapeTypes.RightLimited:
-                throw new Error("NotImplementedException");
+                newTape = new LimitedTape(false, true, 0, config.TapeLength - 1);
                 break;
+
             case TapeTypes.LeftRightLimited:
-                throw new Error("NotImplementedException");
+                newTape = new LimitedTape(true, true, 0, config.TapeLength - 1);
                 break;
+                
             default:
                 throw new Error(`Invalid tape type: ${config.TapeType}`);
         }
