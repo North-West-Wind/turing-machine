@@ -302,6 +302,7 @@ test('Test case 5: Standard and meaningful simulation: reverser.', () => {
 
     expect(currentSystemState.Machines[0].CurrentState).toBe(3);
     expect(currentSystemState.Tapes[0].Content).toBe("_abaaabb_");
+    expect(currentSystemState.Tapes[0].LeftBoundary).toBe(-1);
     expect(currentSystemState.Tapes[1].Content).toBe("bbaaaba_");
 })
 
@@ -400,5 +401,220 @@ test('Test case 7: Expecting single character write.', () => {
         .toThrowError();
 })
 
+test("Test case 8: Multiple machines with different variants of tape.", () => {
+    const tapeConfigs = [
+        new TapeConfig(
+            TapeTypes.LeftLimited,
+            10,
+            "10101011"
+        ),
+        new TapeConfig(
+            TapeTypes.Circular,
+            4,
+            "1011"
+        )
+    ];
 
-// More tests in the future for variants of tapes and heads
+    let transitionNodes: TransitionNode[] = [];
+    const invalidMachineConfigs = [
+        new TuringMachineConfig(
+            2, // NumberOfHeads
+            [HeadTypes.ReadWrite, HeadTypes.ReadWrite],
+            [0, 2],
+            [0, 1],
+            transitionNodes = [
+                new TransitionNode(0),
+                new TransitionNode(1),
+                new TransitionNode(2),
+                new TransitionNode(3)
+            ],
+            [
+                new TransitionStatement(
+                    transitionNodes[0],
+                    transitionNodes[1],
+                    [
+                        new HeadTransition('1', '2', 1),
+                        new HeadTransition('1', "1", -3)
+                    ]
+                ),
+                new TransitionStatement(
+                    transitionNodes[1],
+                    transitionNodes[2],
+                    [
+                        new HeadTransition('0', '1', 1),
+                        new HeadTransition('1', "2", 1)
+                    ]
+                ),
+                new TransitionStatement(
+                    transitionNodes[2],
+                    transitionNodes[3],
+                    [
+                        new HeadTransition('1', '1', 0),
+                        new HeadTransition('1', "2", 1)
+                    ]
+                ),
+                new TransitionStatement(
+                    transitionNodes[3],
+                    transitionNodes[3],
+                    [
+                        new HeadTransition('1', '1', -5), // This machine should halt now as it is out of range
+                        new HeadTransition('0', "2", 1)
+                    ]
+                )
+            ],
+            transitionNodes[0] // StartNode
+        ),
+        new TuringMachineConfig(
+            1, // NumberOfHeads
+            [HeadTypes.ReadWrite],
+            [7],
+            [0],
+            transitionNodes = [
+                new TransitionNode(0),
+                new TransitionNode(1),
+            ],
+            [
+                new TransitionStatement(
+                    transitionNodes[0],
+                    transitionNodes[0],
+                    [
+                        new HeadTransition('1', '3', -1),
+                    ]
+                ),
+                new TransitionStatement(
+                    transitionNodes[0],
+                    transitionNodes[1],
+                    [
+                        new HeadTransition('0', '5', 5),
+                    ]
+                )
+            ],
+            transitionNodes[0] // StartNode
+        )
+    ];
+
+    TuringMachineSimulator.Initialise();
+    expect(TuringMachineSimulator.AddTape(tapeConfigs[0])).toBe(0);
+    expect(TuringMachineSimulator.AddTape(tapeConfigs[1])).toBe(1);
+    expect(TuringMachineSimulator.AddMachine(invalidMachineConfigs[0])).toBe(0);
+    expect(TuringMachineSimulator.AddMachine(invalidMachineConfigs[1])).toBe(1);
+
+    TuringMachineSimulator.StartSimulation();
+    TuringMachineSimulator.Update();
+    let currentSystemState = TuringMachineSimulator.GetSystemState();
+
+    expect(currentSystemState.Machines[0].CurrentState).toBe(1);
+    expect(currentSystemState.Tapes[0].Content).toBe(">20101013");
+    expect(currentSystemState.Tapes[1].Content).toBe(">1011<");
+
+    expect(currentSystemState.Tapes[0].LeftBoundary).toBe(0);
+    expect(currentSystemState.Tapes[0].RightBoundary).toBe(7);
+    expect(currentSystemState.Tapes[1].LeftBoundary).toBe(0);
+    expect(currentSystemState.Tapes[1].RightBoundary).toBe(3);
+
+    expect(currentSystemState.Machines[0].Heads[1].Position).toBe(3);
+
+    TuringMachineSimulator.Update();
+    currentSystemState = TuringMachineSimulator.GetSystemState();
+    expect(currentSystemState.Machines[0].CurrentState).toBe(2);
+    expect(currentSystemState.Tapes[0].Content).toBe(">21101033");
+    expect(currentSystemState.Tapes[1].Content).toBe(">1012<");
+    expect(currentSystemState.Machines[1].Heads[0].Position).toBe(5);
+    expect(currentSystemState.Machines[0].Heads[1].Position).toBe(0);
+
+    TuringMachineSimulator.Update();
+    currentSystemState = TuringMachineSimulator.GetSystemState();
+    expect(currentSystemState.Machines[0].CurrentState).toBe(3);
+    expect(currentSystemState.Tapes[0].Content).toBe(">21101533___");
+    expect(currentSystemState.Tapes[1].Content).toBe(">2012<");
+
+    expect(currentSystemState.Tapes[0].LeftBoundary).toBe(0);
+    expect(currentSystemState.Tapes[0].RightBoundary).toBe(10);
+    expect(currentSystemState.Tapes[1].LeftBoundary).toBe(0);
+    expect(currentSystemState.Tapes[1].RightBoundary).toBe(3);
+
+    expect(currentSystemState.Machines[1].Heads[0].Position).toBe(10);
+    expect(currentSystemState.Machines[0].Heads[1].Position).toBe(1);
+
+    TuringMachineSimulator.Update();
+    currentSystemState = TuringMachineSimulator.GetSystemState();
+    expect(currentSystemState.Tapes[0].Content).toBe(">21101533___");
+    expect(currentSystemState.Tapes[1].Content).toBe(">2212<");
+    expect(currentSystemState.Machines[1].IsHalted).toBe(true);
+
+    TuringMachineSimulator.Update();
+    currentSystemState = TuringMachineSimulator.GetSystemState();
+    expect(currentSystemState.Machines[0].IsHalted).toBe(true);
+})
+
+test('Test case 9: Invalid limited tape config: tape initial content exceeds tape length.', () => {
+    const tapeConfig = 
+        new TapeConfig(
+            TapeTypes.LeftRightLimited,
+            5,
+            "abbbbbcccc"
+        );
+
+
+    TuringMachineSimulator.Initialise();
+    expect(() => TuringMachineSimulator.AddTape(tapeConfig)).toThrowError();        
+})
+
+test('Test case 10: Limited boundaries anf out of range checking.', () => {
+    const tapeConfig = 
+        new TapeConfig(
+            TapeTypes.LeftRightLimited,
+            7,
+            "___ab"
+        );
+
+    let transitionNodes: TransitionNode[] = [];
+    const machineConfig = new TuringMachineConfig(
+        1,  // number of heads
+        [HeadTypes.ReadWrite],  // head types
+        [3],    // initial positions
+        [0],    // tape references
+        transitionNodes = [new TransitionNode(0), new TransitionNode(1)],    // transition nodes
+        [
+            new TransitionStatement(
+                transitionNodes[0], 
+                transitionNodes[1], 
+                [new HeadTransition('a', 'b', 1)]
+            ),
+            new TransitionStatement(
+                transitionNodes[1], 
+                transitionNodes[1], 
+                [new HeadTransition('b', 'b', -8)]
+            ),
+        ], // transition statements
+        transitionNodes[0] // start node
+    )
+
+    TuringMachineSimulator.Initialise();
+    expect(TuringMachineSimulator.AddTape(tapeConfig)).toBe(0); 
+    expect(TuringMachineSimulator.AddMachine(machineConfig)).toBe(0); 
+
+    TuringMachineSimulator.StartSimulation();
+    TuringMachineSimulator.Update();
+    let currentSystemState = TuringMachineSimulator.GetSystemState();
+
+    expect(currentSystemState.Machines[0].CurrentState).toBe(1);
+    expect(currentSystemState.Tapes[0].Content).toBe(">___bb__<");
+
+    expect(currentSystemState.Tapes[0].LeftBoundary).toBe(0);
+    expect(currentSystemState.Tapes[0].RightBoundary).toBe(6);
+
+    expect(currentSystemState.Machines[0].Heads[0].Position).toBe(4);
+
+    TuringMachineSimulator.Update();
+    currentSystemState = TuringMachineSimulator.GetSystemState();
+
+    expect(currentSystemState.Machines[0].CurrentState).toBe(1);
+    expect(currentSystemState.Tapes[0].Content).toBe(">___bb__<");
+
+    TuringMachineSimulator.Update();
+    currentSystemState = TuringMachineSimulator.GetSystemState();
+    expect(currentSystemState.Machines[0].IsHalted).toBe(true);
+})
+
+// More tests in the future for variants of heads and states control

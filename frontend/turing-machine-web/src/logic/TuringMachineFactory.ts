@@ -23,8 +23,7 @@ export class TuringMachineFactory
      */
     public static MakeTape(config: TapeConfig): ITape
     {
-        // Skips for Infinite tape
-        if (config.TapeType != TapeTypes.Infinite)
+        if (config.TapeType == TapeTypes.Circular || config.TapeType == TapeTypes.LeftRightLimited)
         {
             if (config.TapeLength < 1)
             {
@@ -50,11 +49,11 @@ export class TuringMachineFactory
                 break;
 
             case TapeTypes.LeftLimited:
-                newTape = new LimitedTape(true, false, 0, config.TapeLength - 1);
+                newTape = new LimitedTape(true, false, 0, config.TapeContent.length - 1);
                 break;
 
             case TapeTypes.RightLimited:
-                newTape = new LimitedTape(false, true, 0, config.TapeLength - 1);
+                newTape = new LimitedTape(false, true, 0, config.TapeContent.length - 1);
                 break;
 
             case TapeTypes.LeftRightLimited:

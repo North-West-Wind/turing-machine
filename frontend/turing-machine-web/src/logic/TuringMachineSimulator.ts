@@ -266,11 +266,30 @@ export class TuringMachineSimulator
             if (machine == null || machine.IsHalted)
                 continue;
 
+            // Set this to false if the read operation fails
+            let isReadSuccess = true;
+
             // Step 1: Heads read the content from their operating tapes
             let readContents: string = "";
             for (let head of machine.Heads)
             {
-                readContents += head.GetCurrentContent();
+                let curReadContent = head.GetCurrentContent();
+                
+                if (curReadContent == null) {
+                    console.log(`Machine ${machineID} attempts to read out of range and hence halts.`);
+                    machine.IsHalted = true;
+                    isReadSuccess = false;
+                    break;
+                }
+
+                readContents += curReadContent;
+            }
+
+            // Skip the current machine if the read opeartion already failed
+            if (!isReadSuccess) 
+            {
+                hasUpdated = true;
+                continue;
             }
 
             // Step 2: Create a key to look up the transition

@@ -48,7 +48,7 @@ export class LimitedTape implements ITape
                 this._tape.set(this._rightBoundary + 1, TapeSymbols.End)
                 break;
                 
-            case !isLeftBounded && !isRightBounded:
+            case isLeftBounded && isRightBounded:
                 this._tapeType = TapeTypes.LeftRightLimited;
                 this._tape.set(this._leftBoundary - 1, TapeSymbols.Start)
                 this._tape.set(this._rightBoundary + 1, TapeSymbols.End)
@@ -63,10 +63,18 @@ export class LimitedTape implements ITape
 
     public IsOutOfRange(position: number): boolean 
     {
-        if (position >= this._leftBoundary && position <= this._rightBoundary)
-            return false;
+        switch (this._tapeType) {
+            case TapeTypes.LeftLimited:
+                return position < this._leftBoundary;
+            
+            case TapeTypes.RightLimited:
+                return position > this._rightBoundary;
+            
+            case TapeTypes.LeftRightLimited:
+                return position > this._rightBoundary || position < this._leftBoundary;
+        }
 
-        return true;
+        return false;
     }
 
     public Read(position: number): string 
