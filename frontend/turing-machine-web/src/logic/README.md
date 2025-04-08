@@ -62,6 +62,9 @@ const machineConfig = new TuringMachineConfig(
 	transitionNodes[0] // start node
 );
 ```
+Note that for different variants of heads, such as ``ReadOnlyHead``, the ``write`` argument of ``HeadTransition`` should be ``TapeSymbols.None`` because as ``ReadOnlyHead`` is not allowed to write. The same applies to ``WriteOnlyHead``.
+
+
 After defining the configurations, you can add the corresponding tapes or machines to the system:
 
 ```ts
@@ -127,7 +130,7 @@ currentSystemState = TuringMachineSimulator.GetSystemState();
 TuringMachineSimulator.Initialise();
 ```
 
-If you are still unsure about the simulations, you can refer to ``/test/simulator.test.ts`` to look at the test cases.
+If you are still unsure about the simulations, you may refer to ``/test/simulator.test.ts`` to look at the test cases.
 
 ### Tape Content Format Specification
 
