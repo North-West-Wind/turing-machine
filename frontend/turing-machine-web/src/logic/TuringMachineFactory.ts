@@ -12,6 +12,8 @@ import { SignalState } from "./States/SignalStates"
 import { TransitionGraph } from "./States/Transitions/TransitionGraph"
 import { CircularTape } from "./Tapes/CircularTape"
 import { LimitedTape } from "./Tapes/LimitedTape"
+import { WriteOnlyHead } from "./Heads/WriteOnlyHead"
+import { ReadOnlyHead } from "./Heads/ReadOnlyHead"
 
 export class TuringMachineFactory
 {
@@ -119,10 +121,10 @@ export class TuringMachineFactory
                     head = new ReadWriteHead(tapes[i]);
                     break;
                 case HeadTypes.WriteOnly:
-                    throw new Error("NotImplementedException");
+                    head = new WriteOnlyHead(tapes[i]);
                     break;
                 case HeadTypes.ReadOnly:
-                    throw new Error("NotImplementedException");
+                    head = new ReadOnlyHead(tapes[i]);
                     break;
                 default:
                     throw new Error(`Invalid head type: ${headTypes[i]}`);
