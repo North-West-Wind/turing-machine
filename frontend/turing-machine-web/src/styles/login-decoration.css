@@ -1,5 +1,5 @@
 .commonButton {
-    width: 95px;
+    width: 115px;
     height: 50px;
    
     padding: 15px 6px;
@@ -42,5 +42,11 @@
     background: #8f98cf;
 }
 
-
+.box {
+    width: 415px;
+    height: 500px;
+    border: 7px solid rgb(1, 81, 255);
+    padding: 10px;
+    margin: 10px;
+  }
 

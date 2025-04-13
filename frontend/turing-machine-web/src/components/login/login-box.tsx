@@ -1,4 +1,5 @@
 import {ChangeEvent} from 'react';
+import '../../styles/textbox-decoration.css'
 
 interface Props {
 	BoxChange: (value: string) => void;
@@ -11,7 +12,7 @@ export default function LoginBox({ BoxChange, default_holder }: Props) {
 	}
 
 	// Signal a interrupt
-	return <input type="text" placeholder={default_holder} onChange={handleChange} /> ;
+	return <input type="text" className='input-box' placeholder={default_holder} onChange={handleChange} /> ;
 }
 // Change event means the input even change. It contains value
 // onchange need a function. Its argument is function to change and return nothing
