@@ -1,7 +1,7 @@
 import Login_box from '../components/login/login-box'
 import LoginArrangement from '../components/login/login-arrange';
 import {useState} from 'react';
-import '../components/login/login-decoration.css'
+import '../styles/login-decoration.css'
 
 export default function LoginPage() {
 	// This one is driven by button
@@ -23,8 +23,9 @@ export default function LoginPage() {
 	<h2>Password</h2>
 	*/
 	return (
-		<div>
+		<div className='box'>
 			<h1> {header}</h1>
+			<br></br>
 			<Login_box BoxChange={UserChange} default_holder='Your name' />
 			<br/>
 			<br/>
@@ -45,6 +46,7 @@ export default function LoginPage() {
 			}
 			
 			<LoginArrangement isRegistering={isToggled} user={User} password={Pw} licenseKey={Key}/>
+			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 			<button className="commonButton" onClick={()=>setIsToggled(!isToggled)}>{registerNback}</button>
 			
 			</div>

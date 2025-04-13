@@ -1,0 +1,17 @@
+.modeButton {
+    width: 115px;
+    height: 50px;
+   
+    padding: 15px 6px;
+    border-radius: 30px;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    color: white;
+    
+    background: #000000;
+    border: none;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  
+}
