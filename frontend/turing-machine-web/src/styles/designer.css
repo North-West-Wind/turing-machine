@@ -183,6 +183,10 @@
 	background-color: #11534d;
 }
 
+.designer-simulation-tab .special {
+	background-color: #761c9d;
+}
+
 .designer-graph-control {
 	position: absolute;
 	top: .5vmax;

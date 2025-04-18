@@ -16,7 +16,7 @@ enum Tabs {
 	PROPERTIES
 }
 
-export default function DesignerSimulation(props: { onWidthChange: (factor: number) => void }) {
+export default function DesignerSimulation(props: { onWidthChange: (factor: number) => void, openLevelDetails: () => void }) {
 	const { x } = useWindowSize();
 	const [initFactor, setInitFactor] = useState(0.7);
 	const [factor, setFactor] = useState(initFactor);
@@ -106,6 +106,7 @@ export default function DesignerSimulation(props: { onWidthChange: (factor: numb
 			<div className="designer-simulation-tab">
 				<div className={tab == Tabs.SIMULATION ? "" : "unselected"} onClick={tabChanger(Tabs.SIMULATION)}>Simulation</div>
 				<div className={tab == Tabs.PROPERTIES ? "" : "unselected"} onClick={tabChanger(Tabs.PROPERTIES)}>Properties</div>
+				<div className="special" onClick={props.openLevelDetails}>This Level</div>
 			</div>
 		</div>
 	</div>;

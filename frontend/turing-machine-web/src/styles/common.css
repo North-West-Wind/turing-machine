@@ -15,3 +15,7 @@
 .editable-box:focus-visible {
 	outline: none;
 }
+
+.display-none {
+	display: none;
+}
