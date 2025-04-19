@@ -51,7 +51,7 @@ export class InfiniteTape implements ITape
 
     public SendSignal(position: number): SignalState
     {
-        if (this._tape.has(position))
+        if (!this._states.has(position))
             return SignalState.Other;
 
         return this._states.get(position)!;

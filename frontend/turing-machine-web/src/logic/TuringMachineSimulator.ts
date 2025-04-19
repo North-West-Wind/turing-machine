@@ -243,7 +243,7 @@ export class TuringMachineSimulator
             if (machine == null)
                 continue;
     
-            machine.State = state;
+            machine.Signal = state;
         }
     }
 
@@ -294,27 +294,33 @@ export class TuringMachineSimulator
             for (let head of machine.Heads)
             {
                 const incomingSignal = head.ReceiveSignal()
-
+                
                 // Ignore other states
                 if (incomingSignal !== SignalState.Green && incomingSignal !== SignalState.Orange) {
                     continue;
                 }
 
+                console.log(`Machine ${machineID} encounters a ${
+                    incomingSignal === SignalState.Green ? "Running" : "Pause"
+                  } signal. Original State: ${
+                    machine.Signal === SignalState.Green ? "Green" : "Orange"
+                  }.`);
+
                 // The system prioritizes GREEN -> ORANGE
-                if (machine.State === SignalState.Green) {
-                    machine.State = incomingSignal;
+                if (machine.Signal === SignalState.Green) {
+                    machine.Signal = incomingSignal;
                     head.TakeOutSignal(); // Always take signal when current state is GREEN
                     break;
                 }
                 
                 if (incomingSignal === SignalState.Green) {
-                    machine.State = incomingSignal;
+                    machine.Signal = incomingSignal;
                     head.TakeOutSignal(); // Only take signal when transitioning to GREEN
                     break;
                 }
             }
 
-            if (machine.State === SignalState.Orange)
+            if (machine.Signal === SignalState.Orange)
                 continue;
 
             // Set this to false if the read operation fails
@@ -328,7 +334,7 @@ export class TuringMachineSimulator
                 
                 if (curReadContent == null) {
                     console.log(`Machine ${machineID} attempts to read out of range and hence halts.`);
-                    machine.State = SignalState.Red;
+                    machine.Signal = SignalState.Red;
                     machine.IsHalted = true;
                     isReadSuccess = false;
                     break;
@@ -351,7 +357,7 @@ export class TuringMachineSimulator
 
             if (!result.success) {
                 console.log(`Machine ${machineID} has no transition value and hence halts.`);
-                machine.State = SignalState.Red;
+                machine.Signal = SignalState.Red;
                 machine.IsHalted = true;
                 continue;
             }
@@ -371,7 +377,7 @@ export class TuringMachineSimulator
                     machineID, headWriteMovesIndex))
                 {
                     console.log(`Multiple/Invalid write operations failed. Machine ${machineID} halts.`);
-                    machine.State = SignalState.Red;
+                    machine.Signal = SignalState.Red;
                     machine.IsHalted = true;
                     break;
                 }
@@ -434,7 +440,8 @@ export class TuringMachineSimulator
             const machineState = new MachineState(
                 machineID,
                 this._runningNodes[machineID]!.StateID,
-                machine.IsHalted
+                machine.IsHalted,
+                machine.Signal
             );
 
             for (let head of machine.Heads)
