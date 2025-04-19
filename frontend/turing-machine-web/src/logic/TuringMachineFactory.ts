@@ -140,7 +140,7 @@ export class TuringMachineFactory
     {
         const machine = new TuringMachine();
         machine.IsHalted = false;
-        machine.State = SignalState.Other;
+        machine.State = SignalState.Blue;
         machine.Graph = new TransitionGraph();
         this.InitializeHeads(machine, config.NumberOfHeads, config.HeadTypes, config.InitialPositions, config.TapesReference, tapes);
         this.PopulateTransitionGraph(machine, config.Statements);

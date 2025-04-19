@@ -2,6 +2,7 @@ import { ITape } from "./ITape"
 import { TapeTypes } from "./TapeTypes"
 import { WriteOperation } from "./TapesUtilities/WriteOperation"
 import { TapeSymbols } from "./TapesUtilities/TapeSymbols"
+import { SignalState } from "../States/SignalStates";
 
 export class InfiniteTape implements ITape 
 {
@@ -25,6 +26,7 @@ export class InfiniteTape implements ITape
     }
 
     private _tape: Map<number, string> = new Map();
+    private _states: Map<number, SignalState> = new Map();
     private _writeQueue: WriteOperation[] = [];
 
     constructor(_leftBoundary: number = 0, _rightBoundary: number = 0)
@@ -45,6 +47,14 @@ export class InfiniteTape implements ITape
             return TapeSymbols.Blank;
 
         return this._tape.get(position) || ' ';
+    }
+
+    public SendSignal(position: number): SignalState
+    {
+        if (this._tape.has(position))
+            return SignalState.Other;
+
+        return this._states.get(position)!;
     }
 
     public TryRead(position: number): { success: boolean; content: string | null } 
@@ -84,11 +94,25 @@ export class InfiniteTape implements ITape
         {
             let op = this._writeQueue.pop()!;
 
+            // Handle signal states
+            if (op.Content == TapeSymbols.Pause || op.Content == TapeSymbols.Running) {
+                this._states.set(op.Position, 
+                    op.Content === TapeSymbols.Pause ? SignalState.Orange : SignalState.Green);
+                
+                continue;
+            }
+            
+            // Handle regular tape content
             if (op.Content == TapeSymbols.Blank)
                 this._tape.delete(op.Position);
             else
                 this._tape.set(op.Position, op.Content);
         }
+    }
+
+    public RemoveSignal(position: number): void
+    {
+        this._states.delete(position);
     }
 
     public GetMovedPosition(position: number, moves: number): number 

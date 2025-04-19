@@ -2,6 +2,7 @@ import { IHead } from "./IHead"
 import { HeadTypes } from "./HeadTypes"
 import { ITape } from "../Tapes/ITape"
 import { TapeSymbols } from "../Tapes/TapesUtilities/TapeSymbols";
+import { SignalState } from "../States/SignalStates";
 
 export class WriteOnlyHead implements IHead
 {
@@ -31,6 +32,11 @@ export class WriteOnlyHead implements IHead
         return TapeSymbols.None;
     }
 
+    public ReceiveSignal(): SignalState
+    {
+        return this._useTape.SendSignal(this.Position);
+    }
+
     public Move(steps: number): void
     {
         this.Position = this._useTape.GetMovedPosition(this.Position, steps);
@@ -54,6 +60,11 @@ export class WriteOnlyHead implements IHead
         }
 
         return true;
+    }
+
+    public TakeOutSignal(): void
+    {
+        this._useTape.RemoveSignal(this.Position);
     }
 
     public IsUsesTape(tape: ITape): boolean {
