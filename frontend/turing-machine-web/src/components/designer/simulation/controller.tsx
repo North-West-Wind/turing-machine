@@ -31,6 +31,7 @@ export default function DesignerSimulationController(props: { paused: boolean })
 
 	const reset = () => {
 		simulator.reset();
+		simulator.setInput("");
 		setPaused(true);
 	};
  

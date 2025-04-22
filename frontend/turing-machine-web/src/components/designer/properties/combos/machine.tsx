@@ -11,6 +11,7 @@ export default function DesignerPropertiesMachineCombo(props: { id: number }) {
 	const [id, setId] = useState(props.id);
 	const [machine, setMachine] = useState(simulator.getMachineConfig(props.id));
 	const [heads, setHeads] = useState(machine?.TapesReference.map((tape, ii) => ({ tape, type: machine.HeadTypes[ii] })));
+	console.log(heads);
 
 	useEffect(() => {
 		setId(props.id);

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Vec2 } from "../../helpers/designer/math";
-import { StateGraph, StateRect, StateText } from "../../helpers/designer/graph";
+import { StateEdge, StateGraph, StateRect, StateText } from "../../helpers/designer/graph";
 import DesignerGraphControl from "./graph/control";
 import simulator, { Editable, TuringMachineEvent } from "../../helpers/designer/simulator";
 
@@ -26,6 +26,9 @@ let scale = 1;
 let hovered: Editable | undefined;
 let grabbed: Editable | undefined;
 let lastGrabbed = { time: Date.now(), hovered: undefined as (typeof grabbed) };
+
+// specific editing properties
+let creatingEdge: StateEdge | undefined;
 
 export default function DesignerGraph(props: { width: number, height: number }) {
 	const ref = useRef<HTMLCanvasElement>(null);
@@ -111,6 +114,10 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 
 			window.addEventListener("mousemove", onMouseMove);
 			window.addEventListener("mouseup", () => {
+				if (creatingEdge) {
+					creatingEdge = undefined;
+					graph?.discardTmpEdge();
+				}
 				setCursor("grab");
 				position = position.finalize();
 				window.removeEventListener("mousemove", onMouseMove);
@@ -139,19 +146,16 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 			} else if (buttonActive == Buttons.EDGE) {
 				// create edge
 				if (hovered !== undefined && hovered.type == "vertex") {
-					setCursor("grabbing");
-					const edge = graph.createTmpEdge(hovered.id, cursorPosition);
-					if (!edge) return;
-					const onMouseMove = () => {
-						edge.setEnd(cursorPosition);
+					if (creatingEdge) {
+						// we reached the destination
+						graph.finalizeTmpEdge(hovered.id);
+						creatingEdge = undefined;
+					} else {
+						// starting off
+						creatingEdge = graph.createTmpEdge(hovered.id, cursorPosition) || undefined;
 					}
-
-					window.addEventListener("mousemove", onMouseMove);
-					window.addEventListener("mouseup", () => {
-						window.removeEventListener("mousemove", onMouseMove);
-						// finalize the edge
-						graph?.finalizeTmpEdge(hovered?.id);
-					}, { once: true });
+				} else if (creatingEdge) {
+					creatingEdge.commitLine();
 				}
 			} else if (hovered !== undefined) {
 				const setupMouseUp = (extra?: () => void) => {
@@ -219,6 +223,10 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 		mousePosition = new Vec2(ev.clientX - canvas.offsetLeft, ev.clientY - canvas.offsetTop);
 		cursorPosition = mousePosition.scale(1 / scale).subVec(position);
 		hovered = graph?.mouseTick(cursorPosition, scale);
+
+		// handle edge creation
+		if (creatingEdge)
+			creatingEdge.setEnd(cursorPosition);
 	};
 
 	const onWheel = (ev: React.WheelEvent) => {
@@ -257,6 +265,10 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 						break;
 					}
 					case "edge": {
+						if (buttonActive == Buttons.EDGE) {
+							creatingEdge = undefined;
+							graph?.discardTmpEdge();
+						}
 						controlStateSetter(Buttons.EDGE)();
 						break;
 					}

@@ -84,8 +84,13 @@ export class Vec2 {
 		return new Vec2(this.initX + x, this.initY + y, { x: this.initX, y: this.initY })
 	}
 
+	// can also be used as clone
 	finalize() {
 		return new Vec2(this.x, this.y);
+	}
+
+	isVertical() {
+		return this.x == 0 && this.y != 0;
 	}
 
 	toString() {

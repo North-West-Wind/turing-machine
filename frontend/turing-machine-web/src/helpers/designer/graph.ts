@@ -110,80 +110,143 @@ export class StateVertex implements IDrawable, IDrawableOverlay, IHoverable {
 export class StateEdge implements IDrawable, IHoverable {
 	private start: Vec2;
 	private end: Vec2;
-	private mid?: Vec2;
+	private lines: Vec2[]; // lines MUST be alternating between horizontal and vertical (whatever starts)
 	transitions: StateTransition[];
 	hovered = false;
+	private temporary = false;
 
-	constructor(start: Vec2, end: Vec2) {
+	constructor(start: Vec2, end: Vec2, temporary = false) {
 		this.start = start;
 		this.end = end;
+		if (start.x != end.x && start.y != end.y && !temporary)
+			this.lines = [new Vec2(0, end.y - start.y), new Vec2(end.x - start.x, 0)];
+		else
+			this.lines = [temporary ? Vec2.ZERO : end.subVec(start)];
 		this.transitions = [];
-		this.updateMid();
+		this.temporary = temporary;
 	}
 
 	setStart(start: Vec2) {
+		const offset = start.subVec(this.start);
 		this.start = start;
-		this.updateMid();
+		if (this.lines[0].isVertical()) {
+			if (this.lines[0].x != start.x) {
+				if (!this.lines[1]) this.lines.push(new Vec2(this.end.x - start.x, 0)); // no intermediate, so we add one
+				else this.lines[1] = this.lines[1].add(-offset.x, 0); // extend/shrink the next line
+			}
+			if (this.lines[0].y != start.y) {
+				this.lines[0] = this.lines[0].add(0, -offset.y);
+			}
+		} else {
+			if (this.lines[0].y != start.y) {
+				if (!this.lines[1]) this.lines.push(new Vec2(0, this.end.y - start.y)); // no intermediate, so we add one
+				else this.lines[1] = this.lines[1].add(0, -offset.y); // extend/shrink the next line
+			}
+			if (this.lines[0].x != start.x) {
+				this.lines[0] = this.lines[0].add(-offset.x, 0);
+			}
+		}
+		this.fold();
 	}
 
 	setEnd(end: Vec2) {
+		const offset = end.subVec(this.end);
 		this.end = end;
-		this.updateMid();
+		const last = this.lines[this.lines.length - 1];
+		// during temp mode, lines can change directions
+		if (this.temporary) {
+			let start = this.start;
+			for (let ii = 0; ii < this.lines.length - 1; ii++)
+				start = start.addVec(this.lines[ii]);
+			const diff = end.subVec(start);
+			if (Math.abs(diff.x) > Math.abs(diff.y)) this.lines[this.lines.length - 1] = new Vec2(diff.x, 0);
+			else this.lines[this.lines.length - 1] = new Vec2(0, diff.y);
+			return;
+		}
+		if (last.isVertical()) {
+			if (last.x != end.x) {
+				if (this.lines.length <= 1) this.lines.unshift(new Vec2(end.x - this.start.x, 0));
+				else this.lines[this.lines.length - 2] = this.lines[this.lines.length - 2].add(offset.x, 0);
+			}
+			if (last.y != end.y) {
+				this.lines[this.lines.length - 1] = last.add(0, offset.y);
+			}
+		} else {
+			if (last.y != end.y) {
+				if (this.lines.length <= 1) this.lines.unshift(new Vec2(0, end.y - this.start.y));
+				else this.lines[this.lines.length - 2] = this.lines[this.lines.length - 2].add(0, offset.y);
+			}
+			if (last.x != end.x) {
+				this.lines[this.lines.length - 1] = last.add(offset.x, 0);
+			}
+		}
+		this.fold();
 	}
 
-	private updateMid() {
-		if (this.start.x != this.end.x && this.start.y != this.end.y)
-			this.mid = new Vec2(this.start.x, this.end.y);
-		else
-			this.mid = undefined;
+	commitLine() {
+		if (!this.temporary) return;
+		this.lines.push(Vec2.ZERO);
+	}
+
+	// Check all lines to see if they are alternating
+	// If not, fold them
+	private fold() {
+		if (this.temporary) return;
+		for (let ii = 0; ii < this.lines.length - 1; ii++) {
+			if (this.lines[ii].isVertical() == this.lines[ii+1].isVertical()) {
+				this.lines[ii] = this.lines[ii].addVec(this.lines[ii+1]);
+				this.lines.splice(ii+1, 1);
+			}
+		}
 	}
 
 	addTransition(transition: StateTransition) {
 		this.transitions.push(transition);
 	}
 
+	resetTransitions() {
+		this.transitions = [];
+	}
+
+	copyTransitions(edge: StateEdge) {
+		this.transitions = Array.from(edge.transitions);
+	}
+
 	draw(ctx: CanvasRenderingContext2D) {
 		ctx.beginPath();
 		ctx.moveTo(this.start.x, this.start.y);
-		if (this.mid) {
-			// start and end are not axis-aligned. need to use mid-point
-			ctx.lineTo(this.mid.x, this.mid.y);
+		let start = this.start;
+		for (const line of this.lines) {
+			start = start.addVec(line);
+			ctx.lineTo(start.x, start.y);
 		}
-		ctx.lineTo(this.end.x, this.end.y);
 		if (this.hovered) ctx.strokeStyle = "#0f0";
 		else ctx.strokeStyle = "#fff";
 		ctx.stroke();
 
 		// draw arrow head
-		const endInv = (this.mid || this.start).subVec(this.end).withMagnitude(VERTEX_RADIUS);
-		const tip = this.end.addVec(endInv);
-		ctx.beginPath();
-		ctx.moveTo(tip.x, tip.y);
-		const side = endInv.perpendicular().scale(0.5);
-		const p1 = tip.addVec(endInv).addVec(side);
-		const p2 = tip.addVec(endInv).subVec(side);
-		ctx.lineTo(p1.x, p1.y);
-		ctx.lineTo(p2.x, p2.y);
-		if (this.hovered) ctx.fillStyle = "#0f0";
-		else ctx.fillStyle = "#fff";
-		ctx.fill();
+		if (!this.temporary) {
+			const endInv = this.lines[this.lines.length - 1].inv().withMagnitude(VERTEX_RADIUS);
+			const tip = this.end.addVec(endInv);
+			ctx.beginPath();
+			ctx.moveTo(tip.x, tip.y);
+			const side = endInv.perpendicular().scale(0.5);
+			const p1 = tip.addVec(endInv).addVec(side);
+			const p2 = tip.addVec(endInv).subVec(side);
+			ctx.lineTo(p1.x, p1.y);
+			ctx.lineTo(p2.x, p2.y);
+			if (this.hovered) ctx.fillStyle = "#0f0";
+			else ctx.fillStyle = "#fff";
+			ctx.fill();
+		}
 		
 		// draw text
-		let offset: Vec2;
-		let start: Vec2;
-		if (!this.mid) {
-			offset = this.end.subVec(this.start).scale(0.5);
-			start = this.start;
-		} else {
-			const off1 = this.end.subVec(this.mid).scale(0.5), off2 = this.mid.subVec(this.start).scale(0.5);
-			if (off1.magnitudeSqr() > off2.magnitudeSqr()) {
-				offset = off1;
-				start = this.mid;
-			} else {
-				offset = off2;
-				start = this.start;
-			}
-		}
+		// find longest line
+		const { index, line } = this.lines.map((line, index) => ({ index, line })).reduce((a, b) => a.line.magnitudeSqr() > b.line.magnitudeSqr() ? a : b);
+		let offset = line.scale(0.5);
+		start = this.start;
+		for (let ii = 0; ii < index; ii++)
+			start = start.addVec(this.lines[ii]);
 		const perpendicular = offset.perpendicular();
 		if (offset.x == 0) {
 			// vertical
@@ -225,11 +288,24 @@ export class StateEdge implements IDrawable, IHoverable {
 	}
 
 	isHovered(position: Vec2, scale: number) {
-		if (this.mid) {
-			return this.hovered = this.isSegmentHovered(position, scale, this.start, this.mid) || this.isSegmentHovered(position, scale, this.mid, this.end);
-		} else {
-			return this.hovered = this.isSegmentHovered(position, scale, this.start, this.end);
+		let hov = false;
+		// if temporary, not hoverable
+		if (!this.temporary) {
+			let pos = this.start;
+			for (const line of this.lines) {
+				const nextPos = pos.addVec(line);
+				hov = this.isSegmentHovered(position, scale, pos, nextPos);
+				pos = nextPos;
+			}
 		}
+		return this.hovered = hov;
+	}
+
+	untemporary() {
+		this.temporary = false;
+		let start = this.start;
+		this.lines.forEach(line => start = start.addVec(line));
+		this.end = start;
 	}
 }
 
@@ -345,10 +421,10 @@ export class StateRect implements IDrawable, IHoverable {
 		if (this.hoveredCorner == -1) return;
 		switch (this.hoveredCorner) {
 			case 0:
-				this.start = position.finalize();
+				this.start = position;
 				break;
 			case 1:
-				this.end = position.finalize();
+				this.end = position;
 				break;
 			case 2:
 				this.start = new Vec2(this.start.x, position.y);
@@ -460,7 +536,7 @@ export class StateGraph implements IDrawable, IDrawableOverlay {
 	updateVertexEdges(id: number) {
 		const vertex = this.vertices.get(id);
 		if (!vertex) return;
-		this.edges.deleteA(vertex.id);
+		this.edges.forEachOfA(vertex.id, edge => edge.resetTransitions());
 		vertex.transitions.forEach(trans => {
 			const dest = this.vertices.get(trans.destination);
 			if (dest) {
@@ -482,19 +558,32 @@ export class StateGraph implements IDrawable, IDrawableOverlay {
 	createTmpEdge(start: number, end: Vec2) {
 		const vert = this.vertices.get(start);
 		if (!vert) return null;
-		this.tmpEdge ={ edge: new StateEdge(vert.getPosition(), end), start };
+		this.tmpEdge ={ edge: new StateEdge(vert.getPosition(), end, true), start };
 		return this.tmpEdge.edge;
 	}
 
 	finalizeTmpEdge(end?: number) {
 		if (!this.tmpEdge) return;
+		this.tmpEdge.edge.untemporary();
 		const vert = this.vertices.get(this.tmpEdge.start);
 		if (!vert || end === undefined) {
 			this.tmpEdge = undefined;
 			return;
 		}
-		vert.addTransitions(new StateTransition(end, "t", "t", 0));
-		this.updateVertexEdges(vert.id);
+		if (this.edges.has(vert.id, end)) {
+			this.tmpEdge.edge.copyTransitions(this.edges.get(vert.id, end)!);
+		} else {
+			const trans = new StateTransition(end, "t", "t", 0);
+			vert.addTransitions(trans);
+			this.tmpEdge.edge.addTransition(trans);
+		}
+		this.tmpEdge.edge.setStart(vert.getPosition());
+		this.tmpEdge.edge.setEnd(this.vertices.get(end)!.getPosition());
+		this.edges.set(vert.id, end, this.tmpEdge.edge);
+		this.tmpEdge = undefined;
+	}
+
+	discardTmpEdge() {
 		this.tmpEdge = undefined;
 	}
 

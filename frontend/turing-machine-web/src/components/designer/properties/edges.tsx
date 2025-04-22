@@ -19,7 +19,7 @@ export default function DesignerPropertiesEdge(props: { graph: StateGraph, id: n
 			return null;
 		});
 		if (transitions.some(trans => !trans)) return;
-		vertex.setTransitions(...(transitions as StateTransition[]));
+		vertex.setTransitions(...vertex.transitions.filter(trans => trans.destination != dest).concat(transitions as StateTransition[]));
 	};
 
 	const list: JSX.Element[] = [];

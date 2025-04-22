@@ -49,7 +49,7 @@ export default function DesignerPropertiesHeads(props: { heads: { tape: number, 
 				<div className="add-button" onClick={props.onAdd}>Add</div>
 			</div>
 			{heads.map((head, ii) => <div className="designer-properties-heads" key={ii}>
-				<select defaultValue={head.type} onChange={(ev) => onHeadTypeChange(ii, ev)}>
+				<select defaultValue={headTypeToName(head.type)} onChange={(ev) => onHeadTypeChange(ii, ev)}>
 					<option value={headTypeToName(HeadTypes.ReadOnly)}>read-only</option>
 					<option value={headTypeToName(HeadTypes.ReadWrite)}>read-write</option>
 					<option value={headTypeToName(HeadTypes.WriteOnly)}>write-only</option>
