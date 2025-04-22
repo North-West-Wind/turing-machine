@@ -8,6 +8,7 @@ import { Editable } from "./simulator";
 
 const VERTEX_RADIUS = 20;
 const EDGE_HITBOX = 10;
+const RECT_CORNER_HITBOX = 10;
 
 export class StateTransition {
 	readonly destination: number;
@@ -232,19 +233,44 @@ export class StateEdge implements IDrawable, IHoverable {
 	}
 }
 
+// A normalization for StateRect:
+// All components "start" (x, y) must be smaller than "end"
+// This is done so moving corners can be more efficient
 export class StateRect implements IDrawable, IHoverable {
 	private start: Vec2;
 	private end: Vec2;
-	private size: Vec2;
+	private corners!: Vec2[];
+	private size!: Vec2;
 	private color: string;
 	hovered = false;
+	private hoveredCorner = -1;
+	private movingCorner = false;
 
 	constructor(start: Vec2, end: Vec2, color: number | string) {
 		this.start = start;
 		this.end = end;
-		this.size = this.end.subVec(this.start);
+		this.normalize();
+		this.computeExtra();
 		if (typeof color == "string") this.color = color;
 		else this.color = color.toString(16).padStart(6, "0");
+	}
+
+	private normalize() {
+		if (this.start.x > this.end.x) {
+			const x = this.start.x;
+			this.start = new Vec2(this.end.x, this.start.y);
+			this.end = new Vec2(x, this.end.y);
+		}
+		if (this.start.y > this.end.y) {
+			const y = this.start.y;
+			this.start = new Vec2(this.start.x, this.end.y);
+			this.end = new Vec2(this.end.x, y);
+		}
+	}
+
+	private computeExtra() {
+		this.size = this.end.subVec(this.start);
+		this.corners = [this.start, this.end, this.start.add(this.size.x, 0), this.start.add(0, this.size.y)];
 	}
 
 	getStart() {
@@ -253,7 +279,8 @@ export class StateRect implements IDrawable, IHoverable {
 
 	setStart(start: Vec2) {
 		this.start = start;
-		this.size = this.end.subVec(this.start);
+		this.normalize();
+		this.computeExtra();
 		return true;
 	}
 
@@ -263,7 +290,8 @@ export class StateRect implements IDrawable, IHoverable {
 
 	setEnd(end: Vec2) {
 		this.end = end;
-		this.size = this.end.subVec(this.start);
+		this.normalize();
+		this.computeExtra();
 		return true;
 	}
 
@@ -288,13 +316,53 @@ export class StateRect implements IDrawable, IHoverable {
 		ctx.fillRect(this.start.x, this.start.y, this.size.x, this.size.y);
 	}
 
-	isHovered(position: Vec2) {
+	isHovered(position: Vec2, scale: number) {
+		// Check which corner is hovered
+		// Don't change if we are moving a corner
+		if (!this.movingCorner) {
+			this.hoveredCorner = -1;
+			for (let ii = 0; ii < this.corners.length; ii++) {
+				if (position.subVec(this.corners[ii]).magnitudeSqr() <= (RECT_CORNER_HITBOX * RECT_CORNER_HITBOX * scale * scale)) {
+					this.hoveredCorner = ii;
+					break;
+				}
+			}
+		}
+
 		const offset = position.subVec(this.start);
 		const hori = this.size.scale(1, 0);
 		const vert = this.size.scale(0, 1);
 		return this.hovered =
 			offset.dot(hori) > 0 && offset.dot(hori) <= this.size.x * this.size.x && // inside horizontally
 			offset.dot(vert) > 0 && offset.dot(vert) <= this.size.y * this.size.y // inside vertically
+	}
+
+	setMovingCorner(state: boolean) {
+		this.movingCorner = state;
+	}
+
+	moveCornerTo(position: Vec2) {
+		if (this.hoveredCorner == -1) return;
+		switch (this.hoveredCorner) {
+			case 0:
+				this.start = position.finalize();
+				break;
+			case 1:
+				this.end = position.finalize();
+				break;
+			case 2:
+				this.start = new Vec2(this.start.x, position.y);
+				this.end = new Vec2(position.x, this.end.y);
+				break;
+			case 3:
+				this.start = new Vec2(position.x, this.start.y);
+				this.end = new Vec2(this.end.x, position.y);
+				break;
+			default:
+				return;
+		}
+		this.normalize();
+		this.computeExtra();
 	}
 }
 
@@ -480,7 +548,7 @@ export class StateGraph implements IDrawable, IDrawableOverlay {
 			if (text.isHovered(position) && this.hovered === undefined)
 				this.hovered = { type: "text", id };
 		for (const [id, rect] of this.rects.entries())
-			if (rect.isHovered(position) && this.hovered === undefined)
+			if (rect.isHovered(position, scale) && this.hovered === undefined)
 				this.hovered = { type: "rect", id };
 		this.hoveredEdge = hovEdge;
 		return this.hovered;

@@ -183,7 +183,18 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 					// rect click handler
 					setCursor("grabbing");
 					grabbed = hovered;
-					setupMouseUp();
+					graph?.getRect(grabbed.id)?.setMovingCorner(true);
+
+					const onMouseMove = () => {
+						if (grabbed)
+							graph?.getRect(grabbed.id)?.moveCornerTo(cursorPosition);
+					};
+					window.addEventListener("mousemove", onMouseMove);
+					setupMouseUp(() => {
+						window.removeEventListener("mousemove", onMouseMove);
+						if (grabbed)
+							graph?.getRect(grabbed.id)?.setMovingCorner(false);
+					});
 				} else if (hovered.type == "text") {
 					// textbox click handler
 					setCursor("grabbing");
