@@ -23,7 +23,6 @@ export default function DesignerSimulationMachine(props: { name: string, color: 
 			if (!ev.detail) return;
 			const tapes: string[] = [];
 			const heads: number[] = [];
-			console.log(ev.detail.Machines);
 			ev.detail.Machines[props.id].Heads.forEach(head => {
 				tapes.push(ev.detail!.Tapes[head.TapeID].Content);
 				heads.push(head.Position);
