@@ -1,13 +1,14 @@
 import { IHead } from "./IHead"
 import { HeadTypes } from "./HeadTypes"
 import { ITape } from "../Tapes/ITape"
+import { TapeSymbols } from "../Tapes/TapesUtilities/TapeSymbols";
 import { SignalState } from "../States/SignalStates";
 
-export class ReadWriteHead implements IHead
+export class ReadOnlyHead implements IHead
 {
     // Getter for the head type
     public get Type(): HeadTypes {
-        return HeadTypes.ReadWrite;
+        return HeadTypes.ReadOnly;
     }
 
     public Position: number = 0;
@@ -16,7 +17,7 @@ export class ReadWriteHead implements IHead
     private readonly _useTape: ITape;
 
     /**
-     * ReadWriteHead constructor accepts a tape object for operations. Cannot change later.
+     * ReadOnlyHead constructor accepts a tape object for operations. Cannot change later.
      * Factory method should pass this object by the given tape reference ID.
      * @param tape An ITape object.
      */
@@ -25,7 +26,7 @@ export class ReadWriteHead implements IHead
         this._useTape = tape;
     }
 
-    public GetCurrentContent(): string | null
+    public GetCurrentContent(): string | null 
     {
         const { success, content } = this._useTape.TryRead(this.Position);
 
@@ -45,22 +46,12 @@ export class ReadWriteHead implements IHead
         this.Position = this._useTape.GetMovedPosition(this.Position, steps);
     }
 
-    public TryWrite(content: string, machineID: number, headID: number): boolean
+    public TryWrite(content: string): boolean
     {
-        try 
-        {
-            this._useTape.ScheduleWrite(this.Position, content, machineID, headID);
-        }
-        catch (ex)
-        {
-            if (ex instanceof Error) {
-                console.log(ex.message); // Safely access the message property
-            } else {
-                console.log("An unknown error occurred.");
-            }
-
+        // ReadOnlyHead does not allow any write operation
+        // Returns false if the statement is configurated incorrectly
+        if (content != TapeSymbols.None)
             return false;
-        }
 
         return true;
     }

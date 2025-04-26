@@ -6,6 +6,7 @@ import { TransitionNode } from "./States/Transitions/TransitionNode"
 import { TransitionKey } from "./States/Transitions/TransitionGraph"
 import { HeadState, MachineState, SystemState, TapeState } from "./SystemState"
 import { TuringMachineFactory } from "./TuringMachineFactory"
+import { SignalState } from "./States/SignalStates"
 
 export class TuringMachineSimulator
 {
@@ -232,11 +233,30 @@ export class TuringMachineSimulator
     }
 
     /**
+     * Sets all machines to a given signal, skipping deleted machines
+     * @param state what state to change to
+     */
+    private static SetMachineSingals(state: SignalState): void
+    {
+        for (let machine of this._machines)
+        {
+            if (machine == null)
+                continue;
+    
+            machine.Signal = state;
+        }
+    }
+
+    /**
      * Starts the simulation. After invoking this method, no more add or delete is allowed.
      */
     public static StartSimulation(): void
     {
         this._isRunning = true;
+
+        // Change the machine signals to GREEN (Running)
+        this.SetMachineSingals(SignalState.Green);
+
         console.log("Simulation started.");
     }
 
@@ -246,6 +266,10 @@ export class TuringMachineSimulator
     public static StopSimulation(): void
     {
         this._isRunning = false;
+
+        // Change the machine signals to RED (force halt)
+        this.SetMachineSingals(SignalState.Red);
+
         console.log("Simulation is stopped manually.");
     }
 
@@ -266,20 +290,74 @@ export class TuringMachineSimulator
             if (machine == null || machine.IsHalted)
                 continue;
 
-            // Step 1: Heads read the content from their operating tapes
+            // Step 1: Detects if there are any control signals
+            for (let head of machine.Heads)
+            {
+                const incomingSignal = head.ReceiveSignal()
+                
+                // Ignore other states
+                if (incomingSignal !== SignalState.Green && incomingSignal !== SignalState.Orange) {
+                    continue;
+                }
+
+                console.log(`Machine ${machineID} encounters a ${
+                    incomingSignal === SignalState.Green ? "Running" : "Pause"
+                  } signal. Original State: ${
+                    machine.Signal === SignalState.Green ? "Green" : "Orange"
+                  }.`);
+
+                // The system prioritizes GREEN -> ORANGE
+                if (machine.Signal === SignalState.Green) {
+                    machine.Signal = incomingSignal;
+                    head.TakeOutSignal(); // Always take signal when current state is GREEN
+                    break;
+                }
+                
+                if (incomingSignal === SignalState.Green) {
+                    machine.Signal = incomingSignal;
+                    head.TakeOutSignal(); // Only take signal when transitioning to GREEN
+                    break;
+                }
+            }
+
+            if (machine.Signal === SignalState.Orange)
+                continue;
+
+            // Set this to false if the read operation fails
+            let isReadSuccess = true;
+
+            // Step 2: Heads read the content from their operating tapes
             let readContents: string = "";
             for (let head of machine.Heads)
             {
-                readContents += head.GetCurrentContent();
+                let curReadContent = head.GetCurrentContent();
+                
+                if (curReadContent == null) {
+                    console.log(`Machine ${machineID} attempts to read out of range and hence halts.`);
+                    machine.Signal = SignalState.Red;
+                    machine.IsHalted = true;
+                    isReadSuccess = false;
+                    break;
+                }
+
+                readContents += curReadContent;
             }
 
-            // Step 2: Create a key to look up the transition
+            // Skip the current machine if the read opeartion already failed
+            if (!isReadSuccess) 
+            {
+                hasUpdated = true;
+                continue;
+            }
+
+            // Step 3: Create a key to look up the transition
             const key = new TransitionKey(this._runningNodes[machineID]!, readContents);
 
             const result = machine.Graph.TryGetTransitionValue(key);
 
             if (!result.success) {
                 console.log(`Machine ${machineID} has no transition value and hence halts.`);
+                machine.Signal = SignalState.Red;
                 machine.IsHalted = true;
                 continue;
             }
@@ -291,7 +369,7 @@ export class TuringMachineSimulator
             let writeContents: string = value.HeadsWrites;
             let headMoves: number[] = value.HeadsMoves;
 
-            // Step 3: Write contents and moves
+            // Step 4: Write contents and moves
             let headWriteMovesIndex = 0;
             for (let head of machine.Heads)
             {
@@ -299,6 +377,7 @@ export class TuringMachineSimulator
                     machineID, headWriteMovesIndex))
                 {
                     console.log(`Multiple/Invalid write operations failed. Machine ${machineID} halts.`);
+                    machine.Signal = SignalState.Red;
                     machine.IsHalted = true;
                     break;
                 }
@@ -361,7 +440,8 @@ export class TuringMachineSimulator
             const machineState = new MachineState(
                 machineID,
                 this._runningNodes[machineID]!.StateID,
-                machine.IsHalted
+                machine.IsHalted,
+                machine.Signal
             );
 
             for (let head of machine.Heads)

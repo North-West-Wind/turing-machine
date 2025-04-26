@@ -1,3 +1,5 @@
+import { SignalState } from "./States/SignalStates";
+
 /**
  * Tape state: Content, left/right boundaries, and symbols (e.g., '_', '>', '<').
  */
@@ -42,12 +44,14 @@ export class MachineState
     public CurrentState: number = -1;
     public Heads: HeadState[] = [];
     public IsHalted: boolean = false;
+    public Signal: SignalState;
 
-    constructor(id: number, currentState: number, isHalted: boolean)
+    constructor(id: number, currentState: number, isHalted: boolean, signal: SignalState)
     {
         this.ID = id;
         this.CurrentState = currentState;
         this.IsHalted = isHalted;
+        this.Signal = signal;
     }
 }
 

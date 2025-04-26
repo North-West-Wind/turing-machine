@@ -10,6 +10,10 @@ import { HeadTypes } from "./Heads/HeadTypes"
 import { TuringMachineConfig } from "./TuringMachineConfig"
 import { SignalState } from "./States/SignalStates"
 import { TransitionGraph } from "./States/Transitions/TransitionGraph"
+import { CircularTape } from "./Tapes/CircularTape"
+import { LimitedTape } from "./Tapes/LimitedTape"
+import { WriteOnlyHead } from "./Heads/WriteOnlyHead"
+import { ReadOnlyHead } from "./Heads/ReadOnlyHead"
 
 export class TuringMachineFactory
 {
@@ -17,27 +21,47 @@ export class TuringMachineFactory
      * Method for simulator to make ITape objects.
      * @param config The configuration of the tape.
      * @throws {TypeError} when the tape type is invalid.
+     * @throws {RangeError} when the tape length is invalid.
      */
     public static MakeTape(config: TapeConfig): ITape
     {
+        if (config.TapeType == TapeTypes.Circular || config.TapeType == TapeTypes.LeftRightLimited)
+        {
+            if (config.TapeLength < 1)
+            {
+                throw new RangeError("Tape length must be greater than or equal to 1.")
+            }
+
+            if (config.TapeContent.length > config.TapeLength)
+            {
+                throw new RangeError(
+                    `Content length ${config.TapeContent.length} exceeds tape length ${config.TapeLength}`)
+            }
+        }
+
         let newTape;
         switch (config.TapeType)
         {
             case TapeTypes.Infinite:
                 newTape = new InfiniteTape(0, config.TapeContent.length - 1);
                 break;
+
             case TapeTypes.Circular:
-                throw new Error("NotImplementedException");
+                newTape = new CircularTape(0, config.TapeLength - 1);
                 break;
+
             case TapeTypes.LeftLimited:
-                throw new Error("NotImplementedException");
+                newTape = new LimitedTape(true, false, 0, config.TapeContent.length - 1);
                 break;
+
             case TapeTypes.RightLimited:
-                throw new Error("NotImplementedException");
+                newTape = new LimitedTape(false, true, 0, config.TapeContent.length - 1);
                 break;
+
             case TapeTypes.LeftRightLimited:
-                throw new Error("NotImplementedException");
+                newTape = new LimitedTape(true, true, 0, config.TapeLength - 1);
                 break;
+                
             default:
                 throw new Error(`Invalid tape type: ${config.TapeType}`);
         }
@@ -97,10 +121,10 @@ export class TuringMachineFactory
                     head = new ReadWriteHead(tapes[i]);
                     break;
                 case HeadTypes.WriteOnly:
-                    throw new Error("NotImplementedException");
+                    head = new WriteOnlyHead(tapes[i]);
                     break;
                 case HeadTypes.ReadOnly:
-                    throw new Error("NotImplementedException");
+                    head = new ReadOnlyHead(tapes[i]);
                     break;
                 default:
                     throw new Error(`Invalid head type: ${headTypes[i]}`);
@@ -116,7 +140,7 @@ export class TuringMachineFactory
     {
         const machine = new TuringMachine();
         machine.IsHalted = false;
-        machine.State = SignalState.Other;
+        machine.State = SignalState.Blue;
         machine.Graph = new TransitionGraph();
         this.InitializeHeads(machine, config.NumberOfHeads, config.HeadTypes, config.InitialPositions, config.TapesReference, tapes);
         this.PopulateTransitionGraph(machine, config.Statements);

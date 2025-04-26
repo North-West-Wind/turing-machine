@@ -4,15 +4,15 @@ import { WriteOperation } from "./TapesUtilities/WriteOperation"
 import { TapeSymbols } from "./TapesUtilities/TapeSymbols"
 import { SignalState } from "../States/SignalStates";
 
-export class InfiniteTape implements ITape 
+export class LimitedTape implements ITape
 {
+    private _tapeType: TapeTypes = TapeTypes.LeftRightLimited;
+
     // Getter for the tape type
     public get Type(): TapeTypes {
-        return TapeTypes.Infinite;
+        return this._tapeType;
     }
 
-    // Warning: Infinite tape does not have real boundaries
-    // These are for displaying the current window for the UI and users
     private _leftBoundary: number = 0;
     private _rightBoundary: number = 0;
 
@@ -29,20 +29,61 @@ export class InfiniteTape implements ITape
     private _states: Map<number, SignalState> = new Map();
     private _writeQueue: WriteOperation[] = [];
 
-    constructor(_leftBoundary: number = 0, _rightBoundary: number = 0)
+    /**
+     * Constructor for creating a Limited tape object.
+     * @throws {TypeError} when both left anf right are not limited.
+     */
+    constructor(isLeftBounded: boolean, isRightBounded: boolean, _leftBoundary: number = 0, _rightBoundary: number = 0)
     {
         this._leftBoundary = _leftBoundary;
         this._rightBoundary = _rightBoundary;
+
+        // Assigns tape types and stores the boundaries for displaying on the UI
+        switch (true) {
+            case isLeftBounded && !isRightBounded:
+                this._tapeType = TapeTypes.LeftLimited;
+                this._tape.set(this._leftBoundary - 1, TapeSymbols.Start)
+                break;
+
+            case !isLeftBounded && isRightBounded:
+                this._tapeType = TapeTypes.RightLimited;
+                this._tape.set(this._rightBoundary + 1, TapeSymbols.End)
+                break;
+                
+            case isLeftBounded && isRightBounded:
+                this._tapeType = TapeTypes.LeftRightLimited;
+                this._tape.set(this._leftBoundary - 1, TapeSymbols.Start)
+                this._tape.set(this._rightBoundary + 1, TapeSymbols.End)
+                break;
+                
+            default:
+                throw new TypeError(
+                    "Limited tape must be either left or right limited. Hint: Use Infinite tape."
+                );
+        }
     }
 
-    public IsOutOfRange(): boolean 
+    public IsOutOfRange(position: number): boolean 
     {
-        // Infinite tape will never be out of range
+        switch (this._tapeType) {
+            case TapeTypes.LeftLimited:
+                return position < this._leftBoundary;
+            
+            case TapeTypes.RightLimited:
+                return position > this._rightBoundary;
+            
+            case TapeTypes.LeftRightLimited:
+                return position > this._rightBoundary || position < this._leftBoundary;
+        }
+
         return false;
     }
 
     public Read(position: number): string 
     {
+        if (this.IsOutOfRange(position))
+            throw new RangeError("Read out of range!");
+            
         if (this._tape.has(position))
             return TapeSymbols.Blank;
 
@@ -59,10 +100,14 @@ export class InfiniteTape implements ITape
 
     public TryRead(position: number): { success: boolean; content: string | null } 
     {
+        if (this.IsOutOfRange(position))
+        {
+            return { success: false, content: null };
+        }
+
         const read = this._tape.get(position);
         const content = read === undefined ? TapeSymbols.Blank : read;
 
-        // Infinite tape will always be success
         return { success: true, content };
     }
 
@@ -70,6 +115,9 @@ export class InfiniteTape implements ITape
     {
         if (content.length != 1)
             throw new RangeError("The write content must be a single character.");
+
+        if (this.IsOutOfRange(position))
+            throw new RangeError("Write out of range!");
         
         for (let op of this._writeQueue)
         {
@@ -117,6 +165,8 @@ export class InfiniteTape implements ITape
 
     public GetMovedPosition(position: number, moves: number): number 
     {
+        // No exception is thrown even if it is out of range
+        // It will be handled by write and read operations
         return position + moves;
     }
 
@@ -130,14 +180,23 @@ export class InfiniteTape implements ITape
 
     public UpdateBoundaries(headPosition: number): void 
     {
-        // Updates the boundaries based on how far the heads are going
-        this._leftBoundary = Math.min(this._leftBoundary, headPosition);
-        this._rightBoundary = Math.max(this._rightBoundary, headPosition);
+        // Updates the boundary of the infinite side based on how far the heads are going
+        if (this._tapeType === TapeTypes.LeftLimited)
+        {
+            this._rightBoundary = Math.max(this._rightBoundary, headPosition);
+        }
+        else if (this._tapeType === TapeTypes.RightLimited)
+        {
+            this._leftBoundary = Math.min(this._leftBoundary, headPosition);
+        }
     }
 
     public GetContentsAsString()
     {
         let contents = "";
+
+        if (this._tapeType === TapeTypes.LeftLimited || this._tapeType === TapeTypes.LeftRightLimited)
+            contents += TapeSymbols.Start;
 
         for (let i = this._leftBoundary; i <= this._rightBoundary; i++) {
             if (this._tape.has(i))
@@ -146,6 +205,9 @@ export class InfiniteTape implements ITape
                 contents += TapeSymbols.Blank;
             
         }
+
+        if (this._tapeType === TapeTypes.RightLimited || this._tapeType === TapeTypes.LeftRightLimited)
+            contents += TapeSymbols.End;
 
         return contents;
     }

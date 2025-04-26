@@ -1,4 +1,5 @@
 import { TapeTypes } from "./TapeTypes"
+import { SignalState } from "../States/SignalStates";
 
 export interface ITape 
 {
@@ -22,6 +23,13 @@ export interface ITape
     Read(position: number): string;
 
     /**
+     * Sends the control signal to the head.
+     * @param position The position of the cell. Position can be negatives.
+     * @returns The control signal of the given cell.
+     */
+    SendSignal(position: number): SignalState
+
+    /**
      * Tries to read a cell on the tape.
      * @param position The position of the cell. Position can be negatives.
      * @returns A boolean value indicating success or not. If yes, returns the content.
@@ -43,6 +51,12 @@ export interface ITape
      * Updates the tape contents by the scheduled write operations.
      */
     CommitWrite(): void;
+
+    /**
+     * Removes the control signal from the tape by the given position
+     * @param position The position of the cell. Position can be negatives.
+     */
+    RemoveSignal(position: number): void;
 
     /**
      * Obtains the new position of the moved heads.

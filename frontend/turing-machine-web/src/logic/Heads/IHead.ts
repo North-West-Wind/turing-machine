@@ -1,5 +1,6 @@
 import { HeadTypes } from "./HeadTypes"
 import { ITape } from "../Tapes/ITape"
+import { SignalState } from "../States/SignalStates";
 
 export interface IHead 
 {
@@ -8,10 +9,16 @@ export interface IHead
     TapeID: number;
 
     /**
-     * Gets the content in current position of the head.
+     * Gets the content in the current position of the head.
      * @returns Returns the read content. Can be null when out of bound.
      */
     GetCurrentContent(): string | null;
+
+    /**
+     * Receives the control signal in the current position from the tape.
+     * @returns Returns the control signal. Receive Other if no state is written.
+     */
+    ReceiveSignal(): SignalState;
 
     /**
      * Moves the head. No effects to the tape.
@@ -27,6 +34,11 @@ export interface IHead
      * @returns A boolean value indicating success or not.
      */
     TryWrite(content: string, machineID: number, headID: number): boolean;
+
+    /**
+     * Removes the signal from the tape.
+     */
+    TakeOutSignal(): void;
 
     /**
      * Checks if the head is using the given tape.
