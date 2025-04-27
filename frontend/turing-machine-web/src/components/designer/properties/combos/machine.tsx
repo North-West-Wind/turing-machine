@@ -31,6 +31,7 @@ export default function DesignerPropertiesMachineCombo(props: { id: number }) {
 		machine.HeadTypes.push(HeadTypes.ReadWrite);
 		machine.InitialPositions.push(0);
 		machine.NumberOfHeads++;
+		simulator.updateMachineHeads(id);
 		setHeads(machine.TapesReference.map((tape, ii) => ({ tape, type: machine.HeadTypes[ii] })));
 	};
 
@@ -39,6 +40,7 @@ export default function DesignerPropertiesMachineCombo(props: { id: number }) {
 		machine.HeadTypes.splice(index, 1);
 		machine.InitialPositions.splice(index, 1);
 		machine.NumberOfHeads--;
+		simulator.updateMachineHeads(id);
 		setHeads(machine.TapesReference.map((tape, ii) => ({ tape, type: machine.HeadTypes[ii] })));
 	};
 

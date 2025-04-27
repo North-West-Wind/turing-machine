@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react"
 import "../../styles/common.css";
 
-export default function EditableBox(props: { value: string, onCommit: (value: string) => void }) {
+export default function EditableBox(props: { className?: string, value: string, onCommit: (value: string) => void }) {
 	const ref = useRef<HTMLInputElement>(null);
 	const [value, setValue] = useState(props.value);
 	const [edit, setEdit] = useState(false);
@@ -26,7 +26,7 @@ export default function EditableBox(props: { value: string, onCommit: (value: st
 	};
 
 	return <input
-		className={`editable-box ${edit ? "" : "stable"}`}
+		className={`editable-box ${edit ? "" : "stable"} ${props.className || ""}`}
 		value={value}
 		onChange={ev => setValue(ev.currentTarget.value)}
 		onKeyDown={onKeyDown}

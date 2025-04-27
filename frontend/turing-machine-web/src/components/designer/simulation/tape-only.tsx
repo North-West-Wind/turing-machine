@@ -1,15 +1,9 @@
 import { ChangeEvent, useEffect, useState } from "react";
 import { TapeTypes } from "../../../logic/Tapes/TapeTypes";
 import { SystemState } from "../../../logic/SystemState";
-import simulator, { TuringMachineEvent } from "../../../helpers/designer/simulator";
+import simulator, { Tape, TuringMachineEvent } from "../../../helpers/designer/simulator";
 import constraints from "../../../helpers/designer/level";
-
-type Tape = {
-	content?: string;
-	type?: TapeTypes;
-	left: number;
-	right: number;
-}
+import { TapeSymbols } from "../../../logic/Tapes/TapesUtilities/TapeSymbols";
 
 export default function DesginerSimulationTape(props: { tape: Tape, index: number }) {
 	const [pos, setPos] = useState(0);
@@ -22,7 +16,7 @@ export default function DesginerSimulationTape(props: { tape: Tape, index: numbe
 			if (!ev.detail) return;
 			const newTape = ev.detail.Tapes.find(tape => tape.ID == props.index);
 			if (newTape)
-				setTape({ content: newTape.Content, type: tape.type, left: newTape.LeftBoundary, right: newTape.RightBoundary });
+				setTape({ content: newTape.Content, type: tape.type, left: newTape.LeftBoundary, right: newTape.RightBoundary, id: tape.id });
 		};
 
 		const onTmReset = () => {
@@ -32,7 +26,7 @@ export default function DesginerSimulationTape(props: { tape: Tape, index: numbe
 		const onTmTapeChange = (ev: CustomEventInit<number>) => {
 			if (ev.detail != props.index) return;
 			const tapeConfig = simulator.getTapeConfig(props.index);
-			setTape({ content: tapeConfig?.TapeContent, type: tapeConfig?.TapeType, left: 0, right: tapeConfig?.TapeContent?.length || 0 });
+			setTape({ content: tapeConfig?.TapeContent, type: tapeConfig?.TapeType, left: 0, right: tapeConfig?.TapeContent?.length || 0, id: tape.id });
 		};
 
 		const onTmInputTapeChange = (ev: CustomEventInit<number>) => {
@@ -178,7 +172,7 @@ export default function DesginerSimulationTape(props: { tape: Tape, index: numbe
 			</select>
 		</div>
 		<div className="designer-simulation-tape">
-			{cells.map((cell, ii) => <div className={"designer-simulation-cell" + (ii == 3 ? " head" : "") + (cell.boundary ? " boundary" : "")} key={ii}>{cell.char}</div>)}
+			{cells.map((cell, ii) => <div className={"designer-simulation-cell" + (ii == 3 ? " head" : "") + (cell.boundary ? " boundary" : "")} key={ii}>{cell.char == TapeSymbols.Blank ? "" : cell.char}</div>)}
 		</div>
 	</div>;
 }

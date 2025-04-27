@@ -1,5 +1,6 @@
 import { TransitionNode } from "../../logic/States/Transitions/TransitionNode";
 import { HeadTransition, TransitionStatement } from "../../logic/States/Transitions/TransitionStatement";
+import { TapeSymbols } from "../../logic/Tapes/TapesUtilities/TapeSymbols";
 import { TuringMachineConfig } from "../../logic/TuringMachineConfig";
 import { PairMap } from "../structure/pair-map";
 import { IDrawable, IDrawableOverlay, IHoverable } from "./canvas";
@@ -12,18 +13,20 @@ const RECT_CORNER_HITBOX = 10;
 
 export class StateTransition {
 	readonly destination: number;
-	readonly read: string;
-	readonly write: string;
-	readonly move: number;
+	readonly read: string[];
+	readonly write: string[];
+	readonly move: number[];
 
-	constructor(dest: number, read: string, write: string, move: number) {
+	constructor(dest: number, read: string | string[], write: string | string[], move: number | number[]) {
 		this.destination = dest;
-		this.read = read;
-		this.write = write;
-		this.move = move;
+		this.read = typeof read == "string" ? [read] : read;
+		this.write = typeof write == "string" ? [write] : write;
+		this.move = typeof move == "number" ? [move] : move;
 	}
 
 	toEdgeString() {
+		if (this.read.length >= 2)
+			return `(${this.read.join(", ")}), (${this.write.join(", ")}), (${this.move.join(", ")})`;
 		return `${this.read}, ${this.write}, ${this.move}`;
 	}
 }
@@ -202,6 +205,10 @@ export class StateEdge implements IDrawable, IHoverable {
 
 	addTransition(transition: StateTransition) {
 		this.transitions.push(transition);
+	}
+
+	deleteTransition(index: number) {
+		this.transitions.splice(index, 1);
 	}
 
 	resetTransitions() {
@@ -502,6 +509,7 @@ export class StateGraph implements IDrawable, IDrawableOverlay {
 	private hovered?: Editable;
 	private hoveredEdge?: [number, number];
 	private componentCounter = 0;
+	private heads = 0;
 
 	addVertex(vertex: StateVertex) {
 		vertex.graph = this;
@@ -566,14 +574,15 @@ export class StateGraph implements IDrawable, IDrawableOverlay {
 		if (!this.tmpEdge) return;
 		this.tmpEdge.edge.untemporary();
 		const vert = this.vertices.get(this.tmpEdge.start);
-		if (!vert || end === undefined) {
+		if (!vert || end === undefined || this.heads <= 0) {
 			this.tmpEdge = undefined;
 			return;
 		}
 		if (this.edges.has(vert.id, end)) {
 			this.tmpEdge.edge.copyTransitions(this.edges.get(vert.id, end)!);
 		} else {
-			const trans = new StateTransition(end, "t", "t", 0);
+			const arr = Array(this.heads).fill(0);
+			const trans = new StateTransition(end, arr.map(() => TapeSymbols.Blank), arr.map(() => TapeSymbols.Blank), arr);
 			vert.addTransitions(trans);
 			this.tmpEdge.edge.addTransition(trans);
 		}
@@ -585,6 +594,10 @@ export class StateGraph implements IDrawable, IDrawableOverlay {
 
 	discardTmpEdge() {
 		this.tmpEdge = undefined;
+	}
+
+	deleteEdge(src: number, dest: number) {
+		this.edges.delete(src, dest);
 	}
 
 	addRect(rect: StateRect) {
@@ -653,6 +666,34 @@ export class StateGraph implements IDrawable, IDrawableOverlay {
 
 	updateConfig(config: TuringMachineConfig) {
 		config.TransitionNodes = Array.from(this.vertices.keys()).map(key => new TransitionNode(key));
-		config.Statements = this.edges.entries().map(([src, dest, edge]) => new TransitionStatement(new TransitionNode(src), new TransitionNode(dest), edge.transitions.map(trans => new HeadTransition(trans.read, trans.write, trans.move))));
+		config.Statements = this.edges.entries().map(([src, dest, edge]) => {
+			return edge.transitions.map(trans => {
+				return new TransitionStatement(
+					new TransitionNode(src),
+					new TransitionNode(dest),
+					Array(config.NumberOfHeads)
+						.fill((ii: number) => new HeadTransition(trans.read[ii], trans.write[ii], trans.move[ii]))
+						.map((func, ii) => func(ii))
+				);
+			});
+		}).flat();
+	}
+
+	setHeads(heads: number) {
+		this.heads = heads;
+		this.forceTransitions();
+	}
+
+	private forceTransitions() {
+		this.edges.forEach(edge => {
+			edge.transitions.forEach(transition => {
+				if (transition.read.length > this.heads) transition.read.splice(this.heads - transition.read.length);
+				else if (transition.read.length < this.heads) transition.read.push(...Array(this.heads - transition.read.length).fill(TapeSymbols.Blank));
+				if (transition.write.length > this.heads) transition.write.splice(this.heads - transition.write.length);
+				else if (transition.write.length < this.heads) transition.write.push(...Array(this.heads - transition.write.length).fill(TapeSymbols.Blank));
+				if (transition.move.length > this.heads) transition.move.splice(this.heads - transition.move.length);
+				else if (transition.move.length < this.heads) transition.move.push(...Array(this.heads - transition.move.length).fill(0));
+			});
+		});
 	}
 }

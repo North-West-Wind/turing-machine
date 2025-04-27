@@ -1,28 +1,17 @@
 // This needs to be integrated to actual Turing Machine logic in the future
 
 import { useEffect, useState } from "react";
-import simulator, { TuringMachineEvent } from "../../../helpers/designer/simulator";
+import simulator, { Tape, TuringMachineEvent } from "../../../helpers/designer/simulator";
 import DesignerSimulationMachineTape from "./machine/tape";
 import { SystemState } from "../../../logic/SystemState";
-import { TapeTypes } from "../../../logic/Tapes/TapeTypes";
-
-type Tape = {
-	content?: string;
-	type?: TapeTypes;
-	left: number;
-	right: number;
-}
 
 // each element of `tapes` is 7 char long, with index 3 being the middle
 export default function DesignerSimulationMachine(props: { name: string, color: string, tapes: number[], id: number, onClick: () => void, selected: boolean }) {
 	const machine = simulator.getMachineConfig(props.id);
 	if (!machine) return <></>;
 
-	const [tapes, setTapes] = useState<Tape[]>(machine.TapesReference.map(ref => {
-		const tape = simulator.getTapeConfig(ref);
-		return { content: tape?.TapeContent, type: tape?.TapeType, left: 0, right: 0 };
-	}));
-	const [heads, setHeads] = useState(machine.InitialPositions);
+	const [tapes, setTapes] = useState(simulator.getMachineTapes(props.id));
+	const [heads, setHeads] = useState(simulator.getMachineHeadPositions(props.id));
 	useEffect(() => {
 		const onTmTapeChange = (ev: CustomEventInit<number>) => {
 			if (ev.detail === undefined) return;
@@ -37,7 +26,7 @@ export default function DesignerSimulationMachine(props: { name: string, color: 
 			const heads: number[] = [];
 			ev.detail.Machines[props.id].Heads.forEach((head, ii) => {
 				const tape = ev.detail!.Tapes[head.TapeID];
-				newTapes.push({ content: tape.Content, type: tapes[ii].type, left: tape.LeftBoundary, right: tape.RightBoundary });
+				newTapes.push({ content: tape.Content, type: tapes[ii].type, left: tape.LeftBoundary, right: tape.RightBoundary, id: tapes[ii].id });
 				heads.push(head.Position);
 			});
 			setTapes(newTapes);
@@ -45,10 +34,7 @@ export default function DesignerSimulationMachine(props: { name: string, color: 
 		};
 
 		const onTmReset = () => {
-			setTapes(machine.TapesReference.map(ref => {
-				const tape = simulator.getTapeConfig(ref);
-				return { content: tape?.TapeContent, type: tape?.TapeType, left: 0, right: 0 };
-			}));
+			setTapes(simulator.getMachineTapes(props.id));
 			setHeads(machine.InitialPositions);
 		};
 

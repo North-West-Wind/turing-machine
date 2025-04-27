@@ -1,23 +1,6 @@
 import { ChangeEvent, useEffect, useState } from "react";
 import { HeadTypes } from "../../../logic/Heads/HeadTypes";
-import EditableBox from "../../common/editable";
 import simulator from "../../../helpers/designer/simulator";
-
-function headTypeToName(type: HeadTypes) {
-	switch (type) {
-		case HeadTypes.ReadOnly: return "read-only";
-		case HeadTypes.ReadWrite: return "read-write";
-		case HeadTypes.WriteOnly: return "write-only";
-	}
-}
-
-function nameToHeadType(name: string) {
-	switch (name) {
-		case "read-only": return HeadTypes.ReadOnly;
-		case "read-write": return HeadTypes.ReadWrite;
-		case "write-only": return HeadTypes.WriteOnly;
-	}
-}
 
 export default function DesignerPropertiesHeads(props: { heads: { tape: number, type: HeadTypes }[], onAdd: () => void, onDelete: (index: number) => void, onChangeRef: (index: number, ref: number) => void, onChangeType: (index: number, type: HeadTypes) => void }) {
 	const [collapsed, setCollapsed] = useState(false);
@@ -34,14 +17,14 @@ export default function DesignerPropertiesHeads(props: { heads: { tape: number, 
 	};
 
 	const onHeadTypeChange = (index: number, ev: ChangeEvent<HTMLSelectElement>) => {
-		const type = nameToHeadType(ev.target.value);
+		const type = simulator.headTypeFromString(ev.target.value);
 		if (type === undefined) return;
 		props.onChangeType(index, type);
 	}
 	
 	return <div className="designer-properties-section">
 		{collapsed && <div className="designer-properties-heads header">
-			<div className="title" onClick={() => setCollapsed(false)}>▶ Heads: {props.heads.map(head => `${headTypeToName(head.type)} ${head.tape}`)}</div>
+			<div className="title" onClick={() => setCollapsed(false)}>▶ Heads: {props.heads.map(head => `${simulator.headTypeToString(head.type)} ${head.tape}`)}</div>
 			<div className="add-button" onClick={props.onAdd}>Add</div>
 		</div>}
 		{!collapsed && <>
@@ -50,14 +33,14 @@ export default function DesignerPropertiesHeads(props: { heads: { tape: number, 
 				<div className="add-button" onClick={props.onAdd}>Add</div>
 			</div>
 			{heads.map((head, ii) => <div className="designer-properties-heads" key={ii}>
-				<select defaultValue={headTypeToName(head.type)} onChange={(ev) => onHeadTypeChange(ii, ev)}>
-					<option value={headTypeToName(HeadTypes.ReadOnly)}>read-only</option>
-					<option value={headTypeToName(HeadTypes.ReadWrite)}>read-write</option>
-					<option value={headTypeToName(HeadTypes.WriteOnly)}>write-only</option>
+				<select defaultValue={simulator.headTypeToString(head.type)} onChange={(ev) => onHeadTypeChange(ii, ev)}>
+					<option value={simulator.headTypeToString(HeadTypes.ReadOnly)}>read-only</option>
+					<option value={simulator.headTypeToString(HeadTypes.ReadWrite)}>read-write</option>
+					<option value={simulator.headTypeToString(HeadTypes.WriteOnly)}>write-only</option>
 				</select>
 				<select className="tape-ref" defaultValue={head.tape} onChange={(ev) => onHeadRefChange(ii, ev.currentTarget.value)}>
 					{simulator.getTapes().map(tape => {
-						return <option value={tape.ii}>{tape.ii} {simulator.getInputTape() == tape.ii ? " (in)" : ""} {simulator.getOutputTape() == tape.ii ? " (out)" : ""}</option>
+						return <option value={tape.id}>{tape.id} {simulator.getInputTape() == tape.id ? " (in)" : ""} {simulator.getOutputTape() == tape.id ? " (out)" : ""}</option>
 					})}
 				</select>
 			</div>)}

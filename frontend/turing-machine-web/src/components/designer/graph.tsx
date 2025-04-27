@@ -177,8 +177,10 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 					grabbed = hovered;
 					// when mouse moves, set the vertex position to the cursor position
 					const onMouseMove = () => {
-						if (grabbed)
+						if (grabbed) {
 							graph?.getVertex(grabbed.id)?.setPosition(cursorPosition);
+							simulator.dispatchPropertiesUpdateEvent();
+						}
 					};
 	
 					window.addEventListener("mousemove", onMouseMove);
@@ -190,8 +192,10 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 					graph?.getRect(grabbed.id)?.setMovingCorner(true);
 
 					const onMouseMove = () => {
-						if (grabbed)
+						if (grabbed) {
 							graph?.getRect(grabbed.id)?.moveCornerTo(cursorPosition);
+							simulator.dispatchPropertiesUpdateEvent();
+						}
 					};
 					window.addEventListener("mousemove", onMouseMove);
 					setupMouseUp(() => {
@@ -205,8 +209,10 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 					grabbed = hovered;
 					// when mouse moves, set the textbox position to the cursor position
 					const onMouseMove = () => {
-						if (grabbed)
+						if (grabbed) {
 							graph?.getText(grabbed.id)?.setPosition(cursorPosition);
+							simulator.dispatchPropertiesUpdateEvent();
+						}
 					};
 	
 					window.addEventListener("mousemove", onMouseMove);

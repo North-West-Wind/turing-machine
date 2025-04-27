@@ -326,6 +326,7 @@
 
 .designer-properties-out {
 	background-color: #187543;
+	transition: filter .25s ease;
 }
 
 .designer-properties-out.header {
@@ -334,10 +335,61 @@
 
 .designer-properties-in {
 	background-color: #931e1e;
+	transition: filter .25s ease;
 }
 
 .designer-properties-in.header {
 	background-color: #b12424;
+}
+
+.designer-properties-out.top-container {
+	display: flex;
+	padding: 0;
+}
+
+.designer-properties-out.top {
+	padding: .5vmax;
+}
+
+.designer-properties-out.top:hover {
+	filter: brightness(90%);
+	cursor: pointer;
+
+}
+
+.designer-properties-out.edge {
+	display: flex;
+	align-items: center;
+}
+
+.editable-box.edge {
+	padding: .5vmax;
+}
+
+.editable-box.stable.edge {
+	background-color: #0000001f;
+}
+
+.designer-properties-out.edge .delete {
+	background-color: #c40000;
+	margin-left: .5vmax;
+	padding: .5vmax;
+	transition: filter .25s ease;
+	user-select: none;
+}
+
+.designer-properties-out.edge .delete:hover, .designer-properties-out.add:hover {
+	filter: brightness(80%);
+	cursor: pointer;
+}
+
+.designer-properties-out.add {
+	background-color: #0000002f;
+	text-align: center;
+	padding: .5vmax;
+	margin-left: auto;
+	transition: filter .25s ease;
+	user-select: none;
 }
 
 .designer-properties-empty {

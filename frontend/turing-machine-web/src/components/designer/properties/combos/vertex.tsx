@@ -1,14 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect, useReducer, useState } from "react";
 import { StateEdge, StateGraph } from "../../../../helpers/designer/graph";
 import DesignerPropertiesEdge from "../edges";
 import DesignerPropertiesText from "../text";
 import DesignerPropertiesTitle from "../title";
 import DesignerPropertiesVec2 from "../vec2";
+import simulator, { TuringMachineEvent } from "../../../../helpers/designer/simulator";
 
 export default function DesignerPropertiesVertexCombo(props: { graph: StateGraph, id: number }) {
 	const [id, setId] = useState(props.id);
 	const [graph, setGraph] = useState(props.graph);
 	const [vertex, setVertex] = useState(props.graph.getVertex(props.id));
+	const [, forceUpdate] = useReducer(x => x + 1, 0);
+
+	useEffect(() => {
+		const onTmPropertiesUpdate = () => forceUpdate();
+
+		simulator.addEventListener(TuringMachineEvent.PROPERTIES_UPDATE, onTmPropertiesUpdate);
+		return () => simulator.removeEventListener(TuringMachineEvent.PROPERTIES_UPDATE, onTmPropertiesUpdate);
+	}, []);
 
 	useEffect(() => {
 		setId(props.id);
@@ -24,7 +33,7 @@ export default function DesignerPropertiesVertexCombo(props: { graph: StateGraph
 		<DesignerPropertiesTitle value={`Vertex ${id}`} />
 		<DesignerPropertiesText value={vertex.getLabel() || ""} prefix="Label" onCommit={value => vertex.setLabel(value)} />
 		<DesignerPropertiesVec2 vec={vertex.getPosition()} prefix="Position" onCommit={vec => vertex.setPosition(vec)} />
-		<DesignerPropertiesEdge graph={graph} id={props.id} edges={outs} out />
-		<DesignerPropertiesEdge graph={graph} id={props.id} edges={ins} />
+		<DesignerPropertiesEdge graph={graph} id={props.id} edges={new Map(outs)} out />
+		<DesignerPropertiesEdge graph={graph} id={props.id} edges={new Map(ins)} />
 	</>;
 }

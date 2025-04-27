@@ -26,6 +26,6 @@ export default function DesignerSimulationTapes() {
 		<div className="designer-simulation-controller small">
 			<DesignerSimulationButton src={`simulation/add.svg`} text="Add Tape" onClick={add} />
 		</div>
-		{tapes.map(tape => <DesginerSimulationTape tape={{ content: tape.content, type: tape.type, left: 0, right: 0 }} index={tape.ii} key={tape.ii} />)}
+		{tapes.map(tape => <DesginerSimulationTape tape={tape} index={tape.id} key={tape.id} />)}
 	</>;
 }

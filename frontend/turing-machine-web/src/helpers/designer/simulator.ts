@@ -1,3 +1,5 @@
+import { HeadTypes } from "../../logic/Heads/HeadTypes";
+import { SystemState } from "../../logic/SystemState";
 import { TapeConfig } from "../../logic/Tapes/TapesUtilities/TapeConfig";
 import { TapeTypes } from "../../logic/Tapes/TapeTypes";
 import { TuringMachineConfig } from "../../logic/TuringMachineConfig";
@@ -23,6 +25,15 @@ export enum TuringMachineEvent {
 	CHANGE_TAPE_LENGTH = "tm:change-tape-length",
 	CHANGE_INPUT_TAPE = "tm:change-input-tape",
 	CHANGE_OUTPUT_TAPE = "tm:change-output-tape",
+	PROPERTIES_UPDATE = "tm:prop-update",
+}
+
+export type Tape = {
+	content?: string;
+	type?: TapeTypes;
+	id: number;
+	left: number;
+	right: number;
 }
 
 class RenderingTuringMachineSimulator extends EventTarget {
@@ -35,6 +46,7 @@ class RenderingTuringMachineSimulator extends EventTarget {
 	
 	private inputTape = -1;
 	private outputTape = -1;
+	private state?: SystemState;
 
 	constructor() {
 		super();
@@ -110,6 +122,12 @@ class RenderingTuringMachineSimulator extends EventTarget {
 		this.dispatchChangeTapeEvent(this.inputTape);
 	}
 
+	clearTapes() {
+		this.tapes.forEach((tape, ii) => {
+			this.tapes[ii] = tape ? new TapeConfig(tape.TapeType, tape.TapeLength, "") : null;
+		});
+	}
+
 	getInputTape() {
 		return this.inputTape;
 	}
@@ -128,6 +146,11 @@ class RenderingTuringMachineSimulator extends EventTarget {
 		this.dispatchEvent(new CustomEvent(TuringMachineEvent.CHANGE_OUTPUT_TAPE, { detail: id }));
 	}
 
+	updateMachineHeads(id: number) {
+		if (id < 0 || !this.graphs[id] || !this.machines[id]) return;
+		this.graphs[id].setHeads(this.machines[id].NumberOfHeads);
+	}
+
 	// Category: Simulation
 
 	// Import all configs stored within this class into the real simulator
@@ -137,6 +160,7 @@ class RenderingTuringMachineSimulator extends EventTarget {
 		this.machines.forEach((machine, ii) => {
 			if (!machine) return;
 			if (this.graphs[ii]) this.graphs[ii].updateConfig(machine);
+			console.log(machine);
 			TuringMachineSimulator.AddMachine(machine);
 		});
 	}
@@ -151,10 +175,11 @@ class RenderingTuringMachineSimulator extends EventTarget {
 
 	step() {
 		TuringMachineSimulator.Update();
-		const state = TuringMachineSimulator.GetSystemState();
-		this.dispatchEvent(new CustomEvent(TuringMachineEvent.STEP, { detail: state }));
+		this.state = TuringMachineSimulator.GetSystemState();
+		console.log(this.state);
+		this.dispatchEvent(new CustomEvent(TuringMachineEvent.STEP, { detail: this.state }));
 		let allHalted = true;
-		state.Machines.forEach((machine, ii) => {
+		this.state.Machines.forEach((machine, ii) => {
 			if (machine.IsHalted) this.dispatchEvent(new CustomEvent(TuringMachineEvent.HALT, { detail: ii }));
 			else allHalted = false;
 		});
@@ -180,6 +205,8 @@ class RenderingTuringMachineSimulator extends EventTarget {
 	reset() {
 		this.running = false;
 		this.paused = false;
+		this.state = undefined;
+		this.clearTapes();
 		this.dispatchEvent(new Event(TuringMachineEvent.RESET));
 	}
 
@@ -227,14 +254,37 @@ class RenderingTuringMachineSimulator extends EventTarget {
 		if (this.outputTape == id) this.setOutputTape(-1);
 	}
 
-	getTapes() {
-		return this.tapes.map((tape, ii) => ({ content: tape?.TapeContent, type: tape?.TapeType, ii })).filter(tape => tape.type !== undefined);
+	getTapes(): Tape[] {
+		if (this.state)
+			return this.state.Tapes.map(tape => ({ content: tape.Content, type: this.tapes[tape.ID]?.TapeType, id: tape.ID, left: tape.LeftBoundary, right: tape.RightBoundary })).sort((a, b) => a.id - b.id);
+		return this.tapes.map((tape, id) => ({ content: tape?.TapeContent, type: tape?.TapeType, id, left: 0, right: tape?.TapeContent.length || 0 })).filter(tape => tape.type !== undefined);
+	}
+
+	getMachineTapes(id: number): Tape[] {
+		if (id < 0 || !this.machines[id]) return [];
+		const tapes = this.getTapes();
+		const needed: Tape[] = [];
+		for (const ref of this.machines[id].TapesReference) {
+			const found = tapes.find(tape => tape.id == ref);
+			if (!found) return [];
+			needed.push(found);
+		}
+		return needed;
 	}
 
 	setTapeType(id: number, type: TapeTypes) {
 		if (id < 0 || !this.tapes[id]) return;
 		this.tapes[id] = new TapeConfig(type, this.tapes[id].TapeLength, this.tapes[id].TapeContent);
 		this.dispatchChangeTapeEvent(id);
+	}
+
+	getMachineHeadPositions(id: number) {
+		if (id < 0 || !this.machines[id]) return [];
+		if (this.state) {
+			const machine = this.state.Machines.find(machine => machine.ID == id);
+			if (machine) return machine.Heads.map(head => head.Position);
+		}
+		return this.machines[id].InitialPositions;
 	}
 
 	// Category: Component communication
@@ -261,6 +311,10 @@ class RenderingTuringMachineSimulator extends EventTarget {
 		this.dispatchEvent(new CustomEvent(TuringMachineEvent.CHANGE_TAPE, { detail: id }));
 	}
 
+	dispatchPropertiesUpdateEvent() {
+		this.dispatchEvent(new Event(TuringMachineEvent.PROPERTIES_UPDATE));
+	}
+
 	// Category: Helper functions
 
 	tapeTypeToString(type: TapeTypes) {
@@ -280,6 +334,22 @@ class RenderingTuringMachineSimulator extends EventTarget {
 			case "right-limited": return TapeTypes.RightLimited;
 			case "left-right-limited": return TapeTypes.LeftRightLimited;
 			case "circular": return TapeTypes.Circular;
+		}
+	}
+
+	headTypeToString(type: HeadTypes) {
+		switch (type) {
+			case HeadTypes.ReadOnly: return "Read-Only";
+			case HeadTypes.ReadWrite: return "Read-Write";
+			case HeadTypes.WriteOnly: return "Write-Only";
+		}
+	}
+
+	headTypeFromString(str: string) {
+		switch (str.toLowerCase()) {
+			case "read-only": return HeadTypes.ReadOnly;
+			case "read-write": return HeadTypes.ReadWrite;
+			case "write-only": return HeadTypes.WriteOnly;
 		}
 	}
 }
