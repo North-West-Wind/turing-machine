@@ -366,6 +366,12 @@
 
 .designer-properties-heads {
 	background-color: #8b3290;
+	display: flex;
+}
+
+.designer-properties-heads select.tape-ref {
+	flex: 1;
+	margin-right: 0;
 }
 
 .designer-properties-heads.header {

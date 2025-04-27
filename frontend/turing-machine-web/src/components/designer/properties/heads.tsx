@@ -1,6 +1,7 @@
 import { ChangeEvent, useEffect, useState } from "react";
 import { HeadTypes } from "../../../logic/Heads/HeadTypes";
 import EditableBox from "../../common/editable";
+import simulator from "../../../helpers/designer/simulator";
 
 function headTypeToName(type: HeadTypes) {
 	switch (type) {
@@ -54,7 +55,11 @@ export default function DesignerPropertiesHeads(props: { heads: { tape: number, 
 					<option value={headTypeToName(HeadTypes.ReadWrite)}>read-write</option>
 					<option value={headTypeToName(HeadTypes.WriteOnly)}>write-only</option>
 				</select>
-				<EditableBox value={head.tape.toString()} onCommit={(v) => onHeadRefChange(ii, v)} />
+				<select className="tape-ref" defaultValue={head.tape} onChange={(ev) => onHeadRefChange(ii, ev.currentTarget.value)}>
+					{simulator.getTapes().map(tape => {
+						return <option value={tape.ii}>{tape.ii} {simulator.getInputTape() == tape.ii ? " (in)" : ""} {simulator.getOutputTape() == tape.ii ? " (out)" : ""}</option>
+					})}
+				</select>
 			</div>)}
 		</>}
 	</div>;

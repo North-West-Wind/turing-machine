@@ -5,7 +5,7 @@ import DesignerPropertiesText from "../text";
 import DesignerPropertiesHeads from "../heads";
 import { HeadTypes } from "../../../../logic/Heads/HeadTypes";
 import { TapeConfig } from "../../../../logic/Tapes/TapesUtilities/TapeConfig";
-import { TapeTypes } from "../../../../logic/Tapes/TapeTypes";
+import constraints from "../../../../helpers/designer/level";
 
 export default function DesignerPropertiesMachineCombo(props: { id: number }) {
 	const [id, setId] = useState(props.id);
@@ -27,7 +27,7 @@ export default function DesignerPropertiesMachineCombo(props: { id: number }) {
 
 	const addHead = () => {
 		machine.TapesReference.push(0);
-		if (!simulator.getTapeConfig(0)) simulator.addTape(new TapeConfig(TapeTypes.Infinite, 0, ""));
+		if (!simulator.getTapeConfig(0)) simulator.addTape(new TapeConfig(constraints.defaultTapeType(), 0, ""));
 		machine.HeadTypes.push(HeadTypes.ReadWrite);
 		machine.InitialPositions.push(0);
 		machine.NumberOfHeads++;
@@ -39,15 +39,13 @@ export default function DesignerPropertiesMachineCombo(props: { id: number }) {
 		machine.HeadTypes.splice(index, 1);
 		machine.InitialPositions.splice(index, 1);
 		machine.NumberOfHeads--;
-		simulator.checkForUnusedTapes();
 		setHeads(machine.TapesReference.map((tape, ii) => ({ tape, type: machine.HeadTypes[ii] })));
 	};
 
 	const changeHeadRef = (index: number, ref: number) => {
 		machine.TapesReference[index] = ref;
 		while (!simulator.getTapeConfig(ref))
-			simulator.addTape(new TapeConfig(TapeTypes.Infinite, 0, ""));
-		simulator.checkForUnusedTapes();
+			simulator.addTape(new TapeConfig(constraints.defaultTapeType(), 0, ""));
 	};
 
 	const changeHeadType = (index: number, type: HeadTypes) => {
