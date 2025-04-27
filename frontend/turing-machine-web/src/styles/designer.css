@@ -89,6 +89,10 @@
 .designer-simulation-button {
 	background-color: #0d3c37;
 	transition: filter .25s ease;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	font-size: 1.5vmax;
 }
 
 .designer-simulation-button:hover {
@@ -136,12 +140,92 @@
 	font-size: 1vmax;
 }
 
+.designer-simulation-tape-only {
+	background-color: #333;
+}
+
+.designer-simulation-tape-header {
+	display: flex;
+	font-size: 1.5vmax;
+}
+
+.designer-simulation-tape-header .name {
+	padding: 1vmax;
+}
+
+.designer-simulation-tape-header .tape-setter {
+	display: flex;
+	margin-left: auto;
+}
+
+.designer-simulation-tape-header .tape-setter div {
+	padding: 1vmax;
+	user-select: none;
+	cursor: pointer;
+	transition: filter .25s ease;
+}
+
+.designer-simulation-tape-header .tape-setter div:hover {
+	filter: brightness(90%);
+}
+
+.designer-simulation-tape-header .tape-setter div.in {
+	background-color: #1e9355;
+}
+
+.designer-simulation-tape-header .tape-setter div.out {
+	background-color: #006da3;
+}
+
+.designer-simulation-tape-move {
+	display: flex;
+	font-size: 1.2vmax;
+}
+
+.designer-simulation-tape-move div {
+	padding: 1vmax;
+}
+
+.designer-simulation-tape-move .middle {
+	flex: 1;
+}
+
+.designer-simulation-tape-move .move-button {
+	user-select: none;
+	cursor: pointer;
+	transition: filter .25s ease;
+}
+
+.designer-simulation-tape-move .move-button:hover {
+	filter: brightness(90%);
+}
+
+.designer-simulation-tape-type {
+	display: flex;
+	padding-left: 1vmax;
+	padding-right: 1vmax;
+	justify-content: center;
+	align-items: center;
+}
+
+.designer-simulation-tape-type select {
+	flex: 1;
+	outline: none;
+	border: none;
+	margin-left: 1vmax;
+}
+
 .designer-simulation-tape {
 	position: relative;
 	display: flex;
 	padding: 1% 0.5%;
 	background-color: rgb(194, 194, 194);
 	margin-bottom: 2%;
+}
+
+.designer-simulation-tape-only .designer-simulation-tape {
+	margin-top: 1vmax;
+	margin-bottom: 1vmax;
 }
 
 .designer-simulation-cell {
@@ -158,6 +242,10 @@
 .designer-simulation-cell.head {
 	outline: #00acd7 1.5vmin solid;
 	z-index: 1;
+}
+
+.designer-simulation-cell.boundary {
+	background-color: #d60000;
 }
 
 .designer-simulation-tab {

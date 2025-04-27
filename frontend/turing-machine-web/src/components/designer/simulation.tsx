@@ -10,9 +10,11 @@ import DesignerPropertiesTextCombo from "./properties/combos/text";
 import DesignerPropertiesRectCombo from "./properties/combos/rect";
 import DesignerPropertiesVertexCombo from "./properties/combos/vertex";
 import DesignerPropertiesMachineCombo from "./properties/combos/machine";
+import DesignerSimulationTapes from "./simulation/tapes";
 
 enum Tabs {
 	SIMULATION,
+	TAPES,
 	PROPERTIES
 }
 
@@ -97,6 +99,9 @@ export default function DesignerSimulation(props: { onWidthChange: (factor: numb
 					innerSimulation = <DesignerPropertiesEmpty />
 			}
 			break;
+		case Tabs.TAPES:
+			innerSimulation = <DesignerSimulationTapes />
+			break;
 	}
 
 	return <div className="designer-fill-height designer-left" style={{ width: x * (1 - factor) }}>
@@ -105,8 +110,9 @@ export default function DesignerSimulation(props: { onWidthChange: (factor: numb
 			{innerSimulation}
 			<div className="designer-simulation-tab">
 				<div className={tab == Tabs.SIMULATION ? "" : "unselected"} onClick={tabChanger(Tabs.SIMULATION)}>Simulation</div>
+				<div className={tab == Tabs.TAPES ? "" : "unselected"} onClick={tabChanger(Tabs.TAPES)}>Tapes</div>
 				<div className={tab == Tabs.PROPERTIES ? "" : "unselected"} onClick={tabChanger(Tabs.PROPERTIES)}>Properties</div>
-				<div className="special" onClick={props.openLevelDetails}>This Level</div>
+				<div className="special" onClick={props.openLevelDetails}>Level</div>
 			</div>
 		</div>
 	</div>;

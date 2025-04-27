@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 import useWindowSize from "../../hooks/useWindowSize";
 import DesignerResizer from "./resizer";
 import simulator, { TuringMachineEvent } from "../../helpers/designer/simulator";
@@ -16,6 +16,7 @@ export default function DesignerConsole(props: { onHeightChange: (factor: number
 
 	const [lines, setLines] = useState<{ isInput: boolean, str: string }[]>([]);
 	const [lastLine, setLastLine] = useState("");
+	const ref = useRef(null);
 
 	useEffect(() => {
 		const addLine = (str: string) => {
@@ -59,6 +60,7 @@ export default function DesignerConsole(props: { onHeightChange: (factor: number
 			value={lines.concat({ isInput: true, str: lastLine }).map(line => `${line.isInput ? "<" : ">"} ${line.str}`).join("\n")}
 			onChange={onChange}
 			spellCheck={false}
+			ref={ref}
 		/>
 	</div>;
 }

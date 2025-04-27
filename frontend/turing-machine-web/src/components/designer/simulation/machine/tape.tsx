@@ -1,22 +1,100 @@
-import React from "react";
+import { TapeTypes } from "../../../../logic/Tapes/TapeTypes";
 
-export default function DesignerSimulationMachineTape(props: { values?: string, head: number }) {
-	let tape = props.values || "";
-	if (tape.length < 7) tape += Array(7 - tape.length).fill("_").join(""); // fill empty character to 7
-	if (props.head >= 3) tape = tape.slice(props.head - 3, props.head + 4);
-	else {
-		let filler = -(Math.max(props.head, 0) - 3);
-		tape = Array(filler).fill("_").join("") + tape.slice(0, Math.max(props.head, 0) + 4);
-	}
-	
-	const cell: React.ReactNode[] = [];
-	for (let ii = 0; ii < tape.length; ii++) {
-		let char = tape.charAt(ii);
-		if (char == "_") char = "";
-		cell.push(<div className={"designer-simulation-cell" + (ii == 3 ? " head" : "")} key={ii}>{char}</div>)
+type Tape = {
+	content?: string;
+	type?: TapeTypes;
+	left: number;
+	right: number;
+}
+
+export default function DesignerSimulationMachineTape(props: { tape?: Tape, head: number }) {
+	if (!props.tape) return <></>;
+	// process tape to make it 7-cell
+	let content = props.tape.content || "";
+	const head = props.head - props.tape.left;
+	const cells: { char: string, boundary?: boolean }[] = [];
+	switch (props.tape.type) {
+		case TapeTypes.Infinite:
+			cells.push({ char: content.charAt(head) }); // middle
+			for (let ii = 1; ii <= 3; ii++) {
+				// left
+				let left = head - ii;
+				if (left < 0) cells.unshift({ char: "" });
+				else cells.unshift({ char: content.charAt(left) });
+				// right
+				let right = head + ii;
+				if (right >= content.length) cells.push({ char: "" });
+				else cells.push({ char: content.charAt(right) });
+			}
+			break;
+		case TapeTypes.LeftLimited: {
+			content = content.slice(1);
+			cells.push({ char: content.charAt(head) }); // middle
+			for (let ii = 1; ii <= 3; ii++) {
+				// left
+				let left = head - ii;
+				if (left < 0) cells.unshift({ char: "", boundary: true });
+				else cells.unshift({ char: content.charAt(left) });
+				// right
+				let right = head + ii;
+				if (right >= content.length) cells.push({ char: "" });
+				else cells.push({ char: content.charAt(right) });
+			}
+			break;
+		}
+		case TapeTypes.RightLimited: {
+			let boundR = false;
+			for (let ii = 1; ii <= 3; ii++) {
+				// left
+				let left = head - ii;
+				if (left < 0) cells.unshift({ char: "" });
+				else cells.unshift({ char: content.charAt(left) });
+				// right
+				let right = head + ii;
+				if (right >= content.length) cells.push({ char: "", boundary: boundR });
+				else if (content.charAt(right) == "<") cells.unshift({ char: content.charAt(right), boundary: boundR = true });
+				else cells.push({ char: content.charAt(right) });
+			}
+			break;
+		}
+		case TapeTypes.LeftRightLimited: {
+			let boundR = false;
+			content = content.slice(1);
+			cells.push({ char: content.charAt(head) }); // middle
+			for (let ii = 1; ii <= 3; ii++) {
+				// left
+				let left = head - ii;
+				if (left < 0) cells.unshift({ char: "", boundary: true });
+				else cells.unshift({ char: content.charAt(left) });
+				// right
+				let right = head + ii;
+				if (right >= content.length) cells.push({ char: "", boundary: boundR });
+				else if (content.charAt(right) == "<") cells.unshift({ char: "", boundary: boundR = true });
+				else cells.push({ char: content.charAt(right) });
+			}
+			break;
+		}
+		case TapeTypes.Circular: {
+			// TODO: i'll figure this out later
+			let boundL = false, boundR = false;
+			cells.push({ char: content.charAt(head + 1) }); // middle
+			for (let ii = 1; ii <= 3; ii++) {
+				// left
+				let left = head - ii;
+				if (left < 0) cells.unshift({ char: "", boundary: boundL });
+				else if (content.charAt(left) == ">") cells.unshift({ char: content.charAt(left), boundary: boundL = true });
+				else cells.unshift({ char: content.charAt(left) });
+				// right
+				let right = head + ii;
+				if (right >= content.length) cells.push({ char: "", boundary: boundR });
+				else if (content.charAt(right) == "<") cells.unshift({ char: content.charAt(right), boundary: boundR = true });
+				else cells.push({ char: content.charAt(right) });
+			}
+			break;
+		}
 	}
 
 	return <div className="designer-simulation-tape">
-		{cell}
+		{cells.map((cell, ii) => <div className={"designer-simulation-cell" + (ii == 3 ? " head" : "") + (cell.boundary ? " boundary" : "")} key={ii}>{cell.char}</div>)}
 	</div>;
 }
