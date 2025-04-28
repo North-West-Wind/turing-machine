@@ -1,0 +1,128 @@
+.designer-level {
+	position: fixed;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	background-color: rgba(0, 0, 0, 0.3);
+	backdrop-filter: blur(1vmax);
+	align-items: center;
+	justify-content: center;
+	z-index: 2;
+}
+
+.designer-level:not(.display-none) {
+	display: flex;
+	flex-direction: column;
+}
+
+.designer-level.show {
+	animation: tv-show .5s ease both;
+}
+
+.designer-level.dismiss {
+	animation: tv-show .5s ease both reverse;
+}
+
+.designer-level-inner {
+	display: flex;
+	height: calc(100vh - 4vmax);
+}
+
+@keyframes tv-show {
+	0% {
+		transform: scale(0, 0);
+	}
+
+	30% {
+		transform: scale(0, 0.01);
+	}
+
+	50% {
+		transform: scale(1, 0.01);
+	}
+
+	100% {
+		transform: scale(1, 1);
+	}
+}
+
+.designer-level-empty {
+	margin: 5vmax;
+	font-size: 5vmax;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.designer-level-empty img {
+	width: 30vmax;
+	aspect-ratio: 1/1;
+}
+
+.designer-level-left {
+	display: flex;
+	flex-direction: column;
+	text-align: left;
+	height: 100%;
+}
+
+.designer-level-details {
+	margin: 5vmax;
+	margin-bottom: 2.5vmax;
+	margin-right: 2.5vmax;
+	flex: 1;
+	overflow: auto;
+}
+
+.designer-level-details p {
+	margin-right: 1vmax;
+}
+
+.designer-level-constraints {
+	margin: 5vmax;
+	margin-top: 2.5vmax;
+	margin-right: 2.5vmax;
+}
+
+.designer-level-constraints th {
+	padding-right: 1vmax;
+}
+
+.designer-level-right {
+	display: flex;
+	text-align: left;
+	height: 100%;
+}
+
+.designer-level-examples {
+	margin: 5vmax;
+	margin-left: 2.5vmax;
+	max-width: 40vw;
+}
+
+.designer-level h1 {
+	margin-top: 0;
+}
+
+.designer-level h2 {
+	margin: 0;
+}
+
+.designer-level-close {
+	background-color: #0000007f;
+	width: 100%;
+	padding: 1vmax;
+	cursor: pointer;
+	transition: filter .25s ease;
+}
+
+.designer-level-close img {
+	width: 2vmax;
+	height: 2vmax;
+}
+
+.designer-level-close:hover {
+	filter: brightness(80%);
+}
