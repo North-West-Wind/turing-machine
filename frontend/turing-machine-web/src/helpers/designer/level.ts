@@ -31,6 +31,13 @@ export type DetailedLevel = {
 	machine: {}; // TODO: create machine object
 }
 
+export type SimpleLevel = {
+	id: string;
+	title: string;
+	description: string;
+	parent?: string;
+}
+
 // A state to store the constraints of level
 class ConstraintHandler {
 	constraints: LevelContraints | undefined;

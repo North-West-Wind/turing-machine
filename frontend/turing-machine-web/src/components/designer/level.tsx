@@ -9,7 +9,7 @@ import DesignerLevelExamples from "./level/examples";
 const ANIM_LENGTH = 500; // animation length of the container. See styles/designer/level.css
 
 // Level details container
-export default function DesignerLevel(props: { visible: boolean, close: () => void }) {
+export default function DesignerLevel(props: { visible: boolean, close: () => void, level?: DetailedLevel }) {
 	const [visible, setVisible] = useState(props.visible);
 	const [none, setNone] = useState(!props.visible);
 	const [noAnim, setNoAnim] = useState(false);
@@ -28,15 +28,22 @@ export default function DesignerLevel(props: { visible: boolean, close: () => vo
 	}, []);
 	
 	let parsedLevel: DetailedLevel | undefined;
-	const storedLevel = window.localStorage.getItem("tm:level");
-	if (storedLevel) {
-		try {
-			parsedLevel = JSON.parse(storedLevel);
-		} catch (err) {
-			console.error(err);
+	if (props.level) parsedLevel = props.level;
+	else {
+		const storedLevel = window.localStorage.getItem("tm:level");
+		if (storedLevel) {
+			try {
+				parsedLevel = JSON.parse(storedLevel);
+			} catch (err) {
+				console.error(err);
+			}
 		}
 	}
-	const [level] = useState(parsedLevel);
+	const [level, setLevel] = useState(parsedLevel);
+
+	useEffect(() => {
+		setLevel(props.level);
+	}, [props.level]);
 
 	useEffect(() => {
 		if (props.visible) {
