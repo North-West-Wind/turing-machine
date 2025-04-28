@@ -3,6 +3,7 @@ import { Vec2 } from "../../helpers/designer/math";
 import { StateEdge, StateGraph, StateRect, StateText } from "../../helpers/designer/graph";
 import DesignerGraphControl from "./graph/control";
 import simulator, { Editable, TuringMachineEvent } from "../../helpers/designer/simulator";
+import { SystemState } from "../../logic/SystemState";
 
 const LEFT_CLICK = 0;
 const RIGHT_CLICK = 2;
@@ -16,6 +17,7 @@ enum Buttons {
 }
 
 // canvas rendering properties
+let machineId: number | undefined;
 let graph: StateGraph | undefined;
 let position = Vec2.ZERO;
 let cursorPosition = Vec2.ZERO; // cursor pos relative to translation
@@ -43,12 +45,24 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 		lastGrabbed = { time: Date.now(), hovered: undefined as (typeof grabbed) };
 
 		const onTmChangeMachine = (ev: CustomEventInit<number>) => {
-			if (ev.detail !== undefined) graph = simulator.getMachineGraph(ev.detail);
+			if (ev.detail !== undefined) {
+				machineId = ev.detail;
+				graph = simulator.getMachineGraph(ev.detail);
+			}
+		};
+
+		const onTmStep = (ev: CustomEventInit<SystemState>) => {
+			if (!ev.detail) return;
+			const machine = ev.detail.Machines.find(machine => machine.ID == machineId);
+			if (!machine) return;
+			graph?.setCurrentState(machine.CurrentState);
 		};
 
 		simulator.addEventListener(TuringMachineEvent.CHANGE_MACHINE, onTmChangeMachine);
+		simulator.addEventListener(TuringMachineEvent.STEP, onTmStep);
 		return () => {
 			simulator.removeEventListener(TuringMachineEvent.CHANGE_MACHINE, onTmChangeMachine);
+			simulator.removeEventListener(TuringMachineEvent.STEP, onTmStep);
 		};
 	}, []);
 

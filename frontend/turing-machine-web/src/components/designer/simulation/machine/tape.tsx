@@ -1,12 +1,6 @@
+import { Tape } from "../../../../helpers/designer/simulator";
 import { TapeSymbols } from "../../../../logic/Tapes/TapesUtilities/TapeSymbols";
 import { TapeTypes } from "../../../../logic/Tapes/TapeTypes";
-
-type Tape = {
-	content?: string;
-	type?: TapeTypes;
-	left: number;
-	right: number;
-}
 
 export default function DesignerSimulationMachineTape(props: { tape?: Tape, head: number }) {
 	if (!props.tape) return <></>;
@@ -30,7 +24,7 @@ export default function DesignerSimulationMachineTape(props: { tape?: Tape, head
 			break;
 		case TapeTypes.LeftLimited: {
 			content = content.slice(1);
-			cells.push({ char: content.charAt(head) }); // middle
+			cells.push({ char: content.charAt(head), boundary: head < 0 }); // middle
 			for (let ii = 1; ii <= 3; ii++) {
 				// left
 				let left = head - ii;
@@ -39,21 +33,22 @@ export default function DesignerSimulationMachineTape(props: { tape?: Tape, head
 				// right
 				let right = head + ii;
 				if (right >= content.length) cells.push({ char: "" });
-				else cells.push({ char: content.charAt(right) });
+				else cells.push({ char: content.charAt(right), boundary: right < 0 });
 			}
 			break;
 		}
 		case TapeTypes.RightLimited: {
-			let boundR = false;
+			let boundR = props.tape.right;
+			cells.push({ char: content.charAt(head) == "<" ? "" : content.charAt(head), boundary: head >= boundR }); // middle
 			for (let ii = 1; ii <= 3; ii++) {
 				// left
 				let left = head - ii;
-				if (left < 0) cells.unshift({ char: "" });
+				if (left < 0) cells.unshift({ char: "", boundary: left >= boundR });
 				else cells.unshift({ char: content.charAt(left) });
 				// right
 				let right = head + ii;
-				if (right >= content.length) cells.push({ char: "", boundary: boundR });
-				else if (content.charAt(right) == "<") cells.unshift({ char: content.charAt(right), boundary: boundR = true });
+				if (right >= content.length) cells.push({ char: "", boundary: right >= boundR });
+				else if (content.charAt(right) == "<") cells.push({ char: "", boundary: true });
 				else cells.push({ char: content.charAt(right) });
 			}
 			break;

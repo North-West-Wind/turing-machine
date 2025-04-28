@@ -94,6 +94,9 @@ class RenderingTuringMachineSimulator extends EventTarget {
 			}
 		}
 		vertices.forEach(vert => graph.addVertex(vert));
+		// set starting node for graph
+		if (this.machines[id].TransitionNodes.length)
+			graph.setStartingNode(this.machines[id].TransitionNodes[0].StateID);
 		return this.graphs[id] = graph;
 	}
 

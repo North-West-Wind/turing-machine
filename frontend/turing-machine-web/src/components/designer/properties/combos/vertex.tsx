@@ -5,6 +5,7 @@ import DesignerPropertiesText from "../text";
 import DesignerPropertiesTitle from "../title";
 import DesignerPropertiesVec2 from "../vec2";
 import simulator, { TuringMachineEvent } from "../../../../helpers/designer/simulator";
+import DesignerPropertiesCheckbox from "../checkbox";
 
 export default function DesignerPropertiesVertexCombo(props: { graph: StateGraph, id: number }) {
 	const [id, setId] = useState(props.id);
@@ -32,6 +33,8 @@ export default function DesignerPropertiesVertexCombo(props: { graph: StateGraph
 	return <>
 		<DesignerPropertiesTitle value={`Vertex ${id}`} />
 		<DesignerPropertiesText value={vertex.getLabel() || ""} prefix="Label" onCommit={value => vertex.setLabel(value)} />
+		<DesignerPropertiesCheckbox value={vertex.isStart()} prefix="Start?" onChange={val => val ? graph.setStartingNode(id) : graph.unsetStartingNode()} />
+		<DesignerPropertiesCheckbox value={vertex.isFinal()} prefix="Final?" onChange={val => vertex.setFinal(val)} />
 		<DesignerPropertiesVec2 vec={vertex.getPosition()} prefix="Position" onCommit={vec => vertex.setPosition(vec)} />
 		<DesignerPropertiesEdge graph={graph} id={props.id} edges={new Map(outs)} out />
 		<DesignerPropertiesEdge graph={graph} id={props.id} edges={new Map(ins)} />

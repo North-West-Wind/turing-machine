@@ -245,7 +245,7 @@
 }
 
 .designer-simulation-cell.boundary {
-	background-color: #d60000;
+	background-color: #004263;
 }
 
 .designer-simulation-tab {
@@ -465,4 +465,16 @@
 	background-color: rgba(0, 0, 0, .2);
 	border: none;
 	margin-right: 1vmax;
+}
+
+.designer-properties-checkbox {
+	background-color: #1d27bb;
+	display: flex;
+	align-items: center;
+}
+
+.designer-properties-checkbox input[type="checkbox"] {
+	width: 1.2vmax;
+	height: 1.2vmax;
+	margin-left: 1vmax;
 }

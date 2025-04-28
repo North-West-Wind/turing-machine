@@ -32,12 +32,17 @@ export class StateTransition {
 }
 
 export class StateVertex implements IDrawable, IDrawableOverlay, IHoverable {
+	static readonly colors = ["#"]
+
 	readonly id: number;
 	private position: Vec2;
 	transitions: StateTransition[] = [];
 	graph?: StateGraph;
 	hovered = false;
 	private label?: string;
+	private _final = false;
+	private _start = false;
+	private _current = false;
 
 	constructor(id: number, position: Vec2) {
 		this.id = id;
@@ -77,15 +82,51 @@ export class StateVertex implements IDrawable, IDrawableOverlay, IHoverable {
 		return true;
 	}
 
-	draw(ctx: CanvasRenderingContext2D) {
-		if (this.hovered) ctx.fillStyle = "#fff";
-		else ctx.fillStyle = "#7f7f7f";
-		ctx.beginPath();
-		ctx.arc(this.position.x, this.position.y, VERTEX_RADIUS, 0, CommonNumbers.PI2);
-		ctx.fill();
+	isFinal() {
+		return this._final;
+	}
 
-		if (this.hovered) ctx.fillStyle = "#7f7f7f";
-		else ctx.fillStyle = "#fff";
+	setFinal(val: boolean) {
+		// no outward edges
+		if (val && this.graph?.getOutEdges(this.id)?.size) return false;
+		this._final = val;
+		return true;
+	}
+
+	isStart() {
+		return this._start;
+	}
+
+	setStart(val: boolean) {
+		this._start = val;
+	}
+
+	isCurrent() {
+		return this._current;
+	}
+
+	setCurrent(val: boolean) {
+		this._current = val;
+	}
+
+	draw(ctx: CanvasRenderingContext2D) {
+		ctx.fillStyle = this.color(this.hovered ? "flip" : "", this._current ? "current" : "");
+		if (this._start) {
+			ctx.fillRect(this.position.x - VERTEX_RADIUS, this.position.y - VERTEX_RADIUS, VERTEX_RADIUS * 2, VERTEX_RADIUS * 2);
+		} else {
+			if (this._final) {
+				ctx.fillStyle = this.color("dark", this.hovered ? "flip" : "", this._current ? "current" : "");
+				ctx.beginPath();
+				ctx.arc(this.position.x, this.position.y, VERTEX_RADIUS * 1.5, 0, CommonNumbers.PI2);
+				ctx.fill();
+				ctx.fillStyle = this.color(this.hovered ? "flip" : "", this._current ? "current" : "");
+			}
+			ctx.beginPath();
+			ctx.arc(this.position.x, this.position.y, VERTEX_RADIUS, 0, CommonNumbers.PI2);
+			ctx.fill();
+		}
+
+		ctx.fillStyle = this.color(!this.hovered ? "flip" : "", this._current ? "current" : "");
 		ctx.textBaseline = "middle";
 		ctx.textAlign = "center";
 		ctx.fillText(this.id.toString(), this.position.x, this.position.y);
@@ -107,6 +148,23 @@ export class StateVertex implements IDrawable, IDrawableOverlay, IHoverable {
 
 	isHovered(position: Vec2) {
 		return this.hovered = position.subVec(this.position).magnitudeSqr() <= VERTEX_RADIUS * VERTEX_RADIUS;
+	}
+
+	private color(...modifiers: ("flip" | "dark" | "current" | "")[]) {
+		let flag = 0;
+		if (modifiers.includes("flip")) flag |= 1;
+		if (modifiers.includes("dark")) flag |= 2;
+		if (modifiers.includes("current")) flag |= 4;
+		switch (flag) {
+			case 1: return "#fff"; // flip
+			case 2: return "#4f4f4f"; // dark
+			case 3: return "#ccc"; // flip + dark
+			case 4: return "#279314"; // current
+			case 5: return "#b8dfb6"; // current + flip
+			case 6: return "#185a0c"; // current + dark
+			case 7: return "#85a183"; // current + dark + flip
+			default: return "#7f7f7f";
+		}
 	}
 }
 
@@ -510,6 +568,8 @@ export class StateGraph implements IDrawable, IDrawableOverlay {
 	private hoveredEdge?: [number, number];
 	private componentCounter = 0;
 	private heads = 0;
+	private startingNode = -1;
+	private currentState = -1;
 
 	addVertex(vertex: StateVertex) {
 		vertex.graph = this;
@@ -562,6 +622,17 @@ export class StateGraph implements IDrawable, IDrawableOverlay {
 		this.addVertex(vertex);
 	}
 
+	setStartingNode(id: number) {
+		this.vertices.get(this.startingNode)?.setStart(false);
+		this.vertices.get(id)?.setStart(true);
+		this.startingNode = id;
+	}
+
+	unsetStartingNode() {
+		this.vertices.get(this.startingNode)?.setStart(false);
+		this.startingNode = -1;
+	}
+
 	// creates an temporary edge
 	createTmpEdge(start: number, end: Vec2) {
 		const vert = this.vertices.get(start);
@@ -589,6 +660,7 @@ export class StateGraph implements IDrawable, IDrawableOverlay {
 		this.tmpEdge.edge.setStart(vert.getPosition());
 		this.tmpEdge.edge.setEnd(this.vertices.get(end)!.getPosition());
 		this.edges.set(vert.id, end, this.tmpEdge.edge);
+		vert.setFinal(false);
 		this.tmpEdge = undefined;
 	}
 
@@ -666,6 +738,7 @@ export class StateGraph implements IDrawable, IDrawableOverlay {
 
 	updateConfig(config: TuringMachineConfig) {
 		config.TransitionNodes = Array.from(this.vertices.keys()).map(key => new TransitionNode(key));
+		config.StartNode = new TransitionNode(this.startingNode);
 		config.Statements = this.edges.entries().map(([src, dest, edge]) => {
 			return edge.transitions.map(trans => {
 				return new TransitionStatement(
@@ -695,5 +768,11 @@ export class StateGraph implements IDrawable, IDrawableOverlay {
 				else if (transition.move.length < this.heads) transition.move.push(...Array(this.heads - transition.move.length).fill(0));
 			});
 		});
+	}
+
+	setCurrentState(state: number) {
+		this.vertices.get(this.currentState)?.setCurrent(false);
+		this.vertices.get(state)?.setCurrent(true);
+		this.currentState = state;
 	}
 }
