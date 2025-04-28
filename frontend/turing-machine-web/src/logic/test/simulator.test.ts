@@ -833,3 +833,58 @@ test('Test case 13: Basic control signals.', () => {
     expect(currentSystemState.Machines[2].Heads[0].Position).toBe(3);
     expect(currentSystemState.Machines[2].Signal).toBe(SignalState.Green);
 })
+
+test('Test case 14: Potential bugs', () => {
+    const tapeConfig0 = new TapeConfig(
+        TapeTypes.Circular,
+        3, // tape length, infinite tape will ignore
+        "aa" // tape content
+    )
+
+    const tapeConfig1 = new TapeConfig(
+        TapeTypes.Circular,
+        3, // tape length, infinite tape will ignore
+        "" // tape content
+    )
+
+    let transitionNodes = [];
+    const machineConfig = new TuringMachineConfig(
+        2,  // number of heads
+        [HeadTypes.ReadWrite, HeadTypes.ReadWrite],  // head types
+        [0, 0],    // initial positions
+        [0, 1],    // tape references
+        transitionNodes = [new TransitionNode(0)],    // transition nodes
+        [new TransitionStatement(
+            transitionNodes[0], 
+            transitionNodes[0], 
+            [
+                new HeadTransition('a', 'a', 1),
+                new HeadTransition(TapeSymbols.Blank, 'a', -1)
+            ]
+        )], // transition statements
+        transitionNodes[0] // start node
+    )
+
+    TuringMachineSimulator.Initialise();
+    expect(TuringMachineSimulator.AddTape(tapeConfig0)).toBe(0); 
+    expect(TuringMachineSimulator.AddTape(tapeConfig1)).toBe(1); 
+    expect(TuringMachineSimulator.AddMachine(machineConfig)).toBe(0);
+
+    TuringMachineSimulator.StartSimulation();
+    let currentSystemState = TuringMachineSimulator.GetSystemState();
+
+    expect(currentSystemState.Tapes[0].Content).toBe(">aa_<");
+    expect(currentSystemState.Tapes[1].Content).toBe(">___<");
+
+    TuringMachineSimulator.Update();
+    TuringMachineSimulator.Update();
+
+    currentSystemState = TuringMachineSimulator.GetSystemState();
+    expect(currentSystemState.Machines[0].Heads[0].Position).toBe(2);
+    expect(currentSystemState.Machines[0].Heads[1].Position).toBe(1);
+
+    expect(currentSystemState.Tapes[1].LeftBoundary).toBe(0);
+    expect(currentSystemState.Tapes[1].RightBoundary).toBe(2);
+    expect(currentSystemState.Tapes[0].Content).toBe(">aa_<");
+    expect(currentSystemState.Tapes[1].Content).toBe(">a_a<");
+})

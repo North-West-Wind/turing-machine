@@ -42,24 +42,25 @@ export class TuringMachineFactory
         let newTape;
         switch (config.TapeType)
         {
+            
             case TapeTypes.Infinite:
-                newTape = new InfiniteTape(0, config.TapeContent.length - 1);
+                newTape = new InfiniteTape(0, Math.max(0, config.TapeContent.length - 1));
                 break;
 
             case TapeTypes.Circular:
-                newTape = new CircularTape(0, config.TapeLength - 1);
+                newTape = new CircularTape(0, Math.max(0, config.TapeLength - 1));
                 break;
 
             case TapeTypes.LeftLimited:
-                newTape = new LimitedTape(true, false, 0, config.TapeContent.length - 1);
+                newTape = new LimitedTape(true, false, 0, Math.max(0, config.TapeContent.length - 1));
                 break;
 
             case TapeTypes.RightLimited:
-                newTape = new LimitedTape(false, true, 0, config.TapeContent.length - 1);
+                newTape = new LimitedTape(false, true, 0, Math.max(0, config.TapeContent.length - 1));
                 break;
 
             case TapeTypes.LeftRightLimited:
-                newTape = new LimitedTape(true, true, 0, config.TapeLength - 1);
+                newTape = new LimitedTape(true, true, 0, Math.max(0, config.TapeLength - 1));
                 break;
                 
             default:
@@ -140,7 +141,7 @@ export class TuringMachineFactory
     {
         const machine = new TuringMachine();
         machine.IsHalted = false;
-        machine.State = SignalState.Blue;
+        machine.Signal = SignalState.Blue;
         machine.Graph = new TransitionGraph();
         this.InitializeHeads(machine, config.NumberOfHeads, config.HeadTypes, config.InitialPositions, config.TapesReference, tapes);
         this.PopulateTransitionGraph(machine, config.Statements);
