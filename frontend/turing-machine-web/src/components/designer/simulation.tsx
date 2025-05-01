@@ -47,14 +47,19 @@ export default function DesignerSimulation(props: { onWidthChange: (factor: numb
 		const onTmChangeMachineLength = (ev: CustomEventInit<number>) => {
 			if (ev.detail !== undefined) setMachineLength(ev.detail);
 		};
+		const onTmLoad = () => {
+			setMachineLength(simulator.getMachineConfigs().length);
+		};
 
 		simulator.addEventListener(TuringMachineEvent.EDIT, onTmEdit);
 		simulator.addEventListener(TuringMachineEvent.CHANGE_MACHINE, onTmChangeMachine);
 		simulator.addEventListener(TuringMachineEvent.CHANGE_MACHINE_LENGTH, onTmChangeMachineLength);
+		simulator.addEventListener(TuringMachineEvent.LOAD, onTmLoad);
 		return () => {
 			simulator.removeEventListener(TuringMachineEvent.EDIT, onTmEdit);
 			simulator.removeEventListener(TuringMachineEvent.CHANGE_MACHINE, onTmChangeMachine);
 			simulator.removeEventListener(TuringMachineEvent.CHANGE_MACHINE_LENGTH, onTmChangeMachineLength);
+			simulator.removeEventListener(TuringMachineEvent.LOAD, onTmLoad);
 		}
 	}, []);
 

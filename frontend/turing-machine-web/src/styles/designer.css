@@ -36,6 +36,7 @@
 .designer-resizer {
 	background-color: inherit;
 	filter: brightness(50%);
+	flex-shrink: 0;
 }
 
 .designer-resizer:hover {

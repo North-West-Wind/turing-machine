@@ -23,6 +23,7 @@ let position = Vec2.ZERO;
 let cursorPosition = Vec2.ZERO; // cursor pos relative to translation
 let mousePosition = Vec2.ZERO; // cursor pos relative to window
 let scale = 1;
+let bottomRightText = { text: "", time: 0 };
 
 // movement logic properties
 let hovered: Editable | undefined;
@@ -32,7 +33,7 @@ let lastGrabbed = { time: Date.now(), hovered: undefined as (typeof grabbed) };
 // specific editing properties
 let creatingEdge: StateEdge | undefined;
 
-export default function DesignerGraph(props: { width: number, height: number }) {
+export default function DesignerGraph(props: { width: number, height: number, status?: string }) {
 	const ref = useRef<HTMLCanvasElement>(null);
 	const [cursor, setCursor] = useState("grab");
 	const [buttonActive, setButtonActive] = useState(Buttons.NONE);
@@ -75,9 +76,17 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 	}, [props.width, props.height]);
 
 	useEffect(() => {
+		let drawing = true;
+		let lastDraw = Date.now();
+
 		const draw = () => {
+			if (!drawing) return;
 			const ctx = ref.current?.getContext("2d");
 			if (!ctx) return;
+
+			const now = Date.now();
+			const elapsed = now - lastDraw;
+			lastDraw = now;
 	
 			// fill background
 			ctx.fillStyle = "#232323";
@@ -103,6 +112,18 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 			ctx.textAlign = "left";
 			ctx.textBaseline = "top";
 			ctx.fillText(`Pos: ${position.toString()} Cur: ${cursorPosition.toString()} Zoom: ${Math.round(scale * 100)}%`, 10, 10);
+
+			// draw status text
+			if (bottomRightText.text && bottomRightText.time) {
+				ctx.textAlign = "right";
+				ctx.textBaseline = "bottom";
+				ctx.globalAlpha = bottomRightText.time > 1000 ? 1 : Math.max(0, bottomRightText.time / 1000);
+				ctx.fillText(bottomRightText.text, ctx.canvas.width * 0.99, ctx.canvas.height - ctx.canvas.width * 0.01);
+				ctx.globalAlpha = 1;
+				bottomRightText.time -= elapsed;
+				if (bottomRightText.time <= 0)
+					bottomRightText = { text: "", time: 0 };
+			}
 	
 			requestAnimationFrame(draw);
 		};
@@ -114,7 +135,19 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 
 			draw();
 		}
+
+		return () => {
+			drawing = false;
+		}
 	}, []);
+
+	useEffect(() => {
+		if (!props.status) return;
+		bottomRightText = { text: props.status, time: 3000 };
+		return () => {
+			bottomRightText = { text: "", time: 0 };
+		}
+	}, [props.status]);
 
 	// used to track grabbing
 	const onMouseDown = (ev: React.MouseEvent) => {

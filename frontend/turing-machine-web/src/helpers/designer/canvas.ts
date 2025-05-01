@@ -13,3 +13,7 @@ export interface IHoverable {
 
 	isHovered(position: Vec2, scale: number): boolean;
 }
+
+export interface ISaveable<T> {
+	toSaveable(): T;
+}

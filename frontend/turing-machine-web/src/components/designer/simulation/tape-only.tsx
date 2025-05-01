@@ -72,7 +72,7 @@ export default function DesginerSimulationTape(props: { tape: Tape, index: numbe
 			}
 			break;
 		case TapeTypes.LeftLimited: {
-			content = content.slice(1);
+			if (content.startsWith(">")) content = content.slice(1);
 			cells.push({ char: content.charAt(head), boundary: head < 0 }); // middle
 			for (let ii = 1; ii <= 3; ii++) {
 				// left

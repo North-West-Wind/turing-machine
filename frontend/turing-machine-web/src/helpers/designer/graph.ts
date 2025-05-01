@@ -3,7 +3,8 @@ import { HeadTransition, TransitionStatement } from "../../logic/States/Transiti
 import { TapeSymbols } from "../../logic/Tapes/TapesUtilities/TapeSymbols";
 import { TuringMachineConfig } from "../../logic/TuringMachineConfig";
 import { PairMap } from "../structure/pair-map";
-import { IDrawable, IDrawableOverlay, IHoverable } from "./canvas";
+import { IDrawable, IDrawableOverlay, IHoverable, ISaveable } from "./canvas";
+import { SaveableUI, SaveableUIBox, SaveableUIText, SaveableUIVertex } from "./machine";
 import { CommonNumbers, Vec2 } from "./math";
 import { Editable } from "./simulator";
 
@@ -31,7 +32,7 @@ export class StateTransition {
 	}
 }
 
-export class StateVertex implements IDrawable, IDrawableOverlay, IHoverable {
+export class StateVertex implements IDrawable, IDrawableOverlay, IHoverable, ISaveable<SaveableUIVertex> {
 	static readonly colors = ["#"]
 
 	readonly id: number;
@@ -166,6 +167,13 @@ export class StateVertex implements IDrawable, IDrawableOverlay, IHoverable {
 			default: return "#7f7f7f";
 		}
 	}
+
+	toSaveable() {
+		return {
+			label: this.label,
+			position: this.position.toSaveable()
+		};
+	}
 }
 
 export class StateEdge implements IDrawable, IHoverable {
@@ -277,6 +285,14 @@ export class StateEdge implements IDrawable, IHoverable {
 		this.transitions = Array.from(edge.transitions);
 	}
 
+	getLines() {
+		return this.lines;
+	}
+
+	setLines(lines: Vec2[]) {
+		this.lines = lines;
+	}
+
 	draw(ctx: CanvasRenderingContext2D) {
 		ctx.beginPath();
 		ctx.moveTo(this.start.x, this.start.y);
@@ -377,7 +393,7 @@ export class StateEdge implements IDrawable, IHoverable {
 // A normalization for StateRect:
 // All components "start" (x, y) must be smaller than "end"
 // This is done so moving corners can be more efficient
-export class StateRect implements IDrawable, IHoverable {
+export class StateRect implements IDrawable, IHoverable, ISaveable<SaveableUIBox> {
 	private start: Vec2;
 	private end: Vec2;
 	private corners!: Vec2[];
@@ -505,9 +521,17 @@ export class StateRect implements IDrawable, IHoverable {
 		this.normalize();
 		this.computeExtra();
 	}
+
+	toSaveable() {
+		return {
+			start: this.start.toSaveable(),
+			size: this.size.toSaveable(),
+			color: parseInt(this.color.slice(1), 16)
+		};
+	}
 }
 
-export class StateText implements IDrawable, IHoverable {
+export class StateText implements IDrawable, IHoverable, ISaveable<SaveableUIText> {
 	private value: string;
 	private position: Vec2;
 	hovered = false;
@@ -556,38 +580,43 @@ export class StateText implements IDrawable, IHoverable {
 		this.position = position;
 		return true;
 	}
+
+	toSaveable() {
+		return {
+			pos: this.position.toSaveable(),
+			value: this.value
+		};
+	}
 }
 
-export class StateGraph implements IDrawable, IDrawableOverlay {
-	private vertices = new Map<number, StateVertex>();
+export class StateGraph implements IDrawable, IDrawableOverlay, ISaveable<Omit<SaveableUI, "color">> {
+	private vertices: (StateVertex | null)[] = [];
 	private edges = new PairMap<number, number, StateEdge>;
 	private tmpEdge?: { edge: StateEdge, start: number };
-	private rects = new Map<number, StateRect>();
-	private texts = new Map<number, StateText>();
+	private rects: (StateRect | null)[] = [];
+	private texts: (StateText| null)[] = [];
 	private hovered?: Editable;
 	private hoveredEdge?: [number, number];
-	private componentCounter = 0;
 	private heads = 0;
 	private startingNode = -1;
 	private currentState = -1;
 
-	addVertex(vertex: StateVertex) {
+	addVertex(vertex: StateVertex | null, id?: number) {
+		if (!vertex) {
+			if (!id) return;
+			for (let ii = 0; ii <= id - this.vertices.length; ii++)
+				this.vertices.push(null);
+			return;
+		}
 		vertex.graph = this;
-		this.vertices.set(vertex.id, vertex);
-		this.edges.deleteA(vertex.id);
-		vertex.transitions.forEach(trans => {
-			const dest = this.vertices.get(trans.destination);
-			if (dest) {
-				let edge: StateEdge;
-				if (this.edges.has(vertex.id, dest.id)) edge = this.edges.get(vertex.id, dest.id)!;
-				else this.edges.set(vertex.id, dest.id, edge = new StateEdge(vertex.getPosition(), dest.getPosition()));
-				edge.addTransition(trans);
-			}
-		});
+		// respect vertex id, as all use cases have that figured out
+		for (let ii = 0; ii <= vertex.id - this.vertices.length; ii++)
+			this.vertices.push(null);
+		this.vertices[vertex.id] = vertex;
 	}
 
 	getVertex(id: number) {
-		return this.vertices.get(id);
+		return this.vertices[id];
 	}
 
 	getVertices() {
@@ -595,18 +624,18 @@ export class StateGraph implements IDrawable, IDrawableOverlay {
 	}
 	
 	updateVertexPosition(id: number) {
-		const vertex = this.vertices.get(id);
+		const vertex = this.vertices[id];
 		if (!vertex) return;
 		this.edges.forEachOfA(vertex.id, edge => edge.setStart(vertex.getPosition()));
 		this.edges.forEachOfB(vertex.id, edge => edge.setEnd(vertex.getPosition()));
 	}
 
 	updateVertexEdges(id: number) {
-		const vertex = this.vertices.get(id);
+		const vertex = this.vertices[id];
 		if (!vertex) return;
 		this.edges.forEachOfA(vertex.id, edge => edge.resetTransitions());
 		vertex.transitions.forEach(trans => {
-			const dest = this.vertices.get(trans.destination);
+			const dest = this.vertices[trans.destination];
 			if (dest) {
 				let edge: StateEdge;
 				if (this.edges.has(vertex.id, dest.id)) edge = this.edges.get(vertex.id, dest.id)!;
@@ -617,25 +646,26 @@ export class StateGraph implements IDrawable, IDrawableOverlay {
 	}
 
 	createVertex(position: Vec2) {
-		const id = this.vertices.size > 0 ? Array.from(this.vertices.keys()).reduce((a, b) => Math.max(a, b)) + 1 : 1;
+		const nullIndex = this.vertices.indexOf(null);
+		const id = nullIndex >= 0 ? nullIndex : this.vertices.length;
 		const vertex = new StateVertex(id, position);
 		this.addVertex(vertex);
 	}
 
 	setStartingNode(id: number) {
-		this.vertices.get(this.startingNode)?.setStart(false);
-		this.vertices.get(id)?.setStart(true);
+		this.vertices[this.startingNode]?.setStart(false);
+		this.vertices[id]?.setStart(true);
 		this.startingNode = id;
 	}
 
 	unsetStartingNode() {
-		this.vertices.get(this.startingNode)?.setStart(false);
+		this.vertices[this.startingNode]?.setStart(false);
 		this.startingNode = -1;
 	}
 
 	// creates an temporary edge
 	createTmpEdge(start: number, end: Vec2) {
-		const vert = this.vertices.get(start);
+		const vert = this.vertices[start];
 		if (!vert) return null;
 		this.tmpEdge ={ edge: new StateEdge(vert.getPosition(), end, true), start };
 		return this.tmpEdge.edge;
@@ -644,8 +674,8 @@ export class StateGraph implements IDrawable, IDrawableOverlay {
 	finalizeTmpEdge(end?: number) {
 		if (!this.tmpEdge) return;
 		this.tmpEdge.edge.untemporary();
-		const vert = this.vertices.get(this.tmpEdge.start);
-		if (!vert || end === undefined || this.heads <= 0) {
+		const vert = this.vertices[this.tmpEdge.start];
+		if (!vert || end === undefined || this.vertices[end] === null || this.heads <= 0) {
 			this.tmpEdge = undefined;
 			return;
 		}
@@ -658,7 +688,7 @@ export class StateGraph implements IDrawable, IDrawableOverlay {
 			this.tmpEdge.edge.addTransition(trans);
 		}
 		this.tmpEdge.edge.setStart(vert.getPosition());
-		this.tmpEdge.edge.setEnd(this.vertices.get(end)!.getPosition());
+		this.tmpEdge.edge.setEnd(this.vertices[end].getPosition());
 		this.edges.set(vert.id, end, this.tmpEdge.edge);
 		vert.setFinal(false);
 		this.tmpEdge = undefined;
@@ -672,27 +702,39 @@ export class StateGraph implements IDrawable, IDrawableOverlay {
 		this.edges.delete(src, dest);
 	}
 
+	rawAddRect(rect: StateRect | null) {
+		this.rects.push(rect);
+	}
+
 	addRect(rect: StateRect) {
-		this.rects.set(this.componentCounter++, rect);
+		const replacement = this.rects.indexOf(null);
+		if (replacement >= 0) this.rects[replacement] = rect;
+		else this.rects.push(rect);
 	}
 
 	getRect(id: number) {
-		return this.rects.get(id);
+		return this.rects[id];
+	}
+
+	rawAddText(text: StateText | null) {
+		this.texts.push(text);
 	}
 
 	addText(text: StateText) {
-		this.texts.set(this.componentCounter++, text);
+		const replacement = this.texts.indexOf(null);
+		if (replacement >= 0) this.texts[replacement] = text;
+		else this.texts.push(text);
 	}
 
 	getText(id: number) {
-		return this.texts.get(id);
+		return this.texts[id];
 	}
 
 	draw(ctx: CanvasRenderingContext2D) {
 		// draw rectangles
-		this.rects.forEach(r => r.draw(ctx));
+		this.rects.forEach(r => r?.draw(ctx));
 		// draw texts
-		this.texts.forEach(t => t.draw(ctx));
+		this.texts.forEach(t => t?.draw(ctx));
 		// draw edges
 		let topEdge: StateEdge | undefined;
 		this.edges.forEach((edge, src, dest) => {
@@ -702,27 +744,27 @@ export class StateGraph implements IDrawable, IDrawableOverlay {
 		this.tmpEdge?.edge.draw(ctx);
 		topEdge?.draw(ctx);
 		// draw vertices
-		this.vertices.forEach(v => v.draw(ctx));
+		this.vertices.forEach(v => v?.draw(ctx));
 	}
 
 	drawOverlay(ctx: CanvasRenderingContext2D, mousePosition: Vec2) {
-		this.vertices.forEach(v => v.drawOverlay(ctx, mousePosition));
+		this.vertices.forEach(v => v?.drawOverlay(ctx, mousePosition));
 	}
 	
 	mouseTick(position: Vec2, scale: number) {
 		this.hovered = undefined;
 		let hovEdge: [number, number] | undefined;
-		for (const [id, vertex] of this.vertices.entries())
-			if (vertex.isHovered(position) && this.hovered === undefined)
-				this.hovered = { type: "vertex", id };
+		for (const vertex of this.vertices)
+			if (vertex?.isHovered(position) && this.hovered === undefined)
+				this.hovered = { type: "vertex", id: vertex.id };
 		for (const [src, dest, edge] of this.edges.entries())
 			if (edge.isHovered(position, scale) && hovEdge === undefined)
 				hovEdge = [src, dest];
-		for (const [id, text] of this.texts.entries())
-			if (text.isHovered(position) && this.hovered === undefined)
+		for (let id = 0; id < this.texts.length; id++)
+			if (this.texts[id]?.isHovered(position) && this.hovered === undefined)
 				this.hovered = { type: "text", id };
-		for (const [id, rect] of this.rects.entries())
-			if (rect.isHovered(position, scale) && this.hovered === undefined)
+		for (let id = 0; id < this.rects.length; id++)
+			if (this.rects[id]?.isHovered(position, scale) && this.hovered === undefined)
 				this.hovered = { type: "rect", id };
 		this.hoveredEdge = hovEdge;
 		return this.hovered;
@@ -734,6 +776,10 @@ export class StateGraph implements IDrawable, IDrawableOverlay {
 
 	getOutEdges(id: number) {
 		return this.edges.getA(id);
+	}
+
+	getEdge(src: number, dest: number) {
+		return this.edges.get(src, dest);
 	}
 
 	updateConfig(config: TuringMachineConfig) {
@@ -771,8 +817,16 @@ export class StateGraph implements IDrawable, IDrawableOverlay {
 	}
 
 	setCurrentState(state: number) {
-		this.vertices.get(this.currentState)?.setCurrent(false);
-		this.vertices.get(state)?.setCurrent(true);
+		this.vertices[this.currentState]?.setCurrent(false);
+		this.vertices[state]?.setCurrent(true);
 		this.currentState = state;
+	}
+
+	toSaveable() {
+		return {
+			boxes: this.rects.map(rect => rect?.toSaveable() || null),
+			texts: this.texts.map(text => text?.toSaveable() || null),
+			nodes: this.vertices.map(vert => vert?.toSaveable() || null)
+		}
 	}
 }
