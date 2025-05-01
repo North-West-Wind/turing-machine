@@ -9,7 +9,7 @@ import DesignerLevelExamples from "./level/examples";
 const ANIM_LENGTH = 500; // animation length of the container. See styles/designer/level.css
 
 // Level details container
-export default function DesignerLevel(props: { visible: boolean, close: () => void }) {
+export default function DesignerLevel(props: { visible: boolean, close: () => void, level?: DetailedLevel, onClosed?: () => void }) {
 	const [visible, setVisible] = useState(props.visible);
 	const [none, setNone] = useState(!props.visible);
 	const [noAnim, setNoAnim] = useState(false);
@@ -28,12 +28,15 @@ export default function DesignerLevel(props: { visible: boolean, close: () => vo
 	}, []);
 	
 	let parsedLevel: DetailedLevel | undefined;
-	const storedLevel = window.localStorage.getItem("tm:level");
-	if (storedLevel) {
-		try {
-			parsedLevel = JSON.parse(storedLevel);
-		} catch (err) {
-			console.error(err);
+	if (props.level) parsedLevel = props.level;
+	else {
+		const storedLevel = window.localStorage.getItem("tm:level");
+		if (storedLevel) {
+			try {
+				parsedLevel = JSON.parse(storedLevel);
+			} catch (err) {
+				console.error(err);
+			}
 		}
 	}
 	const [level] = useState(parsedLevel);
@@ -56,6 +59,7 @@ export default function DesignerLevel(props: { visible: boolean, close: () => vo
 				setNone(true);
 				setNoAnim(true);
 				setTimeoutRef(undefined);
+				if (props.onClosed) props.onClosed();
 			}, ANIM_LENGTH));
 		}
 	}, [props.visible]);
@@ -69,7 +73,7 @@ export default function DesignerLevel(props: { visible: boolean, close: () => vo
 		<div className="designer-level-close" onClick={() => props.close()}><img src="/ui/cross.svg" /></div>
 		<div className="designer-level-inner">
 			<div className="designer-level-left">
-				<DesignerLevelDetails level={level} />
+				<DesignerLevelDetails level={level} playable={!!props.level} />
 				<DesignerLevelConstraints constraints={level.constraints} />
 			</div>
 			<div className="designer-level-right">
