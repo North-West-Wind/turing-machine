@@ -156,4 +156,19 @@ export class CircularTape implements ITape
 
         return contents;
     }
+
+    public GetSignalsAsString()
+    {
+        let signals = "";
+
+        for (let i = this._leftBoundary; i <= this._rightBoundary; i++) {
+            if (this._states.has(i))
+                signals += this._states.get(i)!;
+            else
+            signals += TapeSymbols.Blank;
+            
+        }
+
+        return signals;
+    }
 }

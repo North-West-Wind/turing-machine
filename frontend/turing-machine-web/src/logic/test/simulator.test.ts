@@ -812,38 +812,45 @@ test('Test case 13: Basic control signals.', () => {
     let currentSystemState = TuringMachineSimulator.GetSystemState();
 
     expect(currentSystemState.Tapes[0].Content).toBe("000000");
+    expect(currentSystemState.Tapes[0].TapeSignal).toBe("______");
 
     TuringMachineSimulator.Update();
     currentSystemState = TuringMachineSimulator.GetSystemState();
     expect(currentSystemState.Machines[2].Heads[0].Position).toBe(2);
-    expect(currentSystemState.Machines[2].Signal).toBe(SignalState.Green);
+    expect(currentSystemState.Tapes[0].TapeSignal).toBe("__2_1_");
+    expect(currentSystemState.Machines[2].Signal).toBe(1);
 
     TuringMachineSimulator.Update();
     currentSystemState = TuringMachineSimulator.GetSystemState();
     expect(currentSystemState.Machines[2].Heads[0].Position).toBe(2);
-    expect(currentSystemState.Machines[2].Signal).toBe(SignalState.Orange);
+    expect(currentSystemState.Tapes[0].TapeSignal).toBe("_2_11_");
+    expect(currentSystemState.Machines[2].Signal).toBe(2);
 
     TuringMachineSimulator.Update();
     currentSystemState = TuringMachineSimulator.GetSystemState();
+    expect(currentSystemState.Machines[1].Heads[0].Position).toBe(1);
     expect(currentSystemState.Machines[2].Heads[0].Position).toBe(2);
-    expect(currentSystemState.Machines[2].Signal).toBe(SignalState.Orange);
+    expect(currentSystemState.Tapes[0].TapeSignal).toBe("_22111_");
+    expect(currentSystemState.Machines[2].Signal).toBe(2);
 
     TuringMachineSimulator.Update();
     currentSystemState = TuringMachineSimulator.GetSystemState();
     expect(currentSystemState.Machines[2].Heads[0].Position).toBe(3);
-    expect(currentSystemState.Machines[2].Signal).toBe(SignalState.Green);
+    expect(currentSystemState.Tapes[0].TapeSignal).toBe("_22__11_");
+    expect(currentSystemState.Machines[1].Signal).toBe(2);
+    expect(currentSystemState.Machines[2].Signal).toBe(1);
 })
 
-test('Test case 14: Potential bugs', () => {
+test('Test case 14: Empty initial tape content', () => {
     const tapeConfig0 = new TapeConfig(
-        TapeTypes.Circular,
-        3, // tape length, infinite tape will ignore
+        TapeTypes.Infinite,
+        -1, // tape length, infinite tape will ignore
         "aa" // tape content
     )
 
     const tapeConfig1 = new TapeConfig(
-        TapeTypes.Circular,
-        3, // tape length, infinite tape will ignore
+        TapeTypes.Infinite,
+        -1, // tape length, infinite tape will ignore
         "" // tape content
     )
 
@@ -873,18 +880,18 @@ test('Test case 14: Potential bugs', () => {
     TuringMachineSimulator.StartSimulation();
     let currentSystemState = TuringMachineSimulator.GetSystemState();
 
-    expect(currentSystemState.Tapes[0].Content).toBe(">aa_<");
-    expect(currentSystemState.Tapes[1].Content).toBe(">___<");
+    expect(currentSystemState.Tapes[0].Content).toBe("aa");
+    expect(currentSystemState.Tapes[1].Content).toBe("_");
 
     TuringMachineSimulator.Update();
     TuringMachineSimulator.Update();
 
     currentSystemState = TuringMachineSimulator.GetSystemState();
     expect(currentSystemState.Machines[0].Heads[0].Position).toBe(2);
-    expect(currentSystemState.Machines[0].Heads[1].Position).toBe(1);
+    expect(currentSystemState.Machines[0].Heads[1].Position).toBe(-2);
 
-    expect(currentSystemState.Tapes[1].LeftBoundary).toBe(0);
-    expect(currentSystemState.Tapes[1].RightBoundary).toBe(2);
-    expect(currentSystemState.Tapes[0].Content).toBe(">aa_<");
-    expect(currentSystemState.Tapes[1].Content).toBe(">a_a<");
+    expect(currentSystemState.Tapes[1].LeftBoundary).toBe(-2);
+    expect(currentSystemState.Tapes[1].RightBoundary).toBe(0);
+    expect(currentSystemState.Tapes[0].Content).toBe("aa_");
+    expect(currentSystemState.Tapes[1].Content).toBe("_aa");
 })
