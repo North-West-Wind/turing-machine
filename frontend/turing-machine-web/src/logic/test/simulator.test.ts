@@ -8,7 +8,6 @@ import { HeadTypes } from '../Heads/HeadTypes';
 import { TransitionNode } from '../States/Transitions/TransitionNode';
 import { HeadTransition, TransitionStatement } from '../States/Transitions/TransitionStatement';
 import { TapeSymbols } from '../Tapes/TapesUtilities/TapeSymbols';
-import { SignalState } from '../States/SignalStates';
 
 test('Test case 1: Create valid tape and Turing machine configs.', () => {
     const tapeConfig = new TapeConfig(
