@@ -422,6 +422,7 @@ export class TuringMachineSimulator
             const tapeState = new TapeState(
                 tapeID,
                 tape!.GetContentsAsString() ?? "(null)",
+                tape!.GetSignalsAsString() ?? "(null)",
                 tape!.LeftBoundary,
                 tape!.RightBoundary
             )

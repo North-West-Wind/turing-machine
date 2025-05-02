@@ -7,13 +7,15 @@ export class TapeState
 {
     public ID: number = -1;
     public Content: string = "";
+    public TapeSignal: string = "";
     public LeftBoundary: number = 0;
     public RightBoundary: number = 0;
 
-    constructor(id: number, content: string, leftBoundary: number, rightBoundary: number)
+    constructor(id: number, content: string, tapeSignal: string, leftBoundary: number, rightBoundary: number)
     {
         this.ID = id;
         this.Content = content;
+        this.TapeSignal = tapeSignal;
         this.LeftBoundary = leftBoundary;
         this.RightBoundary = rightBoundary;
     }
@@ -44,7 +46,7 @@ export class MachineState
     public CurrentState: number = -1;
     public Heads: HeadState[] = [];
     public IsHalted: boolean = false;
-    public Signal: SignalState;
+    public Signal: number;
 
     constructor(id: number, currentState: number, isHalted: boolean, signal: SignalState)
     {

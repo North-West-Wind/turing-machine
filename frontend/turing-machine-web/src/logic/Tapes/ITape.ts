@@ -87,4 +87,9 @@ export interface ITape
      * Get the tape contents as a string. For UI.
      */
     GetContentsAsString(): string;
+
+    /**
+     * Get the signals as a string. For UI.
+     */
+    GetSignalsAsString(): string;
 }
