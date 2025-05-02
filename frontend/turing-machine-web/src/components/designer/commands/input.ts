@@ -2,7 +2,7 @@ import ConsoleCommand from "./base";
 
 export default class InputCommand extends ConsoleCommand {
 	constructor() {
-		super("input");
+		super("input", "Changes the tape for appending input.", `[tapeId | "reset"]`);
 	}
 
 	handle(args: string[]): string[] {

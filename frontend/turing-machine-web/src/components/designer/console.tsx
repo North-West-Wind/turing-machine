@@ -6,11 +6,13 @@ import ConsoleCommand from "./commands/base";
 import ClearCommand from "./commands/clear";
 import InputCommand from "./commands/input";
 import HelpCommand from "./commands/help";
+import InfoCommand from "./commands/info";
 
 const commands = new Map<string, ConsoleCommand>();
 new ClearCommand().addToMap(commands);
 new HelpCommand().addToMap(commands);
 new InputCommand().addToMap(commands);
+new InfoCommand().addToMap(commands);
 
 enum LineType {
 	NORMAL = -1,

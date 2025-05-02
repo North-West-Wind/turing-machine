@@ -795,6 +795,14 @@ export class StateGraph implements IDrawable, IDrawableOverlay, ISaveable<Omit<S
 		return this.edges.get(src, dest);
 	}
 
+	private unescapeSymbol(symbol: string) {
+		switch (symbol) {
+			case "\\p": return TapeSymbols.Pause;
+			case "\\r": return TapeSymbols.Running;
+			default: return symbol;
+		}
+	}
+
 	updateConfig(config: TuringMachineConfig) {
 		config.TransitionNodes = Array.from(this.vertices.keys()).map(key => new TransitionNode(key));
 		config.StartNode = new TransitionNode(this.startingNode);
@@ -804,7 +812,7 @@ export class StateGraph implements IDrawable, IDrawableOverlay, ISaveable<Omit<S
 					new TransitionNode(src),
 					new TransitionNode(dest),
 					Array(config.NumberOfHeads)
-						.fill((ii: number) => new HeadTransition(trans.read[ii], trans.write[ii], trans.move[ii]))
+						.fill((ii: number) => new HeadTransition(this.unescapeSymbol(trans.read[ii]), this.unescapeSymbol(trans.write[ii]), trans.move[ii]))
 						.map((func, ii) => func(ii))
 				);
 			});

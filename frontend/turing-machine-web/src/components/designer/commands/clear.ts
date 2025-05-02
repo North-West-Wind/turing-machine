@@ -3,7 +3,7 @@ import ConsoleCommand from "./base";
 
 export default class ClearCommand extends ConsoleCommand {
 	constructor() {
-		super("clear");
+		super("clear", "Clears the content of the input tape or specific tapes.", "[...tapeId]");
 	}
 
 	handle(args: string[]): string[] {

@@ -2,10 +2,14 @@ export default abstract class ConsoleCommand {
 	// shared data between commands
 	static modifyingTape = -1;
 
-	id: string;
+	readonly id: string;
+	readonly description: string;
+	readonly usage: string;
 
-	constructor(id: string) {
+	constructor(id: string, description: string, usage?: string) {
 		this.id = id;
+		this.description = description;
+		this.usage = usage || "";
 	}
 
 	abstract handle(args: string[], commands: ConsoleCommand[]): string[];

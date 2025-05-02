@@ -68,7 +68,6 @@ export default function DesignerPropertiesEdge(props: { graph: StateGraph, id: n
 		const deleted = edge.deleteTransition(index);
 		if (deleted)
 			props.graph.getVertex(props.id)?.deleteTransition(deleted);
-		console.log("same edge?", edge == props.graph.getEdge(props.id, dest));
 		if (edge.transitions.length == 0) {
 			props.graph.deleteEdge(props.id, dest);
 			props.edges.delete(dest);

@@ -124,6 +124,7 @@ class RenderingTuringMachineSimulator extends EventTarget {
 		// update edges with edge data
 		if (this.edgeData[id])
 			for (const [key, lines] of Object.entries(this.edgeData[id])) {
+				if (!lines.length) continue;
 				const [src, dest] = key.split("_").map(val => parseInt(val));
 				graph.getEdge(src, dest)?.setLines(lines.map(Vec2.fromArray));
 			}
