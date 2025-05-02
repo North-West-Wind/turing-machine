@@ -9,7 +9,7 @@ import { CommonNumbers, Vec2 } from "./math";
 import { Editable } from "./simulator";
 
 const VERTEX_RADIUS = 20;
-const EDGE_HITBOX = 10;
+const EDGE_HITBOX = 9;
 const RECT_CORNER_HITBOX = 10;
 
 export class StateTransition {
@@ -388,7 +388,7 @@ export class StateEdge implements IDrawable, IHoverable {
 			let pos = this.start;
 			for (const line of this.lines) {
 				const nextPos = pos.addVec(line);
-				hov = this.isSegmentHovered(position, scale, pos, nextPos);
+				hov = this.isSegmentHovered(position, scale, pos, nextPos) || hov;
 				pos = nextPos;
 			}
 		}
@@ -628,6 +628,13 @@ export class StateGraph implements IDrawable, IDrawableOverlay, ISaveable<Omit<S
 		this.vertices[vertex.id] = vertex;
 	}
 
+	deleteVertex(id: number) {
+		if (!this.vertices[id]) return;
+		if (this.vertices.length == id + 1) this.vertices.pop();
+		else if (this.vertices[id]) this.vertices[id] = null;
+		this.edges.deleteA(id);
+	}
+
 	getVertex(id: number) {
 		return this.vertices[id];
 	}
@@ -812,7 +819,7 @@ export class StateGraph implements IDrawable, IDrawableOverlay, ISaveable<Omit<S
 					new TransitionNode(src),
 					new TransitionNode(dest),
 					Array(config.NumberOfHeads)
-						.fill((ii: number) => new HeadTransition(this.unescapeSymbol(trans.read[ii]), this.unescapeSymbol(trans.write[ii]), trans.move[ii]))
+						.fill((ii: number) => new HeadTransition(trans.read[ii], this.unescapeSymbol(trans.write[ii]), trans.move[ii]))
 						.map((func, ii) => func(ii))
 				);
 			});

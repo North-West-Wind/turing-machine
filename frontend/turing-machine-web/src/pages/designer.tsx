@@ -28,6 +28,11 @@ export default function DesignerPage() {
 		return () => window.removeEventListener("keydown", onKeyDown);
 	}, []);
 
+	useEffect(() => {
+		// reset status so we can send another status later
+		if (status) setStatus(undefined);
+	}, [status]);
+
 	return <div className="designer-container">
 		<DesignerSimulation onWidthChange={setRightWidth} openLevelDetails={() => setDetailed(true)} />
 		<div className="designer-fill-height designer-fill-flex designer-right" style={{ width: rightWidth * window.innerWidth }}>

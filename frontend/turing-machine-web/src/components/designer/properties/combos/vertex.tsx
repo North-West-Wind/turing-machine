@@ -6,6 +6,7 @@ import DesignerPropertiesTitle from "../title";
 import DesignerPropertiesVec2 from "../vec2";
 import simulator, { TuringMachineEvent } from "../../../../helpers/designer/simulator";
 import DesignerPropertiesCheckbox from "../checkbox";
+import DesignerPropertiesDelete from "../delete";
 
 export default function DesignerPropertiesVertexCombo(props: { graph: StateGraph, id: number }) {
 	const [id, setId] = useState(props.id);
@@ -30,8 +31,15 @@ export default function DesignerPropertiesVertexCombo(props: { graph: StateGraph
 	const outs: [number, StateEdge][] = [], ins: [number, StateEdge][] = [];
 	graph.getOutEdges(id)?.forEach((edge, dest) => outs.push([dest, edge]));
 	graph.getInEdges(id)?.forEach((edge, src) => ins.push([src, edge]));
+
+	const deleteVertex = () => {
+		if (!confirm("Are you sure you want to delete this vertex?")) return;
+		graph.deleteVertex(id);
+	};
+
 	return <>
 		<DesignerPropertiesTitle value={`Vertex ${id}`} />
+		<DesignerPropertiesDelete onClick={deleteVertex} />
 		<DesignerPropertiesText value={vertex.getLabel() || ""} prefix="Label" onCommit={value => vertex.setLabel(value)} />
 		<DesignerPropertiesCheckbox value={vertex.isStart()} prefix="Start?" onChange={val => val ? graph.setStartingNode(id) : graph.unsetStartingNode()} />
 		<DesignerPropertiesCheckbox value={vertex.isFinal()} prefix="Final?" onChange={val => vertex.setFinal(val)} />

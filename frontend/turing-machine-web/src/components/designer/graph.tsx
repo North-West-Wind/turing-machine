@@ -64,6 +64,7 @@ export default function DesignerGraph(props: { width: number, height: number, st
 		return () => {
 			simulator.removeEventListener(TuringMachineEvent.CHANGE_MACHINE, onTmChangeMachine);
 			simulator.removeEventListener(TuringMachineEvent.STEP, onTmStep);
+			bottomRightText = { text: "", time: 0 };
 		};
 	}, []);
 
@@ -144,9 +145,6 @@ export default function DesignerGraph(props: { width: number, height: number, st
 	useEffect(() => {
 		if (!props.status) return;
 		bottomRightText = { text: props.status, time: 3000 };
-		return () => {
-			bottomRightText = { text: "", time: 0 };
-		}
 	}, [props.status]);
 
 	// used to track grabbing

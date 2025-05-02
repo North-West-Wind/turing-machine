@@ -16,7 +16,7 @@ export default function DesginerSimulationTape(props: { tape: Tape, index: numbe
 			if (!ev.detail) return;
 			const newTape = ev.detail.Tapes.find(tape => tape.ID == props.index);
 			if (newTape)
-				setTape({ content: newTape.Content, type: tape.type, left: newTape.LeftBoundary, right: newTape.RightBoundary, id: tape.id });
+				setTape({ content: newTape.Content, signals: newTape.TapeSignal, type: tape.type, left: newTape.LeftBoundary, right: newTape.RightBoundary, id: tape.id });
 		};
 
 		const onTmReset = () => {
@@ -26,7 +26,7 @@ export default function DesginerSimulationTape(props: { tape: Tape, index: numbe
 		const onTmTapeChange = (ev: CustomEventInit<number>) => {
 			if (ev.detail != props.index) return;
 			const tapeConfig = simulator.getTapeConfig(props.index);
-			setTape({ content: tapeConfig?.TapeContent, type: tapeConfig?.TapeType, left: 0, right: tapeConfig?.TapeContent?.length || 0, id: tape.id });
+			setTape({ content: tapeConfig?.TapeContent, signals: "", type: tapeConfig?.TapeType, left: 0, right: tapeConfig?.TapeContent?.length || 0, id: tape.id });
 		};
 
 		const onTmInputTapeChange = (ev: CustomEventInit<number>) => {

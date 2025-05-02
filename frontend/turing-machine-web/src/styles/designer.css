@@ -468,6 +468,17 @@
 	padding: 1.5vmax;
 }
 
+.designer-properties-delete {
+	padding: .5vmax;
+	background-color: #c90d0d;
+	cursor: pointer;
+	transition: filter .25s ease;
+}
+
+.designer-properties-delete:hover {
+	filter: brightness(80%);
+}
+
 .designer-properties-label {
 	background-color: rgb(19, 159, 159);
 }

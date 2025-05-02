@@ -3,6 +3,7 @@ import { TransitionNode } from "../../logic/States/Transitions/TransitionNode";
 import { HeadTransition, TransitionStatement } from "../../logic/States/Transitions/TransitionStatement";
 import { SystemState } from "../../logic/SystemState";
 import { TapeConfig } from "../../logic/Tapes/TapesUtilities/TapeConfig";
+import { TapeSymbols } from "../../logic/Tapes/TapesUtilities/TapeSymbols";
 import { TapeTypes } from "../../logic/Tapes/TapeTypes";
 import { TuringMachineConfig } from "../../logic/TuringMachineConfig";
 import { TuringMachineSimulator } from "../../logic/TuringMachineSimulator";
@@ -35,6 +36,7 @@ export enum TuringMachineEvent {
 
 export type Tape = {
 	content?: string;
+	signals: string;
 	type?: TapeTypes;
 	id: number;
 	left: number;
@@ -93,7 +95,7 @@ class RenderingTuringMachineSimulator extends EventTarget {
 			const read: string[] = [], write: string[] = [], move: number[] = [];
 			transition.Conditions.forEach(cond => {
 				read.push(cond.Read);
-				write.push(cond.Write);
+				write.push(this.escapeSymbol(cond.Write));
 				move.push(cond.Move);
 			});
 			vertices[sourceId].addTransitions(new StateTransition(transition.Target.StateID, read, write, move));
@@ -129,8 +131,7 @@ class RenderingTuringMachineSimulator extends EventTarget {
 				graph.getEdge(src, dest)?.setLines(lines.map(Vec2.fromArray));
 			}
 		// set starting node for graph
-		if (this.machines[id].TransitionNodes.length)
-			graph.setStartingNode(this.machines[id].TransitionNodes[0].StateID);
+		graph.setStartingNode(this.machines[id].StartNode.StateID);
 		// set head number
 		graph.setHeads(this.machines[id].NumberOfHeads);
 		// load ui data
@@ -148,6 +149,14 @@ class RenderingTuringMachineSimulator extends EventTarget {
 			}
 		}
 		return this.graphs[id] = graph;
+	}
+
+	private escapeSymbol(symbol: string) {
+		switch (symbol) {
+			case TapeSymbols.Pause: return "\\p";
+			case TapeSymbols.Running: return "\\r";
+			default: return symbol;
+		}
 	}
 
 	getMachineConfig(id: number) {
@@ -183,12 +192,6 @@ class RenderingTuringMachineSimulator extends EventTarget {
 		this.tapes[tapeId] = new TapeConfig(this.tapes[tapeId].TapeType, val.length, val);
 		this.dispatchChangeTapeEvent(tapeId);
 		return true;
-	}
-
-	clearTapes() {
-		this.tapes.forEach((tape, ii) => {
-			this.tapes[ii] = tape ? new TapeConfig(tape.TapeType, tape.TapeLength, "") : null;
-		});
 	}
 
 	getInputTape() {
@@ -244,7 +247,7 @@ class RenderingTuringMachineSimulator extends EventTarget {
 			if (machine.IsHalted && !this.haltAnnounced.has(ii)) {
 				this.dispatchEvent(new CustomEvent(TuringMachineEvent.HALT, { detail: ii }));
 				this.haltAnnounced.add(ii);
-			}	else allHalted = false;
+			}	else if (!machine.IsHalted) allHalted = false;
 		});
 		if (allHalted || !this.running) this.stop();
 		else if (!this.paused) this.scheduleNextTick();
@@ -269,7 +272,7 @@ class RenderingTuringMachineSimulator extends EventTarget {
 		this.running = false;
 		this.paused = false;
 		this.state = undefined;
-		this.clearTapes();
+		this.graphs.forEach(graph => graph?.setCurrentState(-1));
 		this.dispatchEvent(new Event(TuringMachineEvent.RESET));
 	}
 
@@ -294,8 +297,15 @@ class RenderingTuringMachineSimulator extends EventTarget {
 	}
 
 	deleteMachine(id: number) {
-		if (this.machines[id]) this.machines[id] = null;
-		if (this.graphs[id]) this.graphs[id] = null;
+		const plus1 = id + 1;
+		if (this.machines.length == plus1) this.machines.pop();
+		else if (this.machines[id]) this.machines[id] = null;
+		if (this.graphs.length == plus1) this.graphs.pop();
+		else if (this.graphs[id]) this.graphs[id] = null;
+		if (this.uiData.length == plus1) this.uiData.pop();
+		else if (this.uiData[id]) this.uiData[id] = undefined;
+		if (this.edgeData.length == plus1) this.uiData.pop();
+		else if (this.edgeData[id]) this.edgeData[id] = {};
 		this.dispatchChangeMachineLengthEvent();
 	}
 
@@ -320,8 +330,8 @@ class RenderingTuringMachineSimulator extends EventTarget {
 
 	getTapes(): Tape[] {
 		if (this.state)
-			return this.state.Tapes.map(tape => ({ content: tape.Content, type: this.tapes[tape.ID]?.TapeType, id: tape.ID, left: tape.LeftBoundary, right: tape.RightBoundary })).sort((a, b) => a.id - b.id);
-		return this.tapes.map((tape, id) => ({ content: tape?.TapeContent, type: tape?.TapeType, id, left: 0, right: tape?.TapeContent.length || 0 })).filter(tape => tape.type !== undefined);
+			return this.state.Tapes.map(tape => ({ content: tape.Content, signals: tape.TapeSignal, type: this.tapes[tape.ID]?.TapeType, id: tape.ID, left: tape.LeftBoundary, right: tape.RightBoundary })).sort((a, b) => a.id - b.id);
+		return this.tapes.map((tape, id) => ({ content: tape?.TapeContent, signals: "", type: tape?.TapeType, id, left: 0, right: tape?.TapeContent.length || 0 })).filter(tape => tape.type !== undefined);
 	}
 
 	getMachineTapes(id: number): Tape[] {
@@ -436,7 +446,7 @@ class RenderingTuringMachineSimulator extends EventTarget {
 				source: statement.Source.StateID,
 				target: statement.Target.StateID,
 				statements: statement.Conditions.map(cond => ({ read: cond.Read, write: cond.Write, move: cond.Move })) as SaveableTransitionStatement[],
-				lines: this.graphs[ii]?.getEdge(statement.Source.StateID, statement.Target.StateID)?.getLines().map(vec => [vec.x, vec.y]) || []
+				lines: this.graphs[ii]?.getEdge(statement.Source.StateID, statement.Target.StateID)?.getLines().map(vec => [vec.x, vec.y]) || this.edgeData[ii][`${statement.Source.StateID}_${statement.Target.StateID}`] || []
 			}));
 			const heads: SaveableHead[] = [];
 			for (let ii = 0; ii < machine.NumberOfHeads; ii++) {
@@ -450,7 +460,7 @@ class RenderingTuringMachineSimulator extends EventTarget {
 				transitions,
 				heads,
 				start: machine.StartNode.StateID,
-				ui: Object.assign(this.graphs[ii]?.toSaveable() || { boxes: [], texts: [], nodes: [] }, { color: parseInt(machine.color, 16) })
+				ui: Object.assign(this.graphs[ii]?.toSaveable() || this.uiData[ii] || { boxes: [], texts: [], nodes: [] }, { color: parseInt(machine.color, 16) })
 			});
 		});
 
@@ -508,6 +518,9 @@ class RenderingTuringMachineSimulator extends EventTarget {
 						new TransitionNode(transition.source),
 						new TransitionNode(transition.target),
 						transition.statements.map(statement => new HeadTransition(statement.read, statement.write, statement.move)));
+				});
+				machine.ui.nodes.forEach((node, ii) => {
+					if (node !== null) usedNodes.add(ii);
 				});
 				return { color: machine.ui.color.toString(16).padStart(6, "0"), ...new TuringMachineConfig(
 					machine.heads.length,
