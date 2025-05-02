@@ -97,6 +97,7 @@
 .designer-simulation-controller {
 	display: flex;
 	width: 100%;
+	align-items: center;
 }
 
 .designer-simulation-button {
@@ -122,6 +123,33 @@
 .designer-simulation-controller.small .designer-simulation-button img {
 	width: 10%;
 	padding: 2%;
+}
+
+.designer-simulation-controller.tick-rate > div {
+	width: 100%;
+	margin: 1vmax;
+	text-align: left;
+}
+
+.designer-simulation-slider {
+	margin-top: 1vmax;
+	width: 100%;
+	flex: 1;
+	display: flex;
+	cursor: pointer;
+	user-select: none;
+}
+
+.designer-simulation-slider .slideable {
+	position: relative;
+	height: 2vmax;
+	background-color: #ffee00;
+}
+
+.designer-simulation-slider .filler {
+	position: relative;
+	height: 2vmax;
+	background-color: #0000007f;
 }
 
 .designer-simulation-machine {

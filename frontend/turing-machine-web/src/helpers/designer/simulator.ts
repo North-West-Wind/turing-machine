@@ -47,7 +47,7 @@ class RenderingTuringMachineSimulator extends EventTarget {
 	private graphs: (StateGraph | null)[] = [];
 	private uiData: (SaveableUI | undefined)[] = [];
 	private edgeData: Record<`${number}_${number}`, Saveable2DVector[]>[] = [];
-	private tickInterval = 1000; // milliseconds
+	tickInterval = 1000; // milliseconds
 	private paused = false;
 	running = false;
 	
@@ -215,7 +215,6 @@ class RenderingTuringMachineSimulator extends EventTarget {
 		this.machines.forEach((machine, ii) => {
 			if (!machine) return;
 			if (this.graphs[ii]) this.graphs[ii].updateConfig(machine);
-			console.log(machine);
 			TuringMachineSimulator.AddMachine(machine);
 		});
 	}
@@ -231,7 +230,6 @@ class RenderingTuringMachineSimulator extends EventTarget {
 	step() {
 		TuringMachineSimulator.Update();
 		this.state = TuringMachineSimulator.GetSystemState();
-		console.log(this.state);
 		this.dispatchEvent(new CustomEvent(TuringMachineEvent.STEP, { detail: this.state }));
 		let allHalted = true;
 		this.state.Machines.forEach((machine, ii) => {
