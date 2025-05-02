@@ -203,7 +203,6 @@ export class LimitedTape implements ITape
                 contents += this._tape.get(i)!;
             else
                 contents += TapeSymbols.Blank;
-            
         }
 
         if (this._tapeType === TapeTypes.RightLimited || this._tapeType === TapeTypes.LeftRightLimited)
@@ -223,8 +222,7 @@ export class LimitedTape implements ITape
             if (this._states.has(i))
                 signals += this._states.get(i)!;
             else
-            signals += TapeSymbols.Blank;
-            
+                signals += TapeSymbols.Blank;
         }
 
         if (this._tapeType === TapeTypes.RightLimited || this._tapeType === TapeTypes.LeftRightLimited)
