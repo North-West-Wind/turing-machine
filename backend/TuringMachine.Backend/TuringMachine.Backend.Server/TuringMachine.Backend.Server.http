@@ -7,3 +7,11 @@ Accept: application/json
 GET {{TuringMachine.Backend.Server_HostAddress}}/api/get-rsa-key/
 Accept: application/json
 ###
+
+GET {{TuringMachine.Backend.Server_HostAddress}}/api/validate/?accessToken=___a_sample_test_access_token___
+Accept: application/json
+###
+
+GET {{TuringMachine.Backend.Server_HostAddress}}/api/progress/?accessToken=___a_sample_test_access_token___
+Accept: application/json
+###

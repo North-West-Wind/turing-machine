@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TuringMachine.Backend.Server", "TuringMachine.Backend.Server.csproj", "{66D086D0-41FC-757E-003F-8DB81099D6DA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{66D086D0-41FC-757E-003F-8DB81099D6DA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{66D086D0-41FC-757E-003F-8DB81099D6DA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{66D086D0-41FC-757E-003F-8DB81099D6DA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{66D086D0-41FC-757E-003F-8DB81099D6DA}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {EB0AC5ED-0996-4FE4-84B3-BC3E81E1BF5F}
+	EndGlobalSection
+EndGlobal
