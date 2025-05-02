@@ -216,6 +216,9 @@ export class LimitedTape implements ITape
     {
         let signals = "";
 
+        if (this._tapeType === TapeTypes.LeftLimited || this._tapeType === TapeTypes.LeftRightLimited)
+            signals += TapeSymbols.Start;
+
         for (let i = this._leftBoundary; i <= this._rightBoundary; i++) {
             if (this._states.has(i))
                 signals += this._states.get(i)!;
@@ -223,6 +226,9 @@ export class LimitedTape implements ITape
             signals += TapeSymbols.Blank;
             
         }
+
+        if (this._tapeType === TapeTypes.RightLimited || this._tapeType === TapeTypes.LeftRightLimited)
+            signals += TapeSymbols.End;
 
         return signals;
     }
