@@ -8,6 +8,6 @@ export default function DesignerSimulationMachineTape(props: { tape?: Tape, head
 	const cells = tapeToSevenCells(props.tape, props.head);
 
 	return <div className="designer-simulation-tape">
-		{cells.map((cell, ii) => <div className={"designer-simulation-cell" + (ii == 3 ? " head" : "") + (cell.boundary ? " boundary" : "")} key={ii}>{cell.char == TapeSymbols.Blank ? "" : cell.char}</div>)}
+		{cells.map((cell, ii) => <div className={"designer-simulation-cell" + (ii == 3 ? " head" : "") + cell.type} key={ii}>{cell.char == TapeSymbols.Blank ? "" : cell.char}</div>)}
 	</div>;
 }

@@ -48,10 +48,19 @@ export default function DesignerSimulationMachine(props: { name: string, color: 
 		};
 	}, []);
 
-	return <div className="designer-simulation-machine" style={{ backgroundColor: props.color }} onClick={props.onClick}>
+	const onDelete = () => {
+		if (!confirm("Are you sure you want to delete this machine?")) return;
+		simulator.deleteMachine(props.id);
+	}
+
+	return <div className="designer-simulation-machine" style={{ backgroundColor: props.color }}>
 		<div className="title-container">
 			<div className="title">{props.name}</div>
-			<div className="edit-button" onClick={() => simulator.dispatchEditEvent({ type: "machine", id: props.id })}>Edit</div>
+			<div className="buttons">
+				<div className="select-button" onClick={props.onClick}>Select</div>
+				<div className="edit-button" onClick={() => simulator.dispatchEditEvent({ type: "machine", id: props.id })}>Edit</div>
+				<div className="delete-button" onClick={onDelete}>Delete</div>
+			</div>
 		</div>
 		{tapes.map((tape, ii) => <DesignerSimulationMachineTape tape={tape} head={heads[ii]} key={ii} />)}
 	</div>;

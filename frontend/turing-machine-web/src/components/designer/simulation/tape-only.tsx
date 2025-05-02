@@ -90,7 +90,7 @@ export default function DesginerSimulationTape(props: { tape: Tape, index: numbe
 			</select>
 		</div>
 		<div className="designer-simulation-tape">
-			{cells.map((cell, ii) => <div className={"designer-simulation-cell" + (ii == 3 ? " head" : "") + (cell.boundary ? " boundary" : "")} key={ii}>{cell.char == TapeSymbols.Blank ? "" : cell.char}</div>)}
+			{cells.map((cell, ii) => <div className={"designer-simulation-cell" + (ii == 3 ? " head" : "") + cell.type} key={ii}>{cell.char == TapeSymbols.Blank ? "" : cell.char}</div>)}
 		</div>
 	</div>;
 }

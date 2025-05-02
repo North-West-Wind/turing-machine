@@ -161,17 +161,32 @@
 	display: flex;
 }
 
-.designer-simulation-machine .edit-button {
-	padding: 1vw;
-	font-size: 1vmax;
+.designer-simulation-machine .buttons {
+	display: flex;
 	margin-left: auto;
-	background-color: rgba(0, 0, 0, .2);
+	font-size: 1vmax;
+}
+
+.designer-simulation-machine .buttons div {
+	padding: 1vw;
 	cursor: pointer;
 	user-select: none;
 	transition: filter .25s ease;
 }
 
-.designer-simulation-machine .edit-button:hover {
+.designer-simulation-machine .select-button {
+	background-color: rgba(255, 255, 255, .2);
+}
+
+.designer-simulation-machine .edit-button {
+	background-color: rgba(0, 0, 0, .2);
+}
+
+.designer-simulation-machine .delete-button {
+	background-color: #d600008e;
+}
+
+.designer-simulation-machine .buttons div:hover {
 	filter: brightness(80%);
 }
 
@@ -287,6 +302,14 @@
 
 .designer-simulation-cell.boundary {
 	background-color: #004263;
+}
+
+.designer-simulation-cell.running {
+	background-color: #009207;
+}
+
+.designer-simulation-cell.pause {
+	background-color: #b10000;
 }
 
 .designer-simulation-tab {

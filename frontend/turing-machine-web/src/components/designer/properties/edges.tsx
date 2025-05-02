@@ -58,14 +58,17 @@ export default function DesignerPropertiesEdge(props: { graph: StateGraph, id: n
 		const heads = props.edges.get(Array.from(props.edges.keys())[0])!.transitions[0].read.length;
 		const transition = new StateTransition(dest, Array(heads).fill(TapeSymbols.Blank), Array(heads).fill(TapeSymbols.Blank), Array(heads).fill(0));
 		props.graph.getVertex(props.id)?.addTransitions(transition);
-		props.edges.get(dest)?.addTransition(transition);
+		// props.edges.get(dest)?.addTransition(transition);
 		simulator.dispatchPropertiesUpdateEvent();
 	};
 
 	const deleteTransition = (dest: number, index: number) => {
 		const edge = props.edges.get(dest);
 		if (!edge) return;
-		edge.deleteTransition(index);
+		const deleted = edge.deleteTransition(index);
+		if (deleted)
+			props.graph.getVertex(props.id)?.deleteTransition(deleted);
+		console.log("same edge?", edge == props.graph.getEdge(props.id, dest));
 		if (edge.transitions.length == 0) {
 			props.graph.deleteEdge(props.id, dest);
 			props.edges.delete(dest);

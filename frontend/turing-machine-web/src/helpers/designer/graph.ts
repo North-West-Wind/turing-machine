@@ -18,11 +18,11 @@ export class StateTransition {
 	readonly write: string[];
 	readonly move: number[];
 
-	constructor(dest: number, read: string | string[], write: string | string[], move: number | number[]) {
+	constructor(dest: number, read: string[], write: string[], move: number[]) {
 		this.destination = dest;
-		this.read = typeof read == "string" ? [read] : read;
-		this.write = typeof write == "string" ? [write] : write;
-		this.move = typeof move == "number" ? [move] : move;
+		this.read = read;
+		this.write = write;
+		this.move = move;
 	}
 
 	toEdgeString() {
@@ -62,6 +62,19 @@ export class StateVertex implements IDrawable, IDrawableOverlay, IHoverable, ISa
 		console.log("setting transition for %d", this.id, this.transitions);
 		this.graph?.updateVertexEdges(this.id);
 		return this;
+	}
+
+	deleteTransition(transition: StateTransition) {
+		const found = this.transitions.findIndex(trans =>
+			trans == transition ||
+			trans.destination == transition.destination &&
+			trans.read == transition.read &&
+			trans.write == transition.write &&
+			trans.move == transition.move
+		);
+		if (found < 0) return;
+		this.transitions.splice(found, 1);
+		
 	}
 
 	getPosition() {
@@ -274,7 +287,7 @@ export class StateEdge implements IDrawable, IHoverable {
 	}
 
 	deleteTransition(index: number) {
-		this.transitions.splice(index, 1);
+		return this.transitions.splice(index, 1)[0];
 	}
 
 	resetTransitions() {

@@ -54,6 +54,7 @@ class RenderingTuringMachineSimulator extends EventTarget {
 	private inputTape = -1;
 	private outputTape = -1;
 	private state?: SystemState;
+	private haltAnnounced = new Set<number>();
 
 	constructor() {
 		super();
@@ -89,7 +90,13 @@ class RenderingTuringMachineSimulator extends EventTarget {
 					vertices.push(null);
 				vertices[sourceId] = new StateVertex(sourceId, pos);
 			}
-			vertices[sourceId].addTransitions(...transition.Conditions.map(cond => new StateTransition(transition.Target.StateID, cond.Read, cond.Write, cond.Move)));
+			const read: string[] = [], write: string[] = [], move: number[] = [];
+			transition.Conditions.forEach(cond => {
+				read.push(cond.Read);
+				write.push(cond.Write);
+				move.push(cond.Move);
+			});
+			vertices[sourceId].addTransitions(new StateTransition(transition.Target.StateID, read, write, move));
 		}
 		for (const vertex of this.machines[id].TransitionNodes) {
 			const id = vertex.StateID;
@@ -233,8 +240,10 @@ class RenderingTuringMachineSimulator extends EventTarget {
 		this.dispatchEvent(new CustomEvent(TuringMachineEvent.STEP, { detail: this.state }));
 		let allHalted = true;
 		this.state.Machines.forEach((machine, ii) => {
-			if (machine.IsHalted) this.dispatchEvent(new CustomEvent(TuringMachineEvent.HALT, { detail: ii }));
-			else allHalted = false;
+			if (machine.IsHalted && !this.haltAnnounced.has(ii)) {
+				this.dispatchEvent(new CustomEvent(TuringMachineEvent.HALT, { detail: ii }));
+				this.haltAnnounced.add(ii);
+			}	else allHalted = false;
 		});
 		if (allHalted || !this.running) this.stop();
 		else if (!this.paused) this.scheduleNextTick();
@@ -286,6 +295,7 @@ class RenderingTuringMachineSimulator extends EventTarget {
 	deleteMachine(id: number) {
 		if (this.machines[id]) this.machines[id] = null;
 		if (this.graphs[id]) this.graphs[id] = null;
+		this.dispatchChangeMachineLengthEvent();
 	}
 
 	addTape(config: TapeConfig) {
@@ -352,7 +362,7 @@ class RenderingTuringMachineSimulator extends EventTarget {
 	}
 
 	dispatchChangeMachineLengthEvent() {
-		this.dispatchEvent(new CustomEvent(TuringMachineEvent.CHANGE_MACHINE_LENGTH, { detail: this.machines.length }));
+		this.dispatchEvent(new CustomEvent(TuringMachineEvent.CHANGE_MACHINE_LENGTH, { detail: this.machines.filter(machine => !!machine).length }));
 	}
 
 	dispatchChangeTapeLengthEvent() {
