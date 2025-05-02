@@ -155,16 +155,26 @@ class RenderingTuringMachineSimulator extends EventTarget {
 	}
 
 	appendInput(val: string) {
-		if (this.inputTape < 0 || !this.tapes[this.inputTape]) return;
-		const content = (this.tapes[this.inputTape]!.TapeContent || "") + val;
-		this.tapes[this.inputTape] = new TapeConfig(this.tapes[this.inputTape]!.TapeType, content.length, content);
-		this.dispatchChangeTapeEvent(this.inputTape);
+		this.appendTapeContent(val, this.inputTape);
+	}
+
+	appendTapeContent(val: string, tapeId: number) {
+		if (tapeId < 0 || !this.tapes[tapeId]) return false;
+		const content = (this.tapes[tapeId]!.TapeContent || "") + val;
+		this.tapes[tapeId] = new TapeConfig(this.tapes[tapeId]!.TapeType, content.length, content);
+		this.dispatchChangeTapeEvent(tapeId);
+		return true;
 	}
 
 	setInput(val: string) {
-		if (this.inputTape < 0 || !this.tapes[this.inputTape]) return;
-		this.tapes[this.inputTape] = new TapeConfig(this.tapes[this.inputTape]!.TapeType, val.length, val);
-		this.dispatchChangeTapeEvent(this.inputTape);
+		this.setTapeContent(val, this.inputTape);
+	}
+
+	setTapeContent(val: string, tapeId: number) {
+		if (tapeId < 0 || !this.tapes[tapeId]) return false;
+		this.tapes[tapeId] = new TapeConfig(this.tapes[tapeId].TapeType, val.length, val);
+		this.dispatchChangeTapeEvent(tapeId);
+		return true;
 	}
 
 	clearTapes() {

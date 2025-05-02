@@ -1,9 +1,9 @@
 import { ChangeEvent, useEffect, useState } from "react";
-import { TapeTypes } from "../../../logic/Tapes/TapeTypes";
 import { SystemState } from "../../../logic/SystemState";
 import simulator, { Tape, TuringMachineEvent } from "../../../helpers/designer/simulator";
 import constraints from "../../../helpers/designer/level";
 import { TapeSymbols } from "../../../logic/Tapes/TapesUtilities/TapeSymbols";
+import { tapeToSevenCells } from "../../../helpers/designer/tape";
 
 export default function DesginerSimulationTape(props: { tape: Tape, index: number }) {
 	const [pos, setPos] = useState(0);
@@ -54,90 +54,7 @@ export default function DesginerSimulationTape(props: { tape: Tape, index: numbe
 	}, []);
 
 	// process tape to make it 7-cell
-	let content = tape.content || "";
-	const head = pos - tape.left;
-	const cells: { char: string, boundary?: boolean }[] = [];
-	switch (tape.type) {
-		case TapeTypes.Infinite:
-			cells.push({ char: content.charAt(head) }); // middle
-			for (let ii = 1; ii <= 3; ii++) {
-				// left
-				let left = head - ii;
-				if (left < 0) cells.unshift({ char: "" });
-				else cells.unshift({ char: content.charAt(left) });
-				// right
-				let right = head + ii;
-				if (right >= content.length) cells.push({ char: "" });
-				else cells.push({ char: content.charAt(right) });
-			}
-			break;
-		case TapeTypes.LeftLimited: {
-			if (content.startsWith(">")) content = content.slice(1);
-			cells.push({ char: content.charAt(head), boundary: head < 0 }); // middle
-			for (let ii = 1; ii <= 3; ii++) {
-				// left
-				let left = head - ii;
-				if (left < 0) cells.unshift({ char: "", boundary: true });
-				else cells.unshift({ char: content.charAt(left) });
-				// right
-				let right = head + ii;
-				if (right >= content.length) cells.push({ char: "" });
-				else cells.push({ char: content.charAt(right), boundary: right < 0 });
-			}
-			break;
-		}
-		case TapeTypes.RightLimited: {
-			let boundR = tape.right;
-			cells.push({ char: content.charAt(head) == "<" ? "" : content.charAt(head), boundary: head >= boundR }); // middle
-			for (let ii = 1; ii <= 3; ii++) {
-				// left
-				let left = head - ii;
-				if (left < 0) cells.unshift({ char: "", boundary: left >= boundR });
-				else cells.unshift({ char: content.charAt(left) });
-				// right
-				let right = head + ii;
-				if (right >= content.length) cells.push({ char: "", boundary: right >= boundR });
-				else if (content.charAt(right) == "<") cells.push({ char: "", boundary: true });
-				else cells.push({ char: content.charAt(right) });
-			}
-			break;
-		}
-		case TapeTypes.LeftRightLimited: {
-			let boundR = false;
-			content = content.slice(1);
-			cells.push({ char: content.charAt(head) }); // middle
-			for (let ii = 1; ii <= 3; ii++) {
-				// left
-				let left = head - ii;
-				if (left < 0) cells.unshift({ char: "", boundary: true });
-				else cells.unshift({ char: content.charAt(left) });
-				// right
-				let right = head + ii;
-				if (right >= content.length) cells.push({ char: "", boundary: boundR });
-				else if (content.charAt(right) == "<") cells.unshift({ char: "", boundary: boundR = true });
-				else cells.push({ char: content.charAt(right) });
-			}
-			break;
-		}
-		case TapeTypes.Circular: {
-			// TODO: i'll figure this out later
-			let boundL = false, boundR = false;
-			cells.push({ char: content.charAt(head + 1) }); // middle
-			for (let ii = 1; ii <= 3; ii++) {
-				// left
-				let left = head - ii;
-				if (left < 0) cells.unshift({ char: "", boundary: boundL });
-				else if (content.charAt(left) == ">") cells.unshift({ char: content.charAt(left), boundary: boundL = true });
-				else cells.unshift({ char: content.charAt(left) });
-				// right
-				let right = head + ii;
-				if (right >= content.length) cells.push({ char: "", boundary: boundR });
-				else if (content.charAt(right) == "<") cells.unshift({ char: content.charAt(right), boundary: boundR = true });
-				else cells.push({ char: content.charAt(right) });
-			}
-			break;
-		}
-	}
+	const cells = tapeToSevenCells(tape, pos);
 
 	const asInput = () => simulator.setInputTape(props.index);
 	const asOutput = () => simulator.setOutputTape(props.index);

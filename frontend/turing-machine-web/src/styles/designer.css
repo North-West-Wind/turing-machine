@@ -62,18 +62,30 @@
 	cursor: col-resize;
 }
 
-.designer-console {
+.designer-console, .designer-console-input {
 	border: none;
 	margin: .5vmax;
 	padding: .5vmax;
-	resize: none;
-	flex: 1;
 	background-color: black;
 	font-size: 1vmax;
 	font-family: 'Courier New', Courier, monospace;
 }
 
-.designer-console:focus-visible {
+.designer-console {
+	flex: 1;
+	overflow-y: scroll;
+}
+
+.designer-console p {
+	margin: 0;
+	text-align: left;
+}
+
+.designer-console-input {
+	margin-top: 0;
+}
+
+.designer-console:focus-visible, .designer-console-input:focus-visible {
 	outline: none;
 }
 

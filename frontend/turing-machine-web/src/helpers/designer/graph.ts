@@ -343,9 +343,10 @@ export class StateEdge implements IDrawable, IHoverable {
 		const pos = start.addVec(offset).addVec(perpendicular.withMagnitude(10));
 		const size = ctx.canvas.height / 30;
 		ctx.font = ` ${size}px Courier New`;
+		console.log(this.transitions.map(trans => trans.toEdgeString()).join(", "));
 		if (perpendicular.y < 0) {
 			// special case: text is rendered above line segment
-			this.transitions.reverse().forEach((trans, ii) => ctx.fillText(trans.toEdgeString(), pos.x, pos.y - ii * size * 1.2));
+			this.transitions.forEach((trans, ii) => ctx.fillText(trans.toEdgeString(), pos.x, pos.y - (this.transitions.length - ii - 1) * size * 1.2));
 		} else this.transitions.forEach((trans, ii) => ctx.fillText(trans.toEdgeString(), pos.x, pos.y + ii * size * 1.2));
 	}
 
