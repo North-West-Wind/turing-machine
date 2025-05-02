@@ -161,7 +161,7 @@ export class CircularTape implements ITape
     {
         let signals = "";
 
-        for (let i = this._leftBoundary; i <= this._rightBoundary; i++) {
+        for (let i = this._leftBoundary - 1; i <= this._rightBoundary + 1; i++) {
             if (this._states.has(i))
                 signals += this._states.get(i)!;
             else
