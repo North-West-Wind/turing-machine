@@ -33,6 +33,14 @@ let lastGrabbed = { time: Date.now(), hovered: undefined as (typeof grabbed) };
 // specific editing properties
 let creatingEdge: StateEdge | undefined;
 
+// canvas images
+let moveImage = new Image();
+let zoomImage = new Image();
+let cursorImage = new Image();
+moveImage.src = "/graph/info/move.svg";
+zoomImage.src = "/graph/info/zoom.svg";
+cursorImage.src = "/graph/info/cursor.svg";
+
 export default function DesignerGraph(props: { width: number, height: number, status?: string }) {
 	const ref = useRef<HTMLCanvasElement>(null);
 	const [cursor, setCursor] = useState("grab");
@@ -103,16 +111,25 @@ export default function DesignerGraph(props: { width: number, height: number, st
 			if (graph) graph.drawOverlay(ctx, mousePosition);
 			else {
 				ctx.fillStyle = "#fff";
-				ctx.font = ` ${ctx.canvas.height / 20}px Courier New`;
+				ctx.font = `${ctx.canvas.height / 20}px Courier New`;
 				ctx.textAlign = "center";
 				ctx.textBaseline = "middle";
 				ctx.fillText("Select/Add a machine to start!", ctx.canvas.width / 2, ctx.canvas.height / 2);
 			}
-			ctx.fillStyle = "#fff";
-			ctx.font = ` ${ctx.canvas.height / 30}px Courier New`;
+
+			const infoSize = ctx.canvas.height / 30;
+			ctx.font = `${infoSize * 0.5}px Courier New`;
 			ctx.textAlign = "left";
-			ctx.textBaseline = "top";
-			ctx.fillText(`Pos: ${position.toString()} Cur: ${cursorPosition.toString()} Zoom: ${Math.round(scale * 100)}%`, 10, 10);
+			ctx.textBaseline = "middle";
+			if (moveImage.complete) ctx.drawImage(moveImage, infoSize * 0.5, ctx.canvas.height - infoSize * 3.5, infoSize, infoSize);
+			if (zoomImage.complete) ctx.drawImage(zoomImage, infoSize * 0.5, ctx.canvas.height - infoSize * 2.5, infoSize, infoSize);
+			if (cursorImage.complete) ctx.drawImage(cursorImage, infoSize * 0.5, ctx.canvas.height - infoSize * 1.5, infoSize, infoSize);
+			ctx.fillStyle = "#f8e45c";
+			ctx.fillText(position.toString(), infoSize * 2, ctx.canvas.height - infoSize * 3);
+			ctx.fillStyle = "#57e389";
+			ctx.fillText(`${Math.round(scale * 100)}%`, infoSize * 2, ctx.canvas.height - infoSize * 2);
+			ctx.fillStyle = "#62a0ea";
+			ctx.fillText(cursorPosition.toString(), infoSize * 2, ctx.canvas.height - infoSize);
 
 			// draw status text
 			if (bottomRightText.text && bottomRightText.time) {
@@ -314,6 +331,7 @@ export default function DesignerGraph(props: { width: number, height: number, st
 				edge: buttonActive == Buttons.EDGE,
 				text: buttonActive == Buttons.TEXTBOX,
 				rect: buttonActive == Buttons.RECTANGLE,
+				reset: false,
 			}}
 			on={key => {
 				switch (key) {
@@ -336,6 +354,11 @@ export default function DesignerGraph(props: { width: number, height: number, st
 					}
 					case "rect": {
 						controlStateSetter(Buttons.RECTANGLE)();
+						break;
+					}
+					case "reset": {
+						position = Vec2.ZERO;
+						scale = 1;
 						break;
 					}
 				}
