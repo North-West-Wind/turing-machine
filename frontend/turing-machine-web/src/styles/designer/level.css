@@ -50,7 +50,7 @@
 
 .designer-level-empty {
 	margin: 5vmax;
-	font-size: 5vmax;
+	font-size: 5vmin;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -58,7 +58,7 @@
 }
 
 .designer-level-empty img {
-	width: 30vmax;
+	width: 45vmin;
 	aspect-ratio: 1/1;
 }
 
