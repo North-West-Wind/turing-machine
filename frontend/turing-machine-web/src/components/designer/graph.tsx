@@ -125,7 +125,7 @@ export default function DesignerGraph(props: { width: number, height: number, st
 			if (zoomImage.complete) ctx.drawImage(zoomImage, infoSize * 0.5, ctx.canvas.height - infoSize * 2.5, infoSize, infoSize);
 			if (cursorImage.complete) ctx.drawImage(cursorImage, infoSize * 0.5, ctx.canvas.height - infoSize * 1.5, infoSize, infoSize);
 			ctx.fillStyle = "#f8e45c";
-			ctx.fillText(position.toString(), infoSize * 2, ctx.canvas.height - infoSize * 3);
+			ctx.fillText(position.inv().toString(), infoSize * 2, ctx.canvas.height - infoSize * 3);
 			ctx.fillStyle = "#57e389";
 			ctx.fillText(`${Math.round(scale * 100)}%`, infoSize * 2, ctx.canvas.height - infoSize * 2);
 			ctx.fillStyle = "#62a0ea";
