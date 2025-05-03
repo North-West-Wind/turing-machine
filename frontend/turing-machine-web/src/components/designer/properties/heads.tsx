@@ -43,6 +43,7 @@ export default function DesignerPropertiesHeads(props: { heads: { tape: number, 
 						return <option value={tape.id}>{tape.id} {simulator.getInputTape() == tape.id ? " (in)" : ""} {simulator.getOutputTape() == tape.id ? " (out)" : ""}</option>
 					})}
 				</select>
+				<div className="designer-properties-delete" onClick={() => props.onDelete(ii)}>Delete</div>
 			</div>)}
 		</>}
 	</div>;

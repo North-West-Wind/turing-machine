@@ -36,6 +36,7 @@ export default function DesignerPropertiesMachineCombo(props: { id: number }) {
 	};
 
 	const deleteHead = (index: number) => {
+		if (!confirm("Are you sure you want to remove this head?")) return;
 		machine.TapesReference.splice(index, 1);
 		machine.HeadTypes.splice(index, 1);
 		machine.InitialPositions.splice(index, 1);

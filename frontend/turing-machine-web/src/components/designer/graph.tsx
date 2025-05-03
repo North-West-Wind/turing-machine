@@ -41,7 +41,7 @@ moveImage.src = "/graph/info/move.svg";
 zoomImage.src = "/graph/info/zoom.svg";
 cursorImage.src = "/graph/info/cursor.svg";
 
-export default function DesignerGraph(props: { width: number, height: number, status?: string }) {
+export default function DesignerGraph(props: { width: number, height: number, status?: string, save: () => void }) {
 	const ref = useRef<HTMLCanvasElement>(null);
 	const [cursor, setCursor] = useState("grab");
 	const [buttonActive, setButtonActive] = useState(Buttons.NONE);
@@ -134,7 +134,7 @@ export default function DesignerGraph(props: { width: number, height: number, st
 			// draw status text
 			if (bottomRightText.text && bottomRightText.time) {
 				ctx.fillStyle = "#fff";
-				ctx.font = `${ctx.canvas.height / 20}px Courier New`;
+				ctx.font = `${ctx.canvas.height / 30}px Courier New`;
 				ctx.textAlign = "right";
 				ctx.textBaseline = "bottom";
 				ctx.globalAlpha = bottomRightText.time > 1000 ? 1 : Math.max(0, bottomRightText.time / 1000);
@@ -334,6 +334,7 @@ export default function DesignerGraph(props: { width: number, height: number, st
 				text: buttonActive == Buttons.TEXTBOX,
 				rect: buttonActive == Buttons.RECTANGLE,
 				reset: false,
+				save: false,
 			}}
 			on={key => {
 				switch (key) {
@@ -361,6 +362,10 @@ export default function DesignerGraph(props: { width: number, height: number, st
 					case "reset": {
 						position = Vec2.ZERO;
 						scale = 1;
+						break;
+					}
+					case "save": {
+						props.save();
 						break;
 					}
 				}

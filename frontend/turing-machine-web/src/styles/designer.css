@@ -540,6 +540,11 @@
 	filter: brightness(80%);
 }
 
+.designer-properties-heads .designer-properties-delete {
+	margin-left: .5vmax;
+	padding: 0 .5vmax;
+}
+
 .designer-properties-section select {
 	background-color: rgba(0, 0, 0, .2);
 	border: none;

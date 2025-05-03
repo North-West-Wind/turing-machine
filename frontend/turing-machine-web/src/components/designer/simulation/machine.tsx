@@ -16,10 +16,8 @@ export default function DesignerSimulationMachine(props: { name: string, color: 
 	const [signal, setSignal] = useState(SignalState.Other);
 	useEffect(() => {
 		const onTmTapeChange = (ev: CustomEventInit<number>) => {
-			if (ev.detail === undefined) return;
-			const tape = simulator.getTapeConfig(ev.detail);
-			tapes[ev.detail].content = tape?.TapeContent;
-			setTapes(Array.from(tapes));
+			if (ev.detail === undefined || !tapes.find(tape => tape.id == ev.detail)) return;
+			setTapes(simulator.getMachineTapes(props.id));
 		};
 
 		const onTmStep = (ev: CustomEventInit<SystemState>) => {

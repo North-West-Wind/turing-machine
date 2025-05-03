@@ -13,24 +13,28 @@ export default function DesignerPage() {
 	const [detailed, setDetailed] = useState(false);
 	const [status, setStatus] = useState<string>();
 
+	const save = () => {
+		setStatus("Saving...");
+		const saveable = simulator.save();
+		setStatus("Saved locally! Saving to cloud...");
+		saveToCloud(saveable).then(res => {
+			if (res.error) {
+				setStatus("Saved locally!");
+				console.error(res.message);
+			} else setStatus("Saved to cloud!");
+		}).catch(err => {
+			console.error(err);
+			setStatus("Saved locally!");
+		});
+	};
+
 	useEffect(() => {
 		simulator.load();
 
 		const onKeyDown = (ev: KeyboardEvent) => {
 			if (ev.ctrlKey && ev.key == "s") {
 				ev.preventDefault();
-				setStatus("Saving...");
-				const saveable = simulator.save();
-				setStatus("Saved locally! Saving to cloud...");
-				saveToCloud(saveable).then(res => {
-					if (res.error) {
-						setStatus("Saved locally!");
-						console.error(res.message);
-					} else setStatus("Saved to cloud!");
-				}).catch(err => {
-					console.error(err);
-					setStatus("Saved locally!");
-				});
+				save();
 			}
 		};
 
@@ -47,7 +51,7 @@ export default function DesignerPage() {
 		<DesignerSimulation onWidthChange={setRightWidth} openLevelDetails={() => setDetailed(true)} />
 		<div className="designer-fill-height designer-fill-flex designer-right" style={{ width: rightWidth * window.innerWidth }}>
 			<DesignerConsole onHeightChange={factor => setTopHeight(1 - factor)} />
-			<DesignerGraph width={rightWidth} height={topHeight} status={status} />
+			<DesignerGraph width={rightWidth} height={topHeight} status={status} save={save} />
 		</div>
 		<DesignerLevel visible={detailed} close={() => setDetailed(false)} />
 	</div>;
