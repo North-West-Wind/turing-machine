@@ -36,6 +36,7 @@
 .designer-resizer {
 	background-color: inherit;
 	filter: brightness(50%);
+	flex-shrink: 0;
 }
 
 .designer-resizer:hover {
@@ -61,18 +62,30 @@
 	cursor: col-resize;
 }
 
-.designer-console {
+.designer-console, .designer-console-input {
 	border: none;
 	margin: .5vmax;
 	padding: .5vmax;
-	resize: none;
-	flex: 1;
 	background-color: black;
 	font-size: 1vmax;
 	font-family: 'Courier New', Courier, monospace;
 }
 
-.designer-console:focus-visible {
+.designer-console {
+	flex: 1;
+	overflow-y: scroll;
+}
+
+.designer-console p {
+	margin: 0;
+	text-align: left;
+}
+
+.designer-console-input {
+	margin-top: 0;
+}
+
+.designer-console:focus-visible, .designer-console-input:focus-visible {
 	outline: none;
 }
 
@@ -81,9 +94,14 @@
 	flex-direction: column;
 }
 
+.designer-simulation-inner {
+	overflow-y: scroll;
+}
+
 .designer-simulation-controller {
 	display: flex;
 	width: 100%;
+	align-items: center;
 }
 
 .designer-simulation-button {
@@ -111,6 +129,33 @@
 	padding: 2%;
 }
 
+.designer-simulation-controller.tick-rate > div {
+	width: 100%;
+	margin: 1vmax;
+	text-align: left;
+}
+
+.designer-simulation-slider {
+	margin-top: 1vmax;
+	width: 100%;
+	flex: 1;
+	display: flex;
+	cursor: pointer;
+	user-select: none;
+}
+
+.designer-simulation-slider .slideable {
+	position: relative;
+	height: 2vmax;
+	background-color: #ffee00;
+}
+
+.designer-simulation-slider .filler {
+	position: relative;
+	height: 2vmax;
+	background-color: #0000007f;
+}
+
 .designer-simulation-machine {
 	display: flex;
 	flex-direction: column;
@@ -120,17 +165,32 @@
 	display: flex;
 }
 
-.designer-simulation-machine .edit-button {
-	padding: 1vw;
-	font-size: 1vmax;
+.designer-simulation-machine .buttons {
+	display: flex;
 	margin-left: auto;
-	background-color: rgba(0, 0, 0, .2);
+	font-size: 1vmax;
+}
+
+.designer-simulation-machine .buttons div {
+	padding: 1vw;
 	cursor: pointer;
 	user-select: none;
 	transition: filter .25s ease;
 }
 
-.designer-simulation-machine .edit-button:hover {
+.designer-simulation-machine .select-button {
+	background-color: rgba(255, 255, 255, .2);
+}
+
+.designer-simulation-machine .edit-button {
+	background-color: rgba(0, 0, 0, .2);
+}
+
+.designer-simulation-machine .delete-button {
+	background-color: #d600008e;
+}
+
+.designer-simulation-machine .buttons div:hover {
 	filter: brightness(80%);
 }
 
@@ -246,6 +306,14 @@
 
 .designer-simulation-cell.boundary {
 	background-color: #004263;
+}
+
+.designer-simulation-cell.running {
+	background-color: #009207;
+}
+
+.designer-simulation-cell.pause {
+	background-color: #b10000;
 }
 
 .designer-simulation-tab {
@@ -404,6 +472,17 @@
 	padding: 1.5vmax;
 }
 
+.designer-properties-delete {
+	padding: .5vmax;
+	background-color: #c90d0d;
+	cursor: pointer;
+	transition: filter .25s ease;
+}
+
+.designer-properties-delete:hover {
+	filter: brightness(80%);
+}
+
 .designer-properties-label {
 	background-color: rgb(19, 159, 159);
 }
@@ -459,6 +538,11 @@
 
 .designer-properties-heads.header .add-button:hover {
 	filter: brightness(80%);
+}
+
+.designer-properties-heads .designer-properties-delete {
+	margin-left: .5vmax;
+	padding: 0 .5vmax;
 }
 
 .designer-properties-section select {

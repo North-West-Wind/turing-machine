@@ -47,14 +47,19 @@ export default function DesignerSimulation(props: { onWidthChange: (factor: numb
 		const onTmChangeMachineLength = (ev: CustomEventInit<number>) => {
 			if (ev.detail !== undefined) setMachineLength(ev.detail);
 		};
+		const onTmLoad = () => {
+			setMachineLength(simulator.getMachineConfigs().length);
+		};
 
 		simulator.addEventListener(TuringMachineEvent.EDIT, onTmEdit);
 		simulator.addEventListener(TuringMachineEvent.CHANGE_MACHINE, onTmChangeMachine);
 		simulator.addEventListener(TuringMachineEvent.CHANGE_MACHINE_LENGTH, onTmChangeMachineLength);
+		simulator.addEventListener(TuringMachineEvent.LOAD, onTmLoad);
 		return () => {
 			simulator.removeEventListener(TuringMachineEvent.EDIT, onTmEdit);
 			simulator.removeEventListener(TuringMachineEvent.CHANGE_MACHINE, onTmChangeMachine);
 			simulator.removeEventListener(TuringMachineEvent.CHANGE_MACHINE_LENGTH, onTmChangeMachineLength);
+			simulator.removeEventListener(TuringMachineEvent.LOAD, onTmLoad);
 		}
 	}, []);
 
@@ -107,7 +112,7 @@ export default function DesignerSimulation(props: { onWidthChange: (factor: numb
 	return <div className="designer-fill-height designer-left" style={{ width: x * (1 - factor) }}>
 		<DesignerResizer vertical onChangeProportion={change => setFactor(initFactor - change)} onSettle={change => setInitFactor(initFactor - change)} />
 		<div className="designer-fill-flex designer-simulation" key={machineLength}>
-			{innerSimulation}
+			<div className="designer-simulation-inner">{innerSimulation}</div>
 			<div className="designer-simulation-tab">
 				<div className={tab == Tabs.SIMULATION ? "" : "unselected"} onClick={tabChanger(Tabs.SIMULATION)}>Simulation</div>
 				<div className={tab == Tabs.TAPES ? "" : "unselected"} onClick={tabChanger(Tabs.TAPES)}>Tapes</div>

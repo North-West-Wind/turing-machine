@@ -3,9 +3,12 @@ import DesignerSimulationButton from "./button";
 import simulator, { TuringMachineEvent } from "../../../helpers/designer/simulator";
 import { TuringMachineConfig } from "../../../logic/TuringMachineConfig";
 import { TransitionNode } from "../../../logic/States/Transitions/TransitionNode";
+import DesignerSimulationSlider from "./slider";
+import EditableBox from "../../common/editable";
 
 export default function DesignerSimulationController(props: { paused: boolean }) {
 	const [paused, setPaused] = useState(props.paused);
+	const [tickLength, setTickLength] = useState(simulator.tickInterval);
 
 	useEffect(() => {
 		const onTmStop = () => {
@@ -31,7 +34,6 @@ export default function DesignerSimulationController(props: { paused: boolean })
 
 	const reset = () => {
 		simulator.reset();
-		simulator.setInput("");
 		setPaused(true);
 	};
  
@@ -41,6 +43,20 @@ export default function DesignerSimulationController(props: { paused: boolean })
 		simulator.dispatchChangeMachineEvent(id);
 	};
 
+	const changeTickLength = (fraction: number) => {
+		const length = 5000 - fraction * 5000;
+		simulator.tickInterval = length;
+		setTickLength(length);
+	};
+
+	const changeTickRate = (val: string) => {
+		const rate = parseFloat(val);
+		if (isNaN(rate) || rate < 0.2) return false;
+		const length = 1000 / rate;
+		simulator.tickInterval = length;
+		setTickLength(length);
+	};
+
 	return <div>
 		<div className="designer-simulation-controller">
 			<DesignerSimulationButton src={`simulation/${paused ? "play" : "pause"}.svg`} onClick={togglePaused} />
@@ -48,6 +64,15 @@ export default function DesignerSimulationController(props: { paused: boolean })
 		</div>
 		<div className="designer-simulation-controller small">
 			<DesignerSimulationButton src={`simulation/add.svg`} onClick={add} />
+		</div>
+		<div className="designer-simulation-controller tick-rate">
+			<div>
+				<div>
+					Tick Rate:
+					<EditableBox value={(1000 / tickLength).toFixed(2)} onCommit={changeTickRate} />
+				</div>
+				<DesignerSimulationSlider fraction={(5000 - tickLength) / 5000} onChange={changeTickLength} />
+			</div>
 		</div>
 	</div>;
 }

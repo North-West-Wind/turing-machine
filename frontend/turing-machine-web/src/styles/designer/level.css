@@ -50,14 +50,15 @@
 
 .designer-level-empty {
 	margin: 5vmax;
-	font-size: 5vmax;
+	font-size: 5vmin;
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	flex: 1;
 }
 
 .designer-level-empty img {
-	width: 30vmax;
+	width: 45vmin;
 	aspect-ratio: 1/1;
 }
 
@@ -140,4 +141,9 @@
 
 .designer-level-play:hover {
 	filter: brightness(80%);
+}
+
+.designer-level-empty .designer-level-play {
+	font-size: 1.5vmax;
+	margin: auto;
 }

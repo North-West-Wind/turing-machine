@@ -1,9 +1,15 @@
+import { Saveable2DVector } from "./machine";
+
 export enum CommonNumbers {
 	PI2 = Math.PI * 2
 }
 
 export class Vec2 {
 	static readonly ZERO = new Vec2(0, 0);
+
+	static fromArray(arr: number[]) {
+		return new Vec2(arr[0], arr[1]);
+	}
 
 	readonly x: number;
 	readonly y: number;
@@ -95,5 +101,9 @@ export class Vec2 {
 
 	toString() {
 		return `(${this.x.toFixed(2)}, ${this.y.toFixed(2)})`;
+	}
+
+	toSaveable(): Saveable2DVector {
+		return [this.x, this.y];
 	}
 }

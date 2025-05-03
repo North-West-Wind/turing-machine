@@ -1,9 +1,9 @@
 import { ChangeEvent, useEffect, useState } from "react";
-import { TapeTypes } from "../../../logic/Tapes/TapeTypes";
 import { SystemState } from "../../../logic/SystemState";
 import simulator, { Tape, TuringMachineEvent } from "../../../helpers/designer/simulator";
 import constraints from "../../../helpers/designer/level";
 import { TapeSymbols } from "../../../logic/Tapes/TapesUtilities/TapeSymbols";
+import { tapeToSevenCells } from "../../../helpers/designer/tape";
 
 export default function DesginerSimulationTape(props: { tape: Tape, index: number }) {
 	const [pos, setPos] = useState(0);
@@ -16,7 +16,7 @@ export default function DesginerSimulationTape(props: { tape: Tape, index: numbe
 			if (!ev.detail) return;
 			const newTape = ev.detail.Tapes.find(tape => tape.ID == props.index);
 			if (newTape)
-				setTape({ content: newTape.Content, type: tape.type, left: newTape.LeftBoundary, right: newTape.RightBoundary, id: tape.id });
+				setTape({ content: newTape.Content, signals: newTape.TapeSignal, type: tape.type, left: newTape.LeftBoundary, right: newTape.RightBoundary, id: tape.id });
 		};
 
 		const onTmReset = () => {
@@ -26,7 +26,7 @@ export default function DesginerSimulationTape(props: { tape: Tape, index: numbe
 		const onTmTapeChange = (ev: CustomEventInit<number>) => {
 			if (ev.detail != props.index) return;
 			const tapeConfig = simulator.getTapeConfig(props.index);
-			setTape({ content: tapeConfig?.TapeContent, type: tapeConfig?.TapeType, left: 0, right: tapeConfig?.TapeContent?.length || 0, id: tape.id });
+			setTape({ content: tapeConfig?.TapeContent, signals: "", type: tapeConfig?.TapeType, left: 0, right: tapeConfig?.TapeContent?.length || 0, id: tape.id });
 		};
 
 		const onTmInputTapeChange = (ev: CustomEventInit<number>) => {
@@ -54,93 +54,11 @@ export default function DesginerSimulationTape(props: { tape: Tape, index: numbe
 	}, []);
 
 	// process tape to make it 7-cell
-	let content = tape.content || "";
-	const head = pos - tape.left;
-	const cells: { char: string, boundary?: boolean }[] = [];
-	switch (tape.type) {
-		case TapeTypes.Infinite:
-			cells.push({ char: content.charAt(head) }); // middle
-			for (let ii = 1; ii <= 3; ii++) {
-				// left
-				let left = head - ii;
-				if (left < 0) cells.unshift({ char: "" });
-				else cells.unshift({ char: content.charAt(left) });
-				// right
-				let right = head + ii;
-				if (right >= content.length) cells.push({ char: "" });
-				else cells.push({ char: content.charAt(right) });
-			}
-			break;
-		case TapeTypes.LeftLimited: {
-			content = content.slice(1);
-			cells.push({ char: content.charAt(head), boundary: head < 0 }); // middle
-			for (let ii = 1; ii <= 3; ii++) {
-				// left
-				let left = head - ii;
-				if (left < 0) cells.unshift({ char: "", boundary: true });
-				else cells.unshift({ char: content.charAt(left) });
-				// right
-				let right = head + ii;
-				if (right >= content.length) cells.push({ char: "" });
-				else cells.push({ char: content.charAt(right), boundary: right < 0 });
-			}
-			break;
-		}
-		case TapeTypes.RightLimited: {
-			let boundR = tape.right;
-			cells.push({ char: content.charAt(head) == "<" ? "" : content.charAt(head), boundary: head >= boundR }); // middle
-			for (let ii = 1; ii <= 3; ii++) {
-				// left
-				let left = head - ii;
-				if (left < 0) cells.unshift({ char: "", boundary: left >= boundR });
-				else cells.unshift({ char: content.charAt(left) });
-				// right
-				let right = head + ii;
-				if (right >= content.length) cells.push({ char: "", boundary: right >= boundR });
-				else if (content.charAt(right) == "<") cells.push({ char: "", boundary: true });
-				else cells.push({ char: content.charAt(right) });
-			}
-			break;
-		}
-		case TapeTypes.LeftRightLimited: {
-			let boundR = false;
-			content = content.slice(1);
-			cells.push({ char: content.charAt(head) }); // middle
-			for (let ii = 1; ii <= 3; ii++) {
-				// left
-				let left = head - ii;
-				if (left < 0) cells.unshift({ char: "", boundary: true });
-				else cells.unshift({ char: content.charAt(left) });
-				// right
-				let right = head + ii;
-				if (right >= content.length) cells.push({ char: "", boundary: boundR });
-				else if (content.charAt(right) == "<") cells.unshift({ char: "", boundary: boundR = true });
-				else cells.push({ char: content.charAt(right) });
-			}
-			break;
-		}
-		case TapeTypes.Circular: {
-			// TODO: i'll figure this out later
-			let boundL = false, boundR = false;
-			cells.push({ char: content.charAt(head + 1) }); // middle
-			for (let ii = 1; ii <= 3; ii++) {
-				// left
-				let left = head - ii;
-				if (left < 0) cells.unshift({ char: "", boundary: boundL });
-				else if (content.charAt(left) == ">") cells.unshift({ char: content.charAt(left), boundary: boundL = true });
-				else cells.unshift({ char: content.charAt(left) });
-				// right
-				let right = head + ii;
-				if (right >= content.length) cells.push({ char: "", boundary: boundR });
-				else if (content.charAt(right) == "<") cells.unshift({ char: content.charAt(right), boundary: boundR = true });
-				else cells.push({ char: content.charAt(right) });
-			}
-			break;
-		}
-	}
+	const cells = tapeToSevenCells(tape, pos);
 
 	const asInput = () => simulator.setInputTape(props.index);
 	const asOutput = () => simulator.setOutputTape(props.index);
+	const deleteTape = () => simulator.deleteTape(props.index);
 
 	const moveLeft = () => setPos(pos - 1);
 	const moveRight = () => setPos(pos + 1);
@@ -154,8 +72,9 @@ export default function DesginerSimulationTape(props: { tape: Tape, index: numbe
 		<div className="designer-simulation-tape-header">
 			<div className="name">Tape {props.index} {props.index == input ? " (in)" : ""} {props.index == output ? " (out)" : ""}</div>
 			<div className="tape-setter">
-				{props.index != input && <div className="in" onClick={asInput}>As Input</div>}
-				{props.index != output && <div className="out" onClick={asOutput}>As Output</div>}
+				{props.index != input && <div className="in" onClick={asInput}>In</div>}
+				{props.index != output && <div className="out" onClick={asOutput}>Out</div>}
+				<div className="designer-properties-delete" onClick={deleteTape}>Del</div>
 			</div>
 		</div>
 		<div className="designer-simulation-tape-move">
@@ -173,7 +92,7 @@ export default function DesginerSimulationTape(props: { tape: Tape, index: numbe
 			</select>
 		</div>
 		<div className="designer-simulation-tape">
-			{cells.map((cell, ii) => <div className={"designer-simulation-cell" + (ii == 3 ? " head" : "") + (cell.boundary ? " boundary" : "")} key={ii}>{cell.char == TapeSymbols.Blank ? "" : cell.char}</div>)}
+			{cells.map((cell, ii) => <div className={"designer-simulation-cell" + (ii == 3 ? " head" : "") + cell.type} key={ii}>{cell.char == TapeSymbols.Blank ? "" : cell.char}</div>)}
 		</div>
 	</div>;
 }

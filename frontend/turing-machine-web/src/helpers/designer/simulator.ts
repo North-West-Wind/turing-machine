@@ -1,10 +1,16 @@
 import { HeadTypes } from "../../logic/Heads/HeadTypes";
+import { TransitionNode } from "../../logic/States/Transitions/TransitionNode";
+import { HeadTransition, TransitionStatement } from "../../logic/States/Transitions/TransitionStatement";
 import { SystemState } from "../../logic/SystemState";
 import { TapeConfig } from "../../logic/Tapes/TapesUtilities/TapeConfig";
+import { TapeSymbols } from "../../logic/Tapes/TapesUtilities/TapeSymbols";
 import { TapeTypes } from "../../logic/Tapes/TapeTypes";
 import { TuringMachineConfig } from "../../logic/TuringMachineConfig";
 import { TuringMachineSimulator } from "../../logic/TuringMachineSimulator";
-import { StateGraph, StateTransition, StateVertex } from "./graph";
+import { getLevel, getMachine, PersistenceKey, save } from "../persistence";
+import { StateGraph, StateRect, StateText, StateTransition, StateVertex } from "./graph";
+import constraints from "./level";
+import { Saveable2DVector, SaveableHead, SaveableMachine, SaveableTape, SaveableTransition, SaveableTransitionStatement, SaveableTuringMachine, SaveableUI } from "./machine";
 import { Vec2 } from "./math";
 
 export type Editable = {
@@ -26,10 +32,13 @@ export enum TuringMachineEvent {
 	CHANGE_INPUT_TAPE = "tm:change-input-tape",
 	CHANGE_OUTPUT_TAPE = "tm:change-output-tape",
 	PROPERTIES_UPDATE = "tm:prop-update",
+	LOAD = "tm:load",
+	WARN = "tm:warn",
 }
 
 export type Tape = {
 	content?: string;
+	signals: string;
 	type?: TapeTypes;
 	id: number;
 	left: number;
@@ -40,13 +49,16 @@ class RenderingTuringMachineSimulator extends EventTarget {
 	private machines: ((TuringMachineConfig & { color: string, label?: string }) | null)[] = [];
 	private tapes: (TapeConfig | null)[] = [];
 	private graphs: (StateGraph | null)[] = [];
-	private tickInterval = 1000; // milliseconds
+	private uiData: (SaveableUI | undefined)[] = [];
+	private edgeData: Record<`${number}_${number}`, Saveable2DVector[]>[] = [];
+	tickInterval = 1000; // milliseconds
 	private paused = false;
 	running = false;
 	
 	private inputTape = -1;
 	private outputTape = -1;
 	private state?: SystemState;
+	private haltAnnounced = new Set<number>();
 
 	constructor() {
 		super();
@@ -63,7 +75,7 @@ class RenderingTuringMachineSimulator extends EventTarget {
 		const graph = new StateGraph();
 		// Transition is always more than vertices
 		// More efficient to iterate through transitions
-		const vertices: StateVertex[] = [];
+		const vertices: (StateVertex| null)[] = [];
 		for (const transition of this.machines[id].Statements) {
 			const sourceId = transition.Source.StateID;
 			if (!vertices[sourceId]) {
@@ -77,9 +89,18 @@ class RenderingTuringMachineSimulator extends EventTarget {
 				let pos: Vec2;
 				if (posId < 0) pos = new Vec2(shell * 100, (-posId + 1) * 100);
 				else pos = new Vec2((posId + 1) * 100, shell * 100);
+				// fill vertices array
+				for (let ii = 0; ii <= sourceId - vertices.length; ii++)
+					vertices.push(null);
 				vertices[sourceId] = new StateVertex(sourceId, pos);
 			}
-			vertices[sourceId].addTransitions(...transition.Conditions.map(cond => new StateTransition(transition.Target.StateID, cond.Read, cond.Write, cond.Move)));
+			const read: string[] = [], write: string[] = [], move: number[] = [];
+			transition.Conditions.forEach(cond => {
+				read.push(cond.Read);
+				write.push(this.escapeSymbol(cond.Write));
+				move.push(cond.Move);
+			});
+			vertices[sourceId].addTransitions(new StateTransition(transition.Target.StateID, read, write, move));
 		}
 		for (const vertex of this.machines[id].TransitionNodes) {
 			const id = vertex.StateID;
@@ -90,14 +111,54 @@ class RenderingTuringMachineSimulator extends EventTarget {
 				let pos: Vec2;
 				if (posId < 0) pos = new Vec2(shell * 100, (-posId + 1) * 100);
 				else pos = new Vec2((posId + 1) * 100, shell * 100);
+				// fill vertices array
+				for (let ii = 0; ii <= id - vertices.length; ii++)
+					vertices.push(null);
 				vertices[id] = new StateVertex(id, pos);
 			}
 		}
-		vertices.forEach(vert => graph.addVertex(vert));
+		vertices.forEach(vert => {
+			if (vert && this.uiData[id]?.nodes[vert.id]) {
+				vert.setLabel(this.uiData[id].nodes[vert.id]?.label);
+				vert.setPosition(Vec2.fromArray(this.uiData[id].nodes[vert.id]!.position));
+			}
+			graph.addVertex(vert);
+		});
+		vertices.forEach(vert => vert && graph.updateVertexEdges(vert.id));
+		// update edges with edge data
+		if (this.edgeData[id])
+			for (const [key, lines] of Object.entries(this.edgeData[id])) {
+				if (!lines.length) continue;
+				const [src, dest] = key.split("_").map(val => parseInt(val));
+				graph.getEdge(src, dest)?.setLines(lines.map(Vec2.fromArray));
+			}
 		// set starting node for graph
-		if (this.machines[id].TransitionNodes.length)
-			graph.setStartingNode(this.machines[id].TransitionNodes[0].StateID);
+		graph.setStartingNode(this.machines[id].StartNode.StateID);
+		// set head number
+		graph.setHeads(this.machines[id].NumberOfHeads);
+		// load ui data
+		if (this.uiData[id]) {
+			for (const box of this.uiData[id].boxes) {
+				if (box === null) graph.rawAddRect(null);
+				else {
+					const start = Vec2.fromArray(box.start);
+					graph.rawAddRect(new StateRect(start, start.add(box.size[0], box.size[1]), box.color));
+				}
+			}
+			for (const text of this.uiData[id].texts) {
+				if (text === null) graph.rawAddText(null);
+				else graph.rawAddText(new StateText(text.value, Vec2.fromArray(text.pos)));
+			}
+		}
 		return this.graphs[id] = graph;
+	}
+
+	private escapeSymbol(symbol: string) {
+		switch (symbol) {
+			case TapeSymbols.Pause: return "\\p";
+			case TapeSymbols.Running: return "\\r";
+			default: return symbol;
+		}
 	}
 
 	getMachineConfig(id: number) {
@@ -113,22 +174,26 @@ class RenderingTuringMachineSimulator extends EventTarget {
 	}
 
 	appendInput(val: string) {
-		if (this.inputTape < 0 || !this.tapes[this.inputTape]) return;
-		const content = (this.tapes[this.inputTape]!.TapeContent || "") + val;
-		this.tapes[this.inputTape] = new TapeConfig(this.tapes[this.inputTape]!.TapeType, content.length, content);
-		this.dispatchChangeTapeEvent(this.inputTape);
+		this.appendTapeContent(val, this.inputTape);
+	}
+
+	appendTapeContent(val: string, tapeId: number) {
+		if (tapeId < 0 || !this.tapes[tapeId]) return false;
+		const content = (this.tapes[tapeId]!.TapeContent || "") + val;
+		this.tapes[tapeId] = new TapeConfig(this.tapes[tapeId]!.TapeType, content.length, content);
+		this.dispatchChangeTapeEvent(tapeId);
+		return true;
 	}
 
 	setInput(val: string) {
-		if (this.inputTape < 0 || !this.tapes[this.inputTape]) return;
-		this.tapes[this.inputTape] = new TapeConfig(this.tapes[this.inputTape]!.TapeType, val.length, val);
-		this.dispatchChangeTapeEvent(this.inputTape);
+		this.setTapeContent(val, this.inputTape);
 	}
 
-	clearTapes() {
-		this.tapes.forEach((tape, ii) => {
-			this.tapes[ii] = tape ? new TapeConfig(tape.TapeType, tape.TapeLength, "") : null;
-		});
+	setTapeContent(val: string, tapeId: number) {
+		if (tapeId < 0 || !this.tapes[tapeId]) return false;
+		this.tapes[tapeId] = new TapeConfig(this.tapes[tapeId].TapeType, val.length, val);
+		this.dispatchChangeTapeEvent(tapeId);
+		return true;
 	}
 
 	getInputTape() {
@@ -159,13 +224,46 @@ class RenderingTuringMachineSimulator extends EventTarget {
 	// Import all configs stored within this class into the real simulator
 	build() {
 		TuringMachineSimulator.Initialise();
-		this.tapes.forEach(tape => tape && TuringMachineSimulator.AddTape(tape));
+		let tapes = 0, tapeTypes = true;
+		this.tapes.forEach(tape => {
+			if (!tape) return;
+			TuringMachineSimulator.AddTape(tape);
+			tapes++;
+			if (!constraints.validTapeType(tape.TapeType)) tapeTypes = false;
+		});
+		let states = 0, transitions = 0, heads = 0;
 		this.machines.forEach((machine, ii) => {
 			if (!machine) return;
 			if (this.graphs[ii]) this.graphs[ii].updateConfig(machine);
-			console.log(machine);
 			TuringMachineSimulator.AddMachine(machine);
+			states += machine.TransitionNodes.length;
+			transitions += machine.Statements.length;
+			heads += machine.NumberOfHeads;
 		});
+		// check constraints
+		let validation: number[];
+		if (constraints.constraints?.states) {
+			validation = constraints.validRange(states, constraints.constraints.states);
+			if (validation[0] != 0)
+				this.dispatchWarningEvent(constraints.rangeConstraintMessage("states", validation[1], validation[2]));
+		}
+		if (constraints.constraints?.transitions) {
+			validation = constraints.validRange(transitions, constraints.constraints.transitions);
+			if (validation[0] != 0)
+				this.dispatchWarningEvent(constraints.rangeConstraintMessage("transitions", validation[1], validation[2]));
+		}
+		if (constraints.constraints?.tapes) {
+			validation = constraints.validRange(this.tapes.filter(tape => tape !== null).length, constraints.constraints.tapes);
+			if (validation[0] != 0)
+				this.dispatchWarningEvent(constraints.rangeConstraintMessage("tapes", validation[1], validation[2]));
+		}
+		if (constraints.constraints?.heads) {
+			validation = constraints.validRange(heads, constraints.constraints.heads);
+			if (validation[0] != 0)
+				this.dispatchWarningEvent(constraints.rangeConstraintMessage("heads", validation[1], validation[2]));
+		}
+		if (!tapeTypes)
+			this.dispatchWarningEvent(`Some tape(s) is/are using disallowed tape type(s). Allowed: ${constraints.constraints?.tapeTypes?.join(", ")}`)
 	}
 
 	start() {
@@ -179,12 +277,13 @@ class RenderingTuringMachineSimulator extends EventTarget {
 	step() {
 		TuringMachineSimulator.Update();
 		this.state = TuringMachineSimulator.GetSystemState();
-		console.log(this.state);
 		this.dispatchEvent(new CustomEvent(TuringMachineEvent.STEP, { detail: this.state }));
 		let allHalted = true;
 		this.state.Machines.forEach((machine, ii) => {
-			if (machine.IsHalted) this.dispatchEvent(new CustomEvent(TuringMachineEvent.HALT, { detail: ii }));
-			else allHalted = false;
+			if (machine.IsHalted && !this.haltAnnounced.has(ii)) {
+				this.dispatchEvent(new CustomEvent(TuringMachineEvent.HALT, { detail: ii }));
+				this.haltAnnounced.add(ii);
+			}	else if (!machine.IsHalted) allHalted = false;
 		});
 		if (allHalted || !this.running) this.stop();
 		else if (!this.paused) this.scheduleNextTick();
@@ -209,7 +308,7 @@ class RenderingTuringMachineSimulator extends EventTarget {
 		this.running = false;
 		this.paused = false;
 		this.state = undefined;
-		this.clearTapes();
+		this.graphs.forEach(graph => graph?.setCurrentState(-1));
 		this.dispatchEvent(new Event(TuringMachineEvent.RESET));
 	}
 
@@ -234,8 +333,16 @@ class RenderingTuringMachineSimulator extends EventTarget {
 	}
 
 	deleteMachine(id: number) {
-		if (this.machines[id]) this.machines[id] = null;
-		if (this.graphs[id]) this.graphs[id] = null;
+		const plus1 = id + 1;
+		if (this.machines.length == plus1) this.machines.pop();
+		else if (this.machines[id]) this.machines[id] = null;
+		if (this.graphs.length == plus1) this.graphs.pop();
+		else if (this.graphs[id]) this.graphs[id] = null;
+		if (this.uiData.length == plus1) this.uiData.pop();
+		else if (this.uiData[id]) this.uiData[id] = undefined;
+		if (this.edgeData.length == plus1) this.uiData.pop();
+		else if (this.edgeData[id]) this.edgeData[id] = {};
+		this.dispatchChangeMachineLengthEvent();
 	}
 
 	addTape(config: TapeConfig) {
@@ -259,8 +366,8 @@ class RenderingTuringMachineSimulator extends EventTarget {
 
 	getTapes(): Tape[] {
 		if (this.state)
-			return this.state.Tapes.map(tape => ({ content: tape.Content, type: this.tapes[tape.ID]?.TapeType, id: tape.ID, left: tape.LeftBoundary, right: tape.RightBoundary })).sort((a, b) => a.id - b.id);
-		return this.tapes.map((tape, id) => ({ content: tape?.TapeContent, type: tape?.TapeType, id, left: 0, right: tape?.TapeContent.length || 0 })).filter(tape => tape.type !== undefined);
+			return this.state.Tapes.map(tape => ({ content: tape.Content, signals: tape.TapeSignal, type: this.tapes[tape.ID]?.TapeType, id: tape.ID, left: tape.LeftBoundary, right: tape.RightBoundary })).sort((a, b) => a.id - b.id);
+		return this.tapes.map((tape, id) => ({ content: tape?.TapeContent, signals: "", type: tape?.TapeType, id, left: 0, right: tape?.TapeContent.length || 0 })).filter(tape => tape.type !== undefined);
 	}
 
 	getMachineTapes(id: number): Tape[] {
@@ -302,7 +409,7 @@ class RenderingTuringMachineSimulator extends EventTarget {
 	}
 
 	dispatchChangeMachineLengthEvent() {
-		this.dispatchEvent(new CustomEvent(TuringMachineEvent.CHANGE_MACHINE_LENGTH, { detail: this.machines.length }));
+		this.dispatchEvent(new CustomEvent(TuringMachineEvent.CHANGE_MACHINE_LENGTH, { detail: this.machines.filter(machine => !!machine).length }));
 	}
 
 	dispatchChangeTapeLengthEvent() {
@@ -316,6 +423,10 @@ class RenderingTuringMachineSimulator extends EventTarget {
 
 	dispatchPropertiesUpdateEvent() {
 		this.dispatchEvent(new Event(TuringMachineEvent.PROPERTIES_UPDATE));
+	}
+
+	dispatchWarningEvent(warning: string) {
+		this.dispatchEvent(new CustomEvent(TuringMachineEvent.WARN, { detail: warning }));
 	}
 
 	// Category: Helper functions
@@ -340,19 +451,141 @@ class RenderingTuringMachineSimulator extends EventTarget {
 		}
 	}
 
-	headTypeToString(type: HeadTypes) {
+	headTypeToString(type: HeadTypes, simplified = false) {
 		switch (type) {
-			case HeadTypes.ReadOnly: return "Read-Only";
-			case HeadTypes.ReadWrite: return "Read-Write";
-			case HeadTypes.WriteOnly: return "Write-Only";
+			case HeadTypes.ReadOnly: return simplified ? "r" : "Read-Only";
+			case HeadTypes.ReadWrite: return simplified ? "rw" : "Read-Write";
+			case HeadTypes.WriteOnly: return simplified ? "w" : "Write-Only";
 		}
 	}
 
 	headTypeFromString(str: string) {
 		switch (str.toLowerCase()) {
+			case "r":
 			case "read-only": return HeadTypes.ReadOnly;
+			case "rw":
 			case "read-write": return HeadTypes.ReadWrite;
+			case "w":
 			case "write-only": return HeadTypes.WriteOnly;
+		}
+	}
+
+	// Category: Persistent storage management
+
+	// Save to local storage tm:machine
+	save() {
+		const machines: (SaveableMachine| null)[] = [];
+		this.machines.forEach((machine, ii) => {
+			if (machine === null) {
+				machines.push(machine);
+				return;
+			}
+			if (this.graphs[ii])
+				this.graphs[ii].updateConfig(machine);
+			const transitions: SaveableTransition[] = machine.Statements.map(statement => ({
+				source: statement.Source.StateID,
+				target: statement.Target.StateID,
+				statements: statement.Conditions.map(cond => ({ read: cond.Read, write: cond.Write, move: cond.Move })) as SaveableTransitionStatement[],
+				lines: this.graphs[ii]?.getEdge(statement.Source.StateID, statement.Target.StateID)?.getLines().map(vec => [vec.x, vec.y]) || this.edgeData[ii][`${statement.Source.StateID}_${statement.Target.StateID}`] || []
+			}));
+			const heads: SaveableHead[] = [];
+			for (let ii = 0; ii < machine.NumberOfHeads; ii++) {
+				heads.push({
+					type: this.headTypeToString(machine.HeadTypes[ii], true),
+					tape: machine.TapesReference[ii],
+					position: machine.InitialPositions[ii]
+				});
+			}
+			machines.push({
+				transitions,
+				heads,
+				start: machine.StartNode.StateID,
+				ui: Object.assign(this.graphs[ii]?.toSaveable() || this.uiData[ii] || { boxes: [], texts: [], nodes: [] }, { color: parseInt(machine.color, 16) })
+			});
+		});
+
+		const saveable: SaveableTuringMachine = {
+			tapes: this.tapes.map((tape, ii) => tape === null ? tape : {
+				type: this.tapeTypeToString(tape.TapeType).toLowerCase(),
+				value: tape.TapeContent || undefined,
+				input: this.inputTape == ii,
+				output: this.outputTape == ii
+			} as SaveableTape),
+			machines
+		};
+
+		const level = getLevel();
+		if (level) {
+			level.machine = saveable;
+			save(PersistenceKey.LEVEL, JSON.stringify(level));
+		} else save(PersistenceKey.MACHINE, JSON.stringify(saveable));
+
+		return saveable;
+	}
+
+	load() {
+		try {
+			// load saved machine. priority: level -> machine
+			let saveable: SaveableTuringMachine | undefined;
+			const level = getLevel();
+			if (level) saveable = level.machine;
+			else saveable = getMachine();
+			if (!saveable) return;
+			
+			this.tapes = saveable.tapes.map((tape, ii) => {
+				if (!tape) return null;
+				const type = this.tapeTypeFromString(tape.type);
+				if (type === undefined) return null;
+				if (tape.input) this.inputTape = ii;
+				if (tape.output) this.outputTape = ii;
+				return new TapeConfig(type, tape.value?.length || 0, tape.value || "");
+			});
+			this.graphs = [];
+			this.uiData = [];
+			this.edgeData = [];
+			this.machines = saveable.machines.map((machine, ii) => {
+				this.uiData.push(machine?.ui);
+				this.edgeData.push({});
+				if (!machine) return null;
+				const types: HeadTypes[] = [];
+				const positions: number[] = [];
+				const refs: number[] = [];
+				for (const head of machine.heads) {
+					const type = this.headTypeFromString(head.type);
+					if (type === undefined) return null;
+					types.push(type);
+					positions.push(head.position);
+					refs.push(head.tape);
+				}
+				let maxNode = 0;
+				const usedNodes = new Set<number>();
+				const transitions = machine.transitions.map(transition => {
+					maxNode = Math.max(maxNode, transition.source, transition.target);
+					usedNodes.add(transition.source);
+					usedNodes.add(transition.target);
+					this.edgeData[ii][`${transition.source}_${transition.target}`] = transition.lines;
+					return new TransitionStatement(
+						new TransitionNode(transition.source),
+						new TransitionNode(transition.target),
+						transition.statements.map(statement => new HeadTransition(statement.read, statement.write, statement.move)));
+				});
+				machine.ui.nodes.forEach((node, ii) => {
+					if (node !== null) usedNodes.add(ii);
+				});
+				return { color: machine.ui.color.toString(16).padStart(6, "0"), ...new TuringMachineConfig(
+					machine.heads.length,
+					types,
+					positions,
+					refs,
+					Array.from(usedNodes).map(node => new TransitionNode(node)),
+					transitions,
+					new TransitionNode(machine.start)
+				)};
+			});
+			this.dispatchEvent(new Event(TuringMachineEvent.LOAD));
+			console.log(`Loaded ${this.machines.length} machines and ${this.tapes.length} tapes`);
+		} catch (err) {
+			console.error(err);
 		}
 	}
 }

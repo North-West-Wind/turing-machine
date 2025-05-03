@@ -23,6 +23,7 @@ let position = Vec2.ZERO;
 let cursorPosition = Vec2.ZERO; // cursor pos relative to translation
 let mousePosition = Vec2.ZERO; // cursor pos relative to window
 let scale = 1;
+let bottomRightText = { text: "", time: 0 };
 
 // movement logic properties
 let hovered: Editable | undefined;
@@ -32,7 +33,15 @@ let lastGrabbed = { time: Date.now(), hovered: undefined as (typeof grabbed) };
 // specific editing properties
 let creatingEdge: StateEdge | undefined;
 
-export default function DesignerGraph(props: { width: number, height: number }) {
+// canvas images
+let moveImage = new Image();
+let zoomImage = new Image();
+let cursorImage = new Image();
+moveImage.src = "/graph/info/move.svg";
+zoomImage.src = "/graph/info/zoom.svg";
+cursorImage.src = "/graph/info/cursor.svg";
+
+export default function DesignerGraph(props: { width: number, height: number, status?: string, save: () => void }) {
 	const ref = useRef<HTMLCanvasElement>(null);
 	const [cursor, setCursor] = useState("grab");
 	const [buttonActive, setButtonActive] = useState(Buttons.NONE);
@@ -63,6 +72,7 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 		return () => {
 			simulator.removeEventListener(TuringMachineEvent.CHANGE_MACHINE, onTmChangeMachine);
 			simulator.removeEventListener(TuringMachineEvent.STEP, onTmStep);
+			bottomRightText = { text: "", time: 0 };
 		};
 	}, []);
 
@@ -75,9 +85,17 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 	}, [props.width, props.height]);
 
 	useEffect(() => {
+		let drawing = true;
+		let lastDraw = Date.now();
+
 		const draw = () => {
+			if (!drawing) return;
 			const ctx = ref.current?.getContext("2d");
 			if (!ctx) return;
+
+			const now = Date.now();
+			const elapsed = now - lastDraw;
+			lastDraw = now;
 	
 			// fill background
 			ctx.fillStyle = "#232323";
@@ -93,17 +111,40 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 			if (graph) graph.drawOverlay(ctx, mousePosition);
 			else {
 				ctx.fillStyle = "#fff";
-				ctx.font = ` ${ctx.canvas.height / 20}px Courier New`;
+				ctx.font = `${ctx.canvas.height / 20}px Courier New`;
 				ctx.textAlign = "center";
 				ctx.textBaseline = "middle";
 				ctx.fillText("Select/Add a machine to start!", ctx.canvas.width / 2, ctx.canvas.height / 2);
 			}
-			ctx.fillStyle = "#fff";
-			ctx.font = ` ${ctx.canvas.height / 30}px Courier New`;
+
+			const infoSize = ctx.canvas.height / 30;
+			ctx.font = `${infoSize * 0.5}px Courier New`;
 			ctx.textAlign = "left";
-			ctx.textBaseline = "top";
-			ctx.fillText(`Pos: ${position.toString()} Cur: ${cursorPosition.toString()} Zoom: ${Math.round(scale * 100)}%`, 10, 10);
-	
+			ctx.textBaseline = "middle";
+			if (moveImage.complete) ctx.drawImage(moveImage, infoSize * 0.5, ctx.canvas.height - infoSize * 3.5, infoSize, infoSize);
+			if (zoomImage.complete) ctx.drawImage(zoomImage, infoSize * 0.5, ctx.canvas.height - infoSize * 2.5, infoSize, infoSize);
+			if (cursorImage.complete) ctx.drawImage(cursorImage, infoSize * 0.5, ctx.canvas.height - infoSize * 1.5, infoSize, infoSize);
+			ctx.fillStyle = "#f8e45c";
+			ctx.fillText(position.inv().toString(), infoSize * 2, ctx.canvas.height - infoSize * 3);
+			ctx.fillStyle = "#57e389";
+			ctx.fillText(`${Math.round(scale * 100)}%`, infoSize * 2, ctx.canvas.height - infoSize * 2);
+			ctx.fillStyle = "#62a0ea";
+			ctx.fillText(cursorPosition.toString(), infoSize * 2, ctx.canvas.height - infoSize);
+
+			// draw status text
+			if (bottomRightText.text && bottomRightText.time) {
+				ctx.fillStyle = "#fff";
+				ctx.font = `${ctx.canvas.height / 30}px Courier New`;
+				ctx.textAlign = "right";
+				ctx.textBaseline = "bottom";
+				ctx.globalAlpha = bottomRightText.time > 1000 ? 1 : Math.max(0, bottomRightText.time / 1000);
+				ctx.fillText(bottomRightText.text, ctx.canvas.width * 0.99, ctx.canvas.height - ctx.canvas.width * 0.01);
+				ctx.globalAlpha = 1;
+				bottomRightText.time -= elapsed;
+				if (bottomRightText.time <= 0)
+					bottomRightText = { text: "", time: 0 };
+			}
+
 			requestAnimationFrame(draw);
 		};
 
@@ -114,7 +155,16 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 
 			draw();
 		}
+
+		return () => {
+			drawing = false;
+		}
 	}, []);
+
+	useEffect(() => {
+		if (!props.status) return;
+		bottomRightText = { text: props.status, time: 3000 };
+	}, [props.status]);
 
 	// used to track grabbing
 	const onMouseDown = (ev: React.MouseEvent) => {
@@ -250,9 +300,16 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 	};
 
 	const onWheel = (ev: React.WheelEvent) => {
+		const canvas = ref.current;
+		if (!canvas) return;
+
 		const oldScale = scale;
 		scale -= ev.deltaY / 4000;
-		position = cursorPosition.subVec(cursorPosition.subVec(position).scale(scale / oldScale));
+		scale = Math.max(0.01, Math.min(50, scale));
+		position = position.subVec(cursorPosition.addVec(position).scale(1 - oldScale / scale));
+
+		mousePosition = new Vec2(ev.clientX - canvas.offsetLeft, ev.clientY - canvas.offsetTop);
+		cursorPosition = mousePosition.scale(1 / scale).subVec(position);
 	};
 
 	const controlStateSetter = (button: Buttons) => (() => {
@@ -276,6 +333,8 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 				edge: buttonActive == Buttons.EDGE,
 				text: buttonActive == Buttons.TEXTBOX,
 				rect: buttonActive == Buttons.RECTANGLE,
+				reset: false,
+				save: false,
 			}}
 			on={key => {
 				switch (key) {
@@ -298,6 +357,15 @@ export default function DesignerGraph(props: { width: number, height: number }) 
 					}
 					case "rect": {
 						controlStateSetter(Buttons.RECTANGLE)();
+						break;
+					}
+					case "reset": {
+						position = Vec2.ZERO;
+						scale = 1;
+						break;
+					}
+					case "save": {
+						props.save();
 						break;
 					}
 				}
