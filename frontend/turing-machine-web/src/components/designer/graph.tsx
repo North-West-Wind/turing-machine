@@ -125,7 +125,7 @@ export default function DesignerGraph(props: { width: number, height: number, st
 				if (bottomRightText.time <= 0)
 					bottomRightText = { text: "", time: 0 };
 			}
-	
+
 			requestAnimationFrame(draw);
 		};
 
@@ -281,9 +281,16 @@ export default function DesignerGraph(props: { width: number, height: number, st
 	};
 
 	const onWheel = (ev: React.WheelEvent) => {
+		const canvas = ref.current;
+		if (!canvas) return;
+
 		const oldScale = scale;
 		scale -= ev.deltaY / 4000;
-		position = cursorPosition.subVec(cursorPosition.subVec(position).scale(scale / oldScale));
+		scale = Math.max(0.01, Math.min(50, scale));
+		position = position.subVec(cursorPosition.addVec(position).scale(1 - oldScale / scale));
+
+		mousePosition = new Vec2(ev.clientX - canvas.offsetLeft, ev.clientY - canvas.offsetTop);
+		cursorPosition = mousePosition.scale(1 / scale).subVec(position);
 	};
 
 	const controlStateSetter = (button: Buttons) => (() => {
