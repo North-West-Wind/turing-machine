@@ -112,7 +112,7 @@ export default function DesignerSimulation(props: { onWidthChange: (factor: numb
 	return <div className="designer-fill-height designer-left" style={{ width: x * (1 - factor) }}>
 		<DesignerResizer vertical onChangeProportion={change => setFactor(initFactor - change)} onSettle={change => setInitFactor(initFactor - change)} />
 		<div className="designer-fill-flex designer-simulation" key={machineLength}>
-			{innerSimulation}
+			<div className="designer-simulation-inner">{innerSimulation}</div>
 			<div className="designer-simulation-tab">
 				<div className={tab == Tabs.SIMULATION ? "" : "unselected"} onClick={tabChanger(Tabs.SIMULATION)}>Simulation</div>
 				<div className={tab == Tabs.TAPES ? "" : "unselected"} onClick={tabChanger(Tabs.TAPES)}>Tapes</div>

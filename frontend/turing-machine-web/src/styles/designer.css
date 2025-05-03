@@ -94,6 +94,10 @@
 	flex-direction: column;
 }
 
+.designer-simulation-inner {
+	overflow-y: scroll;
+}
+
 .designer-simulation-controller {
 	display: flex;
 	width: 100%;

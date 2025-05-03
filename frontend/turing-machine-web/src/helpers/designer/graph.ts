@@ -161,6 +161,11 @@ export class StateVertex implements IDrawable, IDrawableOverlay, IHoverable, ISa
 	}
 
 	isHovered(position: Vec2) {
+		if (this._start) {
+			// rectangle hover
+			const vec = position.subVec(this.position.sub(VERTEX_RADIUS, VERTEX_RADIUS));
+			return this.hovered = vec.x >= 0 && vec.x <= VERTEX_RADIUS * 2 && vec.y >= 0 && vec.y <= VERTEX_RADIUS * 2;
+		}
 		return this.hovered = position.subVec(this.position).magnitudeSqr() <= VERTEX_RADIUS * VERTEX_RADIUS;
 	}
 
@@ -751,6 +756,7 @@ export class StateGraph implements IDrawable, IDrawableOverlay, ISaveable<Omit<S
 	}
 
 	draw(ctx: CanvasRenderingContext2D) {
+		ctx.font = `${ctx.canvas.height / 20}px Courier New`;
 		// draw rectangles
 		this.rects.forEach(r => r?.draw(ctx));
 		// draw texts

@@ -18,6 +18,7 @@ enum LineType {
 	NORMAL = -1,
 	MACHINE = 0xffb433,
 	IO = 0x71ff18,
+	WARNING = 0xfff200,
 	ERROR = 0xff5100
 }
 
@@ -38,21 +39,24 @@ export default function DesignerConsole(props: { onHeightChange: (factor: number
 	const scrollRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
-		const addLine = (str: string) => {
-			setLines(lines => [...lines, { type: LineType.MACHINE, str }]);
+		const addLine = (str: string, type?: LineType) => {
+			setLines(lines => [...lines, { type: type || LineType.MACHINE, str }]);
 		};
 
 		const onTmStart = () => addLine("Simulation started");
 		const onTmStop = () => addLine("Simulation stopped");
 		const onTmHalt = (ev: CustomEventInit<number>) => ev.detail !== undefined && addLine(`Machine ${ev.detail} halted`);
+		const onTmWarn = (ev: CustomEventInit<string>) => ev.detail !== undefined && addLine(ev.detail, LineType.WARNING);
 
 		simulator.addEventListener(TuringMachineEvent.START, onTmStart);
 		simulator.addEventListener(TuringMachineEvent.STOP, onTmStop);
 		simulator.addEventListener(TuringMachineEvent.HALT, onTmHalt);
+		simulator.addEventListener(TuringMachineEvent.WARN, onTmWarn);
 		return () => {
 			simulator.removeEventListener(TuringMachineEvent.START, onTmStart);
 			simulator.removeEventListener(TuringMachineEvent.STOP, onTmStop);
 			simulator.removeEventListener(TuringMachineEvent.HALT, onTmHalt);
+			simulator.removeEventListener(TuringMachineEvent.WARN, onTmWarn);
 		};
 	}, []);
 

@@ -58,6 +58,7 @@ export default function DesginerSimulationTape(props: { tape: Tape, index: numbe
 
 	const asInput = () => simulator.setInputTape(props.index);
 	const asOutput = () => simulator.setOutputTape(props.index);
+	const deleteTape = () => simulator.deleteTape(props.index);
 
 	const moveLeft = () => setPos(pos - 1);
 	const moveRight = () => setPos(pos + 1);
@@ -71,8 +72,9 @@ export default function DesginerSimulationTape(props: { tape: Tape, index: numbe
 		<div className="designer-simulation-tape-header">
 			<div className="name">Tape {props.index} {props.index == input ? " (in)" : ""} {props.index == output ? " (out)" : ""}</div>
 			<div className="tape-setter">
-				{props.index != input && <div className="in" onClick={asInput}>As Input</div>}
-				{props.index != output && <div className="out" onClick={asOutput}>As Output</div>}
+				{props.index != input && <div className="in" onClick={asInput}>In</div>}
+				{props.index != output && <div className="out" onClick={asOutput}>Out</div>}
+				<div className="designer-properties-delete" onClick={deleteTape}>Del</div>
 			</div>
 		</div>
 		<div className="designer-simulation-tape-move">

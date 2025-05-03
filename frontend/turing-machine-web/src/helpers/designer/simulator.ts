@@ -7,8 +7,9 @@ import { TapeSymbols } from "../../logic/Tapes/TapesUtilities/TapeSymbols";
 import { TapeTypes } from "../../logic/Tapes/TapeTypes";
 import { TuringMachineConfig } from "../../logic/TuringMachineConfig";
 import { TuringMachineSimulator } from "../../logic/TuringMachineSimulator";
-import { save } from "../persistence";
+import { getLevel, getMachine, PersistenceKey, save } from "../persistence";
 import { StateGraph, StateRect, StateText, StateTransition, StateVertex } from "./graph";
+import constraints from "./level";
 import { Saveable2DVector, SaveableHead, SaveableMachine, SaveableTape, SaveableTransition, SaveableTransitionStatement, SaveableTuringMachine, SaveableUI } from "./machine";
 import { Vec2 } from "./math";
 
@@ -32,6 +33,7 @@ export enum TuringMachineEvent {
 	CHANGE_OUTPUT_TAPE = "tm:change-output-tape",
 	PROPERTIES_UPDATE = "tm:prop-update",
 	LOAD = "tm:load",
+	WARN = "tm:warn",
 }
 
 export type Tape = {
@@ -222,12 +224,46 @@ class RenderingTuringMachineSimulator extends EventTarget {
 	// Import all configs stored within this class into the real simulator
 	build() {
 		TuringMachineSimulator.Initialise();
-		this.tapes.forEach(tape => tape && TuringMachineSimulator.AddTape(tape));
+		let tapes = 0, tapeTypes = true;
+		this.tapes.forEach(tape => {
+			if (!tape) return;
+			TuringMachineSimulator.AddTape(tape);
+			tapes++;
+			if (!constraints.validTapeType(tape.TapeType)) tapeTypes = false;
+		});
+		let states = 0, transitions = 0, heads = 0;
 		this.machines.forEach((machine, ii) => {
 			if (!machine) return;
 			if (this.graphs[ii]) this.graphs[ii].updateConfig(machine);
 			TuringMachineSimulator.AddMachine(machine);
+			states += machine.TransitionNodes.length;
+			transitions += machine.Statements.length;
+			heads += machine.NumberOfHeads;
 		});
+		// check constraints
+		let validation: number[];
+		if (constraints.constraints?.states) {
+			validation = constraints.validRange(states, constraints.constraints.states);
+			if (validation[0] != 0)
+				this.dispatchWarningEvent(constraints.rangeConstraintMessage("states", validation[1], validation[2]));
+		}
+		if (constraints.constraints?.transitions) {
+			validation = constraints.validRange(transitions, constraints.constraints.transitions);
+			if (validation[0] != 0)
+				this.dispatchWarningEvent(constraints.rangeConstraintMessage("transitions", validation[1], validation[2]));
+		}
+		if (constraints.constraints?.tapes) {
+			validation = constraints.validRange(this.tapes.filter(tape => tape !== null).length, constraints.constraints.tapes);
+			if (validation[0] != 0)
+				this.dispatchWarningEvent(constraints.rangeConstraintMessage("tapes", validation[1], validation[2]));
+		}
+		if (constraints.constraints?.heads) {
+			validation = constraints.validRange(heads, constraints.constraints.heads);
+			if (validation[0] != 0)
+				this.dispatchWarningEvent(constraints.rangeConstraintMessage("heads", validation[1], validation[2]));
+		}
+		if (!tapeTypes)
+			this.dispatchWarningEvent(`Some tape(s) is/are using disallowed tape type(s). Allowed: ${constraints.constraints?.tapeTypes?.join(", ")}`)
 	}
 
 	start() {
@@ -389,6 +425,10 @@ class RenderingTuringMachineSimulator extends EventTarget {
 		this.dispatchEvent(new Event(TuringMachineEvent.PROPERTIES_UPDATE));
 	}
 
+	dispatchWarningEvent(warning: string) {
+		this.dispatchEvent(new CustomEvent(TuringMachineEvent.WARN, { detail: warning }));
+	}
+
 	// Category: Helper functions
 
 	tapeTypeToString(type: TapeTypes) {
@@ -474,14 +514,24 @@ class RenderingTuringMachineSimulator extends EventTarget {
 			machines
 		};
 
-		save("tm:machine", JSON.stringify(saveable));
+		const level = getLevel();
+		if (level) {
+			level.machine = saveable;
+			save(PersistenceKey.LEVEL, JSON.stringify(level));
+		} else save(PersistenceKey.MACHINE, JSON.stringify(saveable));
+
+		return saveable;
 	}
 
 	load() {
 		try {
-			const stored = window.localStorage.getItem("tm:machine");
-			if (!stored) return;
-			const saveable: SaveableTuringMachine = JSON.parse(stored);
+			// load saved machine. priority: level -> machine
+			let saveable: SaveableTuringMachine | undefined;
+			const level = getLevel();
+			if (level) saveable = level.machine;
+			else saveable = getMachine();
+			if (!saveable) return;
+			
 			this.tapes = saveable.tapes.map((tape, ii) => {
 				if (!tape) return null;
 				const type = this.tapeTypeFromString(tape.type);

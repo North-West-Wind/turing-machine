@@ -5,6 +5,7 @@ import DesignerGraph from "../components/designer/graph";
 import { useEffect, useState } from "react";
 import DesignerLevel from "../components/designer/level";
 import simulator from "../helpers/designer/simulator";
+import { saveToCloud } from "../helpers/network";
 
 export default function DesignerPage() {
 	const [rightWidth, setRightWidth] = useState(0.7);
@@ -19,8 +20,17 @@ export default function DesignerPage() {
 			if (ev.ctrlKey && ev.key == "s") {
 				ev.preventDefault();
 				setStatus("Saving...");
-				simulator.save();
-				setStatus("Saved!");
+				const saveable = simulator.save();
+				setStatus("Saved locally! Saving to cloud...");
+				saveToCloud(saveable).then(res => {
+					if (res.error) {
+						setStatus("Saved locally!");
+						console.error(res.message);
+					} else setStatus("Saved to cloud!");
+				}).catch(err => {
+					console.error(err);
+					setStatus("Saved locally!");
+				});
 			}
 		};
 

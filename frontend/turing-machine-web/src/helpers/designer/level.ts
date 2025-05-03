@@ -1,4 +1,5 @@
 import { TapeTypes } from "../../logic/Tapes/TapeTypes";
+import { SaveableTuringMachine } from "./machine";
 import simulator from "./simulator";
 
 export type LevelTest = {
@@ -28,7 +29,7 @@ export type DetailedLevel = {
 	tests: LevelTest[];
 	constraints: LevelContraints;
 	solved: boolean;
-	machine: {}; // TODO: create machine object
+	machine?: SaveableTuringMachine;
 }
 
 export type SimpleLevel = {
@@ -63,6 +64,16 @@ class ConstraintHandler {
 	availableTapeTypes() {
 		if (!this.constraints?.tapeTypes?.length) return [TapeTypes.Infinite, TapeTypes.LeftLimited, TapeTypes.RightLimited, TapeTypes.LeftRightLimited, TapeTypes.Circular];
 		return this.constraints.tapeTypes.map(type => simulator.tapeTypeFromString(type)).filter(type => type !== undefined);
+	}
+
+	validRange(val: number, range: RangeContraints) {
+		if (val < range.min) return [-1, range.min, range.max];
+		if (val > range.max) return [1, range.min, range.max];
+		return [0];
+	}
+
+	rangeConstraintMessage(name: string, min: number, max: number) {
+		return `Amount of ${name} is not within constraints [${min}, ${max}]`;
 	}
 }
 const constraints = new ConstraintHandler();

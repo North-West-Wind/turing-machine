@@ -133,6 +133,8 @@ export default function DesignerGraph(props: { width: number, height: number, st
 
 			// draw status text
 			if (bottomRightText.text && bottomRightText.time) {
+				ctx.fillStyle = "#fff";
+				ctx.font = `${ctx.canvas.height / 20}px Courier New`;
 				ctx.textAlign = "right";
 				ctx.textBaseline = "bottom";
 				ctx.globalAlpha = bottomRightText.time > 1000 ? 1 : Math.max(0, bottomRightText.time / 1000);
