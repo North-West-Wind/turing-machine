@@ -4,13 +4,22 @@
   "description": "This is a test server used to test certain client-server communication without the server.",
   "main": "server.js",
   "scripts": {
+    "test": "tsx --security-revert=CVE-2023-46809 server.ts",
     "start": "node server.js"
   },
   "keywords": [],
   "author": "NorthWestWind",
   "license": "GPL-3.0-or-later",
   "dependencies": {
+    "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
   }
 }
