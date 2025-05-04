@@ -1,0 +1,1 @@
+hashedPassword of test is SHA256 of "pass"
