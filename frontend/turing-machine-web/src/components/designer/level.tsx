@@ -26,20 +26,27 @@ export default function DesignerLevel(props: { visible: boolean, close: () => vo
 		window.addEventListener("keydown", onKeyDown);
 		return () => window.removeEventListener("keydown", onKeyDown);
 	}, []);
-	
-	let parsedLevel: DetailedLevel | undefined;
-	if (props.level) parsedLevel = props.level;
-	else {
-		const storedLevel = window.localStorage.getItem("tm:level");
-		if (storedLevel) {
-			try {
-				parsedLevel = JSON.parse(storedLevel);
-			} catch (err) {
-				console.error(err);
+
+	const getEitherLevel = () => {
+		if (props.level) return props.level;
+		else {
+			const storedLevel = window.localStorage.getItem("tm:level");
+			if (storedLevel) {
+				try {
+					return JSON.parse(storedLevel);
+				} catch (err) {
+					console.error(err);
+				}
 			}
 		}
-	}
-	const [level] = useState(parsedLevel);
+	};
+
+	const [level, setLevel] = useState(getEitherLevel());
+
+	
+	useEffect(() => {
+		setLevel(getEitherLevel());
+	}, [props.level]);
 
 	useEffect(() => {
 		if (props.visible) {
