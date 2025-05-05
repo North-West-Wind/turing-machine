@@ -85,6 +85,19 @@ export default function DesignerGraph(props: { width: number, height: number, st
 	}, [props.width, props.height]);
 
 	useEffect(() => {
+		const onResize = () => {
+			const canvas = ref.current;
+			if (canvas) {
+				canvas.width = props.width * window.innerWidth;
+				canvas.height = props.height * window.innerHeight;
+			}
+		}
+
+		window.addEventListener("resize", onResize);
+		return () => window.removeEventListener("resize", onResize);
+	}, []);
+
+	useEffect(() => {
 		let drawing = true;
 		let lastDraw = Date.now();
 

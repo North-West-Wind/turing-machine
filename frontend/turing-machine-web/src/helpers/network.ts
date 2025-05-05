@@ -1,6 +1,7 @@
 import { DetailedLevel, SimpleLevel } from "./designer/level";
 import { SaveableTuringMachine } from "./designer/machine";
 import { getAuth, getLevel as getPersistentLevel } from "./persistence";
+import JSEncrypt from "jsencrypt";
 
 // testing without server
 // in production, keep the /api part only
@@ -25,12 +26,22 @@ export type CloudSaveResult = {
 	message?: string;
 }
 
-function authFetch(url: string, method: "GET" | "POST" = "GET", data?: any) {
+const encrypt = new JSEncrypt();
+
+async function authFetch(url: string, method: "GET" | "POST" = "GET", data?: any) {
 	const auth = getAuth();
 	if (!auth) throw new Error("Not authorized");
-	return fetch(BASE_URL + url, {
+	const res = await fetch(BASE_URL + "/pubkey");
+	const json = await res.json();
+	if (!json.success) throw new Error("Unsuccessful server response");
+	encrypt.setPublicKey(json.data.key);
+	const headers: HeadersInit = {
+		Authorization: `Bearer ${encrypt.encrypt(auth.accessToken)}`,
+	};
+	if (data) headers["Content-Type"] = "application/json";
+	return await fetch(BASE_URL + url, {
 		method,
-		headers: { Authorization: `Bearer ${auth.accessToken}` },
+		headers,
 		body: data ? JSON.stringify(data) : undefined
 	});
 }
@@ -54,6 +65,27 @@ export async function getLevels() {
 export async function getLevel(levelId: string) {
 	const res = await authFetch("/level/" + levelId);
 	const json = await res.json() as { success: boolean, data: DetailedLevel };
+	if (!json.success) throw new Error("Unsuccessful server response");
+	return json.data;
+}
+
+export async function upload(machine: SaveableTuringMachine) {
+	const res = await authFetch("/upload", "POST", { machine });
+	const json = await res.json() as { success: boolean, data: { id: number } };
+	if (!json.success) throw new Error("Unsuccessful server response");
+	return json.data.id;
+}
+
+export async function download(id: string) {
+	const res = await authFetch("/import/" + id);
+	const json = await res.json() as { success: boolean, data: { machine: SaveableTuringMachine } };
+	if (!json.success) throw new Error("Unsuccessful server response");
+	return json.data.machine;
+}
+
+export async function submitMachine(machine: SaveableTuringMachine, levelId: string) {
+	const res = await authFetch("/level/" + levelId, "POST", { machine });
+	const json = await res.json() as { success: boolean, data: { correct: boolean, rank?: number } };
 	if (!json.success) throw new Error("Unsuccessful server response");
 	return json.data;
 }

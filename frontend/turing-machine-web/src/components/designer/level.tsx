@@ -5,6 +5,7 @@ import { DetailedLevel } from "../../helpers/designer/level";
 import DesignerLevelDetails from "./level/details";
 import DesignerLevelConstraints from "./level/constraints";
 import DesignerLevelExamples from "./level/examples";
+import DesignerLevelActions from "./level/actions";
 
 const ANIM_LENGTH = 500; // animation length of the container. See styles/designer/level.css
 
@@ -26,20 +27,27 @@ export default function DesignerLevel(props: { visible: boolean, close: () => vo
 		window.addEventListener("keydown", onKeyDown);
 		return () => window.removeEventListener("keydown", onKeyDown);
 	}, []);
-	
-	let parsedLevel: DetailedLevel | undefined;
-	if (props.level) parsedLevel = props.level;
-	else {
-		const storedLevel = window.localStorage.getItem("tm:level");
-		if (storedLevel) {
-			try {
-				parsedLevel = JSON.parse(storedLevel);
-			} catch (err) {
-				console.error(err);
+
+	const getEitherLevel = () => {
+		if (props.level) return props.level;
+		else {
+			const storedLevel = window.localStorage.getItem("tm:level");
+			if (storedLevel) {
+				try {
+					return JSON.parse(storedLevel);
+				} catch (err) {
+					console.error(err);
+				}
 			}
 		}
-	}
-	const [level] = useState(parsedLevel);
+	};
+
+	const [level, setLevel] = useState(getEitherLevel());
+
+	
+	useEffect(() => {
+		setLevel(getEitherLevel());
+	}, [props.level]);
 
 	useEffect(() => {
 		if (props.visible) {
@@ -67,6 +75,7 @@ export default function DesignerLevel(props: { visible: boolean, close: () => vo
 	if (!level) return <div className={"designer-level " + (noAnim ? "" : (visible ? "show" : "dismiss")) + (none ? " display-none" : "")}>
 		<div className="designer-level-close" onClick={() => props.close()}><img src="/ui/cross.svg" /></div>
 		<DesignerLevelEmpty />
+		<DesignerLevelActions />
 	</div>;
 
 	return <div className={"designer-level " + (noAnim ? "" : (visible ? "show" : "dismiss")) + (none ? " display-none" : "")}>
