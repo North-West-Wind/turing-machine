@@ -1,4 +1,5 @@
 import {useNavigate} from "react-router-dom";
+import {Auth} from "../../helpers/network.ts";
 
 interface Props{
 	isRegistering: boolean;
@@ -24,22 +25,33 @@ export default function LoginArrangement({isRegistering, user, password, license
 		})
 		.then(()=> {
 			// GET the pubkey
-			console.log("Success")
-
-			fetch('http://localhost:8000/login') // When using server, the end point will be differrent
+			fetch('http://localhost:8000/pubkey') // When using server, the end point will be differrent
 			.then(res => {
 				return res.json()
 			})
-			.then((data)=> {
-				let key : string = data[0].id
-				if(key == "vincent")
+			.then((response: { success: boolean; data: { accessToken: string } })=> {
+
+				if(response.success){
+					console.log("Success")
+
+					const auth: Auth = {
+						username: user, 
+						accessToken: response.data.accessToken
+					};
+
+					window.localStorage.setItem('tm:auth', JSON.stringify(auth));
 					navigate("/mode")
+				}
+				else{
+					alert("Login failed, please retry");
+				return;
+				}
+
 				
 			})
 		})		
 
 	}
-
 	function verify_License(user:string, password:string, licenseKey:string) {
 		let regLicense = {id: user, password: password, licenseKey: licenseKey}
 
