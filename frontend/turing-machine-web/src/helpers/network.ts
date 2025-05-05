@@ -82,3 +82,10 @@ export async function download(id: string) {
 	if (!json.success) throw new Error("Unsuccessful server response");
 	return json.data.machine;
 }
+
+export async function submitMachine(machine: SaveableTuringMachine, levelId: string) {
+	const res = await authFetch("/level/" + levelId, "POST", { machine });
+	const json = await res.json() as { success: boolean, data: { correct: boolean, rank?: number } };
+	if (!json.success) throw new Error("Unsuccessful server response");
+	return json.data;
+}

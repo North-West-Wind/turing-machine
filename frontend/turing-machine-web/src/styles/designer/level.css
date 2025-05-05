@@ -73,7 +73,7 @@
 	width: 100%;
 }
 
-.designer-level-actions .designer-level-button {
+.designer-level-button {
 	margin: .5vmax;
 	padding: .5vmax 1vmax;
 	width: fit-content;
@@ -84,19 +84,19 @@
 	flex: 1;
 }
 
-.designer-level-actions .designer-level-button:hover {
+.designer-level-button:hover {
 	filter: brightness(80%);
 }
 
-.designer-level-actions .designer-level-button.play {
+.designer-level-button.play {
 	background-color: #d4a325;
 }
 
-.designer-level-actions .designer-level-button.upload {
+.designer-level-button.upload {
 	background-color: #23bd75;
 }
 
-.designer-level-actions .designer-level-button.import {
+.designer-level-button.import {
 	background-color: #1f93c9;
 }
 
@@ -121,6 +121,14 @@
 
 .designer-level-details p {
 	margin-right: 1vmax;
+}
+
+.designer-level-details-buttons {
+	display: flex;
+}
+
+.designer-level-details-buttons .designer-level-button {
+	flex: initial;
 }
 
 .designer-level-constraints {
@@ -167,21 +175,6 @@
 }
 
 .designer-level-close:hover {
-	filter: brightness(80%);
-}
-
-.designer-level-play {
-	margin: .5vmax;
-	padding: .5vmax 1vmax;
-	background-color: #e7b22b;
-	width: fit-content;
-	border-radius: .5vmax;
-	transition: filter .25s ease;
-	user-select: none;
-	cursor: pointer;
-}
-
-.designer-level-play:hover {
 	filter: brightness(80%);
 }
 
