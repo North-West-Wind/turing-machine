@@ -5,6 +5,7 @@ import { DetailedLevel } from "../../helpers/designer/level";
 import DesignerLevelDetails from "./level/details";
 import DesignerLevelConstraints from "./level/constraints";
 import DesignerLevelExamples from "./level/examples";
+import DesignerLevelActions from "./level/actions";
 
 const ANIM_LENGTH = 500; // animation length of the container. See styles/designer/level.css
 
@@ -74,6 +75,7 @@ export default function DesignerLevel(props: { visible: boolean, close: () => vo
 	if (!level) return <div className={"designer-level " + (noAnim ? "" : (visible ? "show" : "dismiss")) + (none ? " display-none" : "")}>
 		<div className="designer-level-close" onClick={() => props.close()}><img src="/ui/cross.svg" /></div>
 		<DesignerLevelEmpty />
+		<DesignerLevelActions />
 	</div>;
 
 	return <div className={"designer-level " + (noAnim ? "" : (visible ? "show" : "dismiss")) + (none ? " display-none" : "")}>

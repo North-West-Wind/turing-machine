@@ -35,9 +35,13 @@ async function authFetch(url: string, method: "GET" | "POST" = "GET", data?: any
 	const json = await res.json();
 	if (!json.success) throw new Error("Unsuccessful server response");
 	encrypt.setPublicKey(json.data.key);
+	const headers: HeadersInit = {
+		Authorization: `Bearer ${encrypt.encrypt(auth.accessToken)}`,
+	};
+	if (data) headers["Content-Type"] = "application/json";
 	return await fetch(BASE_URL + url, {
 		method,
-		headers: { Authorization: `Bearer ${encrypt.encrypt(auth.accessToken)}` },
+		headers,
 		body: data ? JSON.stringify(data) : undefined
 	});
 }
@@ -63,4 +67,18 @@ export async function getLevel(levelId: string) {
 	const json = await res.json() as { success: boolean, data: DetailedLevel };
 	if (!json.success) throw new Error("Unsuccessful server response");
 	return json.data;
+}
+
+export async function upload(machine: SaveableTuringMachine) {
+	const res = await authFetch("/upload", "POST", { machine });
+	const json = await res.json() as { success: boolean, data: { id: number } };
+	if (!json.success) throw new Error("Unsuccessful server response");
+	return json.data.id;
+}
+
+export async function download(id: string) {
+	const res = await authFetch("/import/" + id);
+	const json = await res.json() as { success: boolean, data: { machine: SaveableTuringMachine } };
+	if (!json.success) throw new Error("Unsuccessful server response");
+	return json.data.machine;
 }

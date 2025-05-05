@@ -19,3 +19,38 @@
 .display-none {
 	display: none;
 }
+
+/* The loading div should block the entire screen */
+.loading {
+	position: fixed;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 10;
+	backdrop-filter: blur(1vmax);
+}
+
+.loading > div {
+	width: 100%;
+	height: 100%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.loading img {
+	animation: spinning infinite 1s linear;
+	max-width: 20vw;
+	max-height: 30vh;
+}
+
+@keyframes spinning {
+	0% {
+		transform: rotate(0);
+	}
+
+	100% {
+		transform: rotate(360deg);
+	}
+}
