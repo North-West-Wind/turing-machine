@@ -205,7 +205,7 @@ app.post("/api/level/:id", (req, res) => {
 	writeFileSync(`assets/users/${user.username}/levels/${req.params.id}.json`, JSON.stringify(level));
 });
 
-app.post("/save", (req, res) => {
+app.post("/api/save", (req, res) => {
 	const user = validateToken(req);
 	if (!user) return sendResponse(res, false, "INVALID_TOKEN", 403);
 	// verify all fields exist
@@ -215,7 +215,7 @@ app.post("/save", (req, res) => {
 	sendResponse(res, true, { timestamp: Date.now() });
 });
 
-app.post("/upload", (req, res) => {
+app.post("/api/upload", (req, res) => {
 	const user = validateToken(req);
 	if (!user) return sendResponse(res, false, "INVALID_TOKEN", 403);
 	// verify all fields exist
@@ -227,7 +227,7 @@ app.post("/upload", (req, res) => {
 	sendResponse(res, true, { id });
 });
 
-app.get("/import/:id", (req, res) => {
+app.get("/api/import/:id", (req, res) => {
 	const user = validateToken(req);
 	if (!user) return sendResponse(res, false, "INVALID_TOKEN", 403);
 	// verify machine id is valid
