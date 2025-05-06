@@ -2,6 +2,7 @@
 using TuringMachine.Backend.Server.Database.Entity.Level;
 using TuringMachine.Backend.Server.Database.Entity.Machine;
 using TuringMachine.Backend.Server.Database.Entity.Progress;
+using TuringMachine.Backend.Server.Database.Entity.UiLabels;
 using TuringMachine.Backend.Server.Database.Entity.UiLabels.MachineLabels;
 using TuringMachine.Backend.Server.Database.Entity.UserManagement;
 
@@ -29,10 +30,11 @@ namespace TuringMachine.Backend.Server.Database
         #endregion
 
         #region UI
-        public DbSet<MachineBoxLabel> MachineBoxLabels { get; set; }
-        public DbSet<MachineLabel>    MachineLabels    { get; set; }
-        public DbSet<NodeLabel>       NodeLabels       { get; set; }
-        public DbSet<TextLabel>       TextLabels       { get; set; }
+        public DbSet<MachineBoxLabel>    MachineBoxLabels   { get; set; }
+        public DbSet<MachineLabel>       MachineLabels      { get; set; }
+        public DbSet<NodeLabel>          NodeLabels         { get; set; }
+        public DbSet<TextLabel>          TextLabels         { get; set; }
+        public DbSet<TransitionLinePath> TransitionLinePath { get; set; }
         #endregion
 
         #region User
@@ -83,6 +85,8 @@ namespace TuringMachine.Backend.Server.Database
                         .ToTable("NodeLabels" , "UI");
             modelBuilder.Entity<TextLabel>()
                         .ToTable("TextLabels" , "UI");
+            modelBuilder.Entity<TransitionLinePath>()
+                        .ToTable("TransitionLinePath" , "UI");
 
             // User Schema
             modelBuilder.Entity<User>()
@@ -129,6 +133,8 @@ namespace TuringMachine.Backend.Server.Database
                         .HasKey(label => new { label.MachineLabelID , label.LabelIndex });
             modelBuilder.Entity<TextLabel>()
                         .HasKey(label => new { label.MachineLabelID , label.LabelIndex });
+            modelBuilder.Entity<TransitionLinePath>()
+                        .HasKey(linePath => linePath.TransitionID);
 
             // User Schema
             modelBuilder.Entity<User>()
@@ -181,6 +187,11 @@ namespace TuringMachine.Backend.Server.Database
                         .HasMany(transition => transition.Statements)
                         .WithOne(statement => statement.Transition)
                         .HasForeignKey(statement => statement.TransitionID);
+            modelBuilder.Entity<Transition>()
+                        .HasOne(transition => transition.TransisionLinePath)
+                        .WithOne(lineSegments => lineSegments.Transision)
+                        .HasForeignKey<TransitionLinePath>(linePath => linePath.TransitionID)
+                        .HasPrincipalKey<Transition>(transition => transition.TransitionID);
             #endregion
 
             #region Machine Label Diagram

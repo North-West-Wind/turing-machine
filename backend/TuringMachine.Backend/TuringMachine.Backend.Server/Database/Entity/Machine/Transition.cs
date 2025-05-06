@@ -1,4 +1,6 @@
-﻿namespace TuringMachine.Backend.Server.Database.Entity.Machine
+﻿using TuringMachine.Backend.Server.Database.Entity.UiLabels;
+
+namespace TuringMachine.Backend.Server.Database.Entity.Machine
 {
     internal class Transition
     {
@@ -11,7 +13,8 @@
         #region Relation
         public Machine Machine { get; set; }
 
-        public ICollection<TransitionStatement> Statements { get; set; }
+        public ICollection<TransitionStatement> Statements         { get; set; }
+        public TransitionLinePath               TransisionLinePath { get; set; }
         #endregion
     }
 }

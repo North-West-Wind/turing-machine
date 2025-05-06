@@ -3,8 +3,8 @@
     internal class TextLabel
     {
         public Guid   MachineLabelID { get; set; }
-        public int    PosX           { get; set; }
-        public int    PosY           { get; set; }
+        public float  PosX           { get; set; }
+        public float  PosY           { get; set; }
         public string Value          { get; set; }
         public byte   LabelIndex     { get; set; }
 

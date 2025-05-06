@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Numerics;
+using Microsoft.EntityFrameworkCore;
 using TuringMachine.Backend.Server.Database;
 using TuringMachine.Backend.Server.Models.Misc;
 using TuringMachine.Backend.Server.ServerResponses;
@@ -52,8 +53,8 @@ namespace TuringMachine.Backend.Server.DbInteraction
 
                 responseMachineBoxLabels[index] = new ResponseMachineBoxLabel
                 {
-                    Start = new Point { X = dbMachineBoxLabel.StartX , Y = dbMachineBoxLabel.StartY } ,
-                    Size  = new Point { X = dbMachineBoxLabel.Width , Y  = dbMachineBoxLabel.Height } ,
+                    Start = new Vector2 { X = dbMachineBoxLabel.StartX , Y = dbMachineBoxLabel.StartY } ,
+                    Size  = new Vector2 { X = dbMachineBoxLabel.Width , Y  = dbMachineBoxLabel.Height } ,
                     Color = dbMachineBoxLabel.Color ,
                 };
             }
@@ -71,7 +72,7 @@ namespace TuringMachine.Backend.Server.DbInteraction
 
                 responseMachineTextLabels[index] = new ResponseMachineTextLabel
                 {
-                    Position = new Point { X = dbMachineTextLabel.PosX , Y = dbMachineTextLabel.PosY } ,
+                    Position = new Vector2 { X = dbMachineTextLabel.PosX , Y = dbMachineTextLabel.PosY } ,
                     Value    = dbMachineTextLabel.Value ,
                 };
             }
@@ -90,8 +91,9 @@ namespace TuringMachine.Backend.Server.DbInteraction
 
                 responseMachineNodeLabels[index] = new ResponseMachineNodeLabel
                 {
-                    Position = new Point { X = dbMachineNodeLabel.PosX , Y = dbMachineNodeLabel.PosY } ,
+                    Position = new Vector2 { X = dbMachineNodeLabel.PosX , Y = dbMachineNodeLabel.PosY } ,
                     Label    = dbMachineNodeLabel.Label ,
+                    IsFinal  = dbMachineNodeLabel.IsFinal ,
                 };
             }
 
@@ -99,6 +101,7 @@ namespace TuringMachine.Backend.Server.DbInteraction
                 ResponseStatus.SUCCESS , new ResponseMachineLabel
                 {
                     Title = dbMachineLabel.Title ,
+                    Color = dbMachineLabel.Color ,
                     Boxes = responseMachineBoxLabels ,
                     Texts = responseMachineTextLabels ,
                     Nodes = responseMachineNodeLabels ,

@@ -8,5 +8,10 @@ namespace TuringMachine.Backend.Server.Models.Machines.Tapes
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public char[]?  Values { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public bool IsInput { get; set; } = false;
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public bool IsOutput { get; set; } = false;
     }
 }

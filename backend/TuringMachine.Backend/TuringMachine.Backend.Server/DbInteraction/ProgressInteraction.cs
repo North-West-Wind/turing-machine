@@ -42,7 +42,7 @@ namespace TuringMachine.Backend.Server.DbInteraction
                 return new ServerResponse<ResponseLevelProgress>(ResponseStatus.SUCCESS , responseLevelProcess);
 
             // obtain last user saved the turing machine design
-            (ResponseStatus status , ResponseTuringMachineDesign? design) = (await MachineInteraction.GetTuringMachineAsync(dbLevelProgress.DesignID.ToString()! , db)).ToTuple();
+            (ResponseStatus status , ResponseTuringMachineDesign? design) = MachineInteraction.GetTuringMachine(dbLevelProgress.DesignID.ToString()! , db).ToTuple();
             responseLevelProcess.MachineDesign = design;
             return status switch
             {

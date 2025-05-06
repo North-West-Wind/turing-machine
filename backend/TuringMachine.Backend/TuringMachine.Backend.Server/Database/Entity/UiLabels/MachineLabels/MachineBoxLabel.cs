@@ -3,10 +3,10 @@
     internal class MachineBoxLabel
     {
         public Guid  MachineLabelID { get; set; }
-        public int   StartX         { get; set; }
-        public int   StartY         { get; set; }
-        public short Width          { get; set; }
-        public short Height         { get; set; }
+        public float StartX         { get; set; }
+        public float StartY         { get; set; }
+        public float Width          { get; set; }
+        public float Height         { get; set; }
         public int   Color          { get; set; }
         public byte  LabelIndex     { get; set; }
 

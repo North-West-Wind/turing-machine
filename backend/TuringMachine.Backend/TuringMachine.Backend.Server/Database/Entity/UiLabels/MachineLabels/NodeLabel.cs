@@ -4,10 +4,10 @@
     {
         public Guid   MachineLabelID { get; set; }
         public string Label          { get; set; }
-        public int    PosX           { get; set; }
-        public int    PosY           { get; set; }
+        public float  PosX           { get; set; }
+        public float  PosY           { get; set; }
         public byte   LabelIndex     { get; set; }
-
+        public bool   IsFinal        { get; set; }
 
         #region Relationship
         public MachineLabel MachineLabel { get; set; }

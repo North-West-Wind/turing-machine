@@ -172,7 +172,7 @@ namespace TuringMachine.Backend.Server
                         {
                             return (await AccessTokenInteraction.ValidateAccessTokenAsync(accessToken , db)).Status switch
                             {
-                                ResponseStatus.SUCCESS         => await MachineInteraction.GetTuringMachineAsync(designID , db) ,
+                                ResponseStatus.SUCCESS         => MachineInteraction.GetTuringMachine(designID , db) ,
                                 ResponseStatus.TOKEN_EXPIRED   => new ServerResponse<TuringMachineDesign>(ResponseStatus.TOKEN_EXPIRED) ,
                                 ResponseStatus.USER_NOT_FOUND  => new ServerResponse<TuringMachineDesign>(ResponseStatus.INVALID_TOKEN) ,
                                 ResponseStatus.DUPLICATED_USER => new ServerResponse<TuringMachineDesign>(ResponseStatus.DUPLICATED_USER) ,

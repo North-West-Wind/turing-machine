@@ -52,7 +52,7 @@ namespace TuringMachine.Backend.Server.DbInteraction
             // get last submitted design if user had submitted last time
             (status , ResponseMachineDesign? design) = (ResponseStatus.MACHINE_NOT_FOUND , null);
             if (progress.Solution is not null)
-                (status , design) = (await MachineInteraction.GetTuringMachineAsync(progress.Solution.DesignID.ToString() , db)).ToTuple();
+                (status , design) = MachineInteraction.GetTuringMachine(progress.Solution.DesignID.ToString() , db).ToTuple();
             if (status is not ResponseStatus.SUCCESS and ResponseStatus.MACHINE_NOT_FOUND)  // if status is neither SUCCESS nor MACHINE_NOT_FOUND, return error status to indicate a backend problem.
                 return new ServerResponse<LevelResponseBody>(status);
 

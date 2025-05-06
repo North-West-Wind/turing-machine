@@ -1,6 +1,9 @@
 ﻿using System.Diagnostics;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 using Microsoft.EntityFrameworkCore;
 using TuringMachine.Backend.Server.Database;
+using TuringMachine.Backend.Server.Database.Entity.UiLabels;
 using TuringMachine.Backend.Server.Models.Machines.Heads;
 using TuringMachine.Backend.Server.Models.Misc;
 using TuringMachine.Backend.Server.ServerResponses;
@@ -33,7 +36,7 @@ namespace TuringMachine.Backend.Server.DbInteraction
         ///     Returns a turing machine design when "SUCCESS". <br/><br/>
         ///     Status is either "SUCCESS", "MACHINE_NOT_FOUND", "DUPLICATED_MACHINE", "DUPLICATED_MACHINE_LABEL" or "BACKEND_ERROR".
         /// </returns>
-        public static async Task<ServerResponse<ResponseTuringMachineDesign>> GetTuringMachineAsync(string designID , DataContext db)
+        public static ServerResponse<ResponseTuringMachineDesign> GetTuringMachine(string designID , DataContext db)
         {
 // @formatter:off
             using IEnumerator<DbTuringMachineDesign> designs = db.MachineDesigns.Where(design => design.DesignID.ToString() == designID)
@@ -49,7 +52,7 @@ namespace TuringMachine.Backend.Server.DbInteraction
 
             ResponseTuringMachineTape[] responseTapes = new ResponseTuringMachineTape[dbDesign.Tapes.Count];
             foreach (DbTuringMachineTape dbTape in dbDesign.Tapes)
-                responseTapes[dbTape.TapeIndex] = new ResponseTuringMachineTape { Type = dbTape.TapeType , Values = dbTape.TapeValues?.ToCharArray() };
+                responseTapes[dbTape.TapeIndex] = new ResponseTuringMachineTape { Type = dbTape.TapeType , Values = dbTape.TapeValues?.ToCharArray() , IsInput = dbTape.IsInput , IsOutput = dbTape.IsOutput};
 
             List<ResponseTuringMachine> responseTuringMachines = new List<ResponseTuringMachine>(dbDesign.Machines.Count);
             foreach (DbTuringMachine dbMachine in dbDesign.Machines)
@@ -66,12 +69,17 @@ namespace TuringMachine.Backend.Server.DbInteraction
                             Move  = dbTransitionStatement.Move ,
                         };
 
+                    (ResponseStatus status , ICollection<Vector2>? pathSteps) = TransitionLinePathInteraction.GetTransitionLinePath(dbMachineTransition.TransitionID.ToString() , db).ToTuple();
+                    if (status != ResponseStatus.SUCCESS)
+                        return new ServerResponse<ResponseTuringMachineDesign>(status);
+
                     responseTransitions.Add(
                         new ResponseTransition
                         {
-                            Source     = dbMachineTransition.Source ,
-                            Target     = dbMachineTransition.Target ,
-                            Statements = responseTransitionStatements ,
+                            Source              = dbMachineTransition.Source ,
+                            Target              = dbMachineTransition.Target ,
+                            Statements          = responseTransitionStatements ,
+                            TransitionLineSteps = pathSteps! ,
                         }
                     );
                 }
