@@ -1,0 +1,25 @@
+{
+	"id": "div-3",
+	"title": "Is It Divisible By 3?",
+	"description": "You'll receive an integer indicated by the amount of 1's. For example, 11111 means 5. Your goal is to determine whether the integer is divisible by 3. If so, output 1, otherwise 0.",
+	"parent": "rev-str",
+	"children": ["div-3"],
+	"tests": [
+		{
+			"input": "1",
+			"output": "0"
+		},
+		{
+			"input": "111",
+			"output": "1"
+		},
+		{
+			"input": "11111",
+			"output": "0"
+		}
+	],
+	"constraints": {
+		"states": { "min": 0, "max": 3 }
+	},
+	"solved": false
+}

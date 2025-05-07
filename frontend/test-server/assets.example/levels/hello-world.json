@@ -1,0 +1,14 @@
+{
+	"id": "hello-world",
+	"title": "Hello World!",
+	"description": "You will receive an input \"hello\". All you have to do is output \"world\".",
+	"children": ["rev-str"],
+	"tests": [
+		{
+			"input": "hello",
+			"output": "world"
+		}
+	],
+	"constraints": {},
+	"solved": false
+}

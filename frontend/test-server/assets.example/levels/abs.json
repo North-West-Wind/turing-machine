@@ -1,0 +1,23 @@
+{
+	"id": "abs",
+	"title": "Absolutely!",
+	"description": "For any given integer input, output the absolute value of it. For simplicity, digits are limited to 1 and 2.",
+	"parent": "rev-str",
+	"children": ["div-3"],
+	"tests": [
+		{
+			"input": "1",
+			"output": "1"
+		},
+		{
+			"input": "-1",
+			"output": "1"
+		},
+		{
+			"input": "-211",
+			"output": "211"
+		}
+	],
+	"constraints": {},
+	"solved": false
+}
