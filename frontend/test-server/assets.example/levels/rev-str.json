@@ -1,0 +1,23 @@
+{
+	"id": "rev-str",
+	"title": "String Reversal",
+	"description": "Reverse a given string consisting of an alphabet set of \"a\" and \"b\".",
+	"parent": "hello-world",
+	"children": ["what", "abs", "rev-double"],
+	"tests": [
+		{
+			"input": "aabb",
+			"output": "bbaa"
+		},
+		{
+			"input": "ababab",
+			"output": "bababa"
+		},
+		{
+			"input": "abba",
+			"output": "abba"
+		}
+	],
+	"constraints": {},
+	"solved": false
+}

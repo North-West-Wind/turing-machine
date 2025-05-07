@@ -1,0 +1,18 @@
+{
+	"id": "rev-double",
+	"title": "Reverse 1 Get 1 Free!",
+	"description": "Reverse a given string consisting of an alphabet set of \"a\" and \"b\". However, for each character reversed, double it.",
+	"parent": "rev-str",
+	"tests": [
+		{
+			"input": "ab",
+			"output": "bbaa"
+		},
+		{
+			"input": "abba",
+			"output": "aabbbbaa"
+		}
+	],
+	"constraints": {},
+	"solved": false
+}
