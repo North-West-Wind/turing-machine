@@ -359,9 +359,16 @@ class RenderingTuringMachineSimulator extends EventTarget {
 	}
 	
 	deleteTape(id: number) {
-		this.tapes[id] = null;
+		if (this.machines.some(machine => machine && machine.TapesReference.includes(id))) {
+			this.dispatchWarningEvent(`Cannot delete! Tape ${id} is still being used.`);
+			return;
+		}
+
+		if (id + 1 == this.tapes.length) this.tapes.pop();
+		else this.tapes[id] = null;
 		if (this.inputTape == id) this.setInputTape(-1);
 		if (this.outputTape == id) this.setOutputTape(-1);
+		this.dispatchChangeTapeLengthEvent();
 	}
 
 	getTapes(): Tape[] {

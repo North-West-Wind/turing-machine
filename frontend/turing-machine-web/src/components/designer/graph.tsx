@@ -353,7 +353,7 @@ export default function DesignerGraph(props: { width: number, height: number, st
 				switch (key) {
 					case "add": {
 						if (!ref.current || !graph) break;
-						graph.createVertex(position.add(ref.current.width * 0.5 / scale, ref.current.height * 0.5 / scale));
+						graph.createVertex(position.inv().add(ref.current.width * 0.5 / scale, ref.current.height * 0.5 / scale));
 						break;
 					}
 					case "edge": {

@@ -544,7 +544,7 @@ export class StateRect implements IDrawable, IHoverable, ISaveable<SaveableUIBox
 		return {
 			start: this.start.toSaveable(),
 			size: this.size.toSaveable(),
-			color: parseInt(this.color.slice(1), 16)
+			color: parseInt(this.color, 16)
 		};
 	}
 }
@@ -737,6 +737,12 @@ export class StateGraph implements IDrawable, IDrawableOverlay, ISaveable<Omit<S
 		else this.rects.push(rect);
 	}
 
+	deleteRect(id: number) {
+		if (!this.rects[id]) return;
+		if (this.rects.length == id + 1) this.rects.pop();
+		else if (this.rects[id]) this.rects[id] = null;
+	}
+
 	getRect(id: number) {
 		return this.rects[id];
 	}
@@ -751,12 +757,17 @@ export class StateGraph implements IDrawable, IDrawableOverlay, ISaveable<Omit<S
 		else this.texts.push(text);
 	}
 
+	deleteText(id: number) {
+		if (!this.texts[id]) return;
+		if (this.texts.length == id + 1) this.texts.pop();
+		else if (this.texts[id]) this.texts[id] = null;
+	}
+
 	getText(id: number) {
 		return this.texts[id];
 	}
 
 	draw(ctx: CanvasRenderingContext2D) {
-		ctx.font = `${ctx.canvas.height / 20}px Courier New`;
 		// draw rectangles
 		this.rects.forEach(r => r?.draw(ctx));
 		// draw texts
@@ -770,6 +781,7 @@ export class StateGraph implements IDrawable, IDrawableOverlay, ISaveable<Omit<S
 		this.tmpEdge?.edge.draw(ctx);
 		topEdge?.draw(ctx);
 		// draw vertices
+		ctx.font = ` ${ctx.canvas.height / 30}px Courier New`;
 		this.vertices.forEach(v => v?.draw(ctx));
 	}
 
