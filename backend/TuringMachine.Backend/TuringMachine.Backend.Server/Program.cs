@@ -171,7 +171,14 @@ namespace TuringMachine.Backend.Server
             app.MapPost(
                     "/api/upload" , async (string accessToken , TuringMachineDesign design , DataContext db) =>
                         {
-                            return new ServerResponse<TuringMachineDesign>(ResponseStatus.SUCCESS , design);
+                            return (await AccessTokenInteraction.ValidateAccessTokenAsync(accessToken , db)).Status switch
+                            {
+                                ResponseStatus.SUCCESS         => await MachineInteraction.InsertTuringMachineDesignAsync(design , db) ,
+                                ResponseStatus.TOKEN_EXPIRED   => new ServerResponse<string>(ResponseStatus.TOKEN_EXPIRED) ,
+                                ResponseStatus.USER_NOT_FOUND  => new ServerResponse<string>(ResponseStatus.INVALID_TOKEN) ,
+                                ResponseStatus.DUPLICATED_USER => new ServerResponse<string>(ResponseStatus.DUPLICATED_USER) ,
+                                _                              => throw new UnreachableException("/api/upload") ,
+                            };
                         }
                 )
                 .WithName("PostDesign")
