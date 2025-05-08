@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using TuringMachine.Backend.Server.Database;
+using TuringMachine.Backend.Server.DbInteraction.Machine;
 using TuringMachine.Backend.Server.Models.Misc;
 using TuringMachine.Backend.Server.ServerResponses;
 using TuringMachine.Backend.Server.ServerResponses.ResponseBody;
@@ -52,7 +53,10 @@ namespace TuringMachine.Backend.Server.DbInteraction.Progress
             };
         }
 
-        /// <remarks> Response status contains "SUCCESS", "NO_SUCH_ITEM", "DUPLICATED_ITEM", "DUPLICATED_MACHINE" and "BACKEND_ERROR". </remarks>
+        /// <returns>
+        ///     Returns level progress when "SUCCESS". <br/><br/>
+        ///     Status is either "SUCCESS", "NO_SUCH_ITEM", "DUPLICATED_ITEM", "DUPLICATED_MACHINE" or "BACKEND_ERROR".
+        /// </returns>
         public static async Task<ServerResponse<ResponseLevelProgress>> GetLatestProgressAsync(string uuid , DataContext db)
         {
             IQueryable<DbLevelProgress> progresses = db.LevelProgresses.Where(progress => progress.UUID.ToString() == uuid);

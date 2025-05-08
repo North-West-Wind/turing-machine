@@ -12,12 +12,12 @@ namespace TuringMachine.Backend.Server.Models.Levels
         public ICollection<byte> Parents  { get; set; }
         public ICollection<byte> Children { get; set; }
 
-        public ICollection<TestCase>   TestCases   { get; set; }
-        public Constraint Constraints { get; set; }
+        public ICollection<TestCase>? TestCases   { get; set; }
+        public Constraint             Constraints { get; set; }
 
-        public bool                 IsSolved { get; set; }
+        public bool IsSolved { get; set; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public TuringMachineDesign? Design   { get; set; }
+        public TuringMachineDesign? Design { get; set; }
     }
 }

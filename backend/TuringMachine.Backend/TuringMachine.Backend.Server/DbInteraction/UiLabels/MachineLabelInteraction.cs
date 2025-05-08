@@ -107,6 +107,10 @@ namespace TuringMachine.Backend.Server.DbInteraction.UiLabels
             );
         }
 
+        /// <returns>
+        ///     When successfully inserted a set of machine labels, return status "SUCCESS". <br/><br/>
+        ///     Status will always be "SUCCESS". But still include status comparison in case implementation changes (with error arise).
+        /// </returns>
         public static async Task<ServerResponse> InsertMachineLabelAsync(ResponseMachineLabel machineLabel , string machineID , DataContext db)
         {
             DbMachineLabel dbMachineLabel = new DbMachineLabel
@@ -159,13 +163,6 @@ namespace TuringMachine.Backend.Server.DbInteraction.UiLabels
 
             await db.SaveChangesAsync();
             return new ServerResponse(ResponseStatus.SUCCESS);
-        }
-
-        public static async Task<ServerResponse> InsertTransitionLinePath(IList<Vector2> steps , string transitionID , DataContext db)
-        {
-
-
-            throw new NotImplementedException();
         }
     }
 }

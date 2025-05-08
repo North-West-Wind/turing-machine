@@ -10,6 +10,6 @@ namespace TuringMachine.Backend.Server.Models.Machines.Transitions
 
         public IList<TransitionStatement> Statements { get; set; }
 
-        public IList<Vector2> TransitionLineSteps { get; set; }
+        public IList<Vector2>? TransitionLineSteps { get; set; }
     }
 }

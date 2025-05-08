@@ -1,9 +1,7 @@
-﻿using System.Diagnostics;
-using System.Numerics;
-using System.Runtime.CompilerServices;
+﻿using System.Numerics;
 using Microsoft.EntityFrameworkCore;
 using TuringMachine.Backend.Server.Database;
-using TuringMachine.Backend.Server.Database.Entity.UiLabels;
+using TuringMachine.Backend.Server.DbInteraction.UiLabels;
 using TuringMachine.Backend.Server.Models.Machines.Heads;
 using TuringMachine.Backend.Server.Models.Misc;
 using TuringMachine.Backend.Server.ServerResponses;
@@ -16,6 +14,7 @@ using DbTuringMachine = TuringMachine.Backend.Server.Database.Entity.Machine.Mac
 using DbTransition = TuringMachine.Backend.Server.Database.Entity.Machine.Transition;
 using DbTransitionStatement = TuringMachine.Backend.Server.Database.Entity.Machine.TransitionStatement;
 using DbTuringMachineHead = TuringMachine.Backend.Server.Database.Entity.Machine.Head;
+using DbTransitionLinePathInteraction = TuringMachine.Backend.Server.DbInteraction.UiLabels.TransitionLinePathInteraction;
 
 using ResponseTuringMachineDesign = TuringMachine.Backend.Server.Models.Machines.TuringMachineDesign;
 using ResponseTuringMachineTape = TuringMachine.Backend.Server.Models.Machines.Tapes.Tape;
@@ -23,12 +22,11 @@ using ResponseTuringMachine = TuringMachine.Backend.Server.Models.Machines.Turin
 using ResponseTransition = TuringMachine.Backend.Server.Models.Machines.Transitions.Transition;
 using ResponseTransitionStatement = TuringMachine.Backend.Server.Models.Machines.Transitions.TransitionStatement;
 using ResponseTuringMachineHead = TuringMachine.Backend.Server.Models.Machines.Heads.Head;
-using TuringMachine.Backend.Server.DbInteraction.UiLabels;
 // @formatter:on
 #endregion
 
 
-namespace TuringMachine.Backend.Server.DbInteraction
+namespace TuringMachine.Backend.Server.DbInteraction.Machine
 {
     internal static class MachineInteraction
     {
@@ -45,68 +43,30 @@ namespace TuringMachine.Backend.Server.DbInteraction
                                                                                 .Include(design => design.Machines).ThenInclude(machine => machine.Heads)
                                                                                 .GetEnumerator();
 
-            if (!designs.MoveNext()) { return new ServerResponse<ResponseTuringMachineDesign>(ResponseStatus.MACHINE_NOT_FOUND ); }
+            if (!designs.MoveNext()) return new ServerResponse<ResponseTuringMachineDesign>(ResponseStatus.MACHINE_NOT_FOUND );             
             DbTuringMachineDesign dbDesign = designs.Current;
-            if ( designs.MoveNext()) { return new ServerResponse<ResponseTuringMachineDesign>(ResponseStatus.DUPLICATED_MACHINE); }
+            if ( designs.MoveNext()) return new ServerResponse<ResponseTuringMachineDesign>(ResponseStatus.DUPLICATED_MACHINE); 
 // @formatter:on
 
             ResponseTuringMachineTape[] responseTapes = new ResponseTuringMachineTape[dbDesign.Tapes.Count];
             foreach (DbTuringMachineTape dbTape in dbDesign.Tapes)
-                responseTapes[dbTape.TapeIndex] = new ResponseTuringMachineTape { Type = dbTape.TapeType , Values = dbTape.TapeValues , IsInput = dbTape.IsInput , IsOutput = dbTape.IsOutput};
+                responseTapes[dbTape.TapeIndex] = new ResponseTuringMachineTape { Type = dbTape.TapeType , Values = dbTape.TapeValues , IsInput = dbTape.IsInput , IsOutput = dbTape.IsOutput };
 
             List<ResponseTuringMachine> responseTuringMachines = new List<ResponseTuringMachine>(dbDesign.Machines.Count);
             foreach (DbTuringMachine dbMachine in dbDesign.Machines)
             {
-                List<ResponseTransition> responseTransitions = new List<ResponseTransition>(dbMachine.Transitions.Count);
-                foreach (DbTransition dbMachineTransition in dbMachine.Transitions)
-                {
-                    ResponseTransitionStatement[] responseTransitionStatements = new ResponseTransitionStatement[dbMachineTransition.Statements.Count];
-                    foreach (DbTransitionStatement dbTransitionStatement in dbMachineTransition.Statements)
-                        responseTransitionStatements[dbTransitionStatement.StatementIndex] = new ResponseTransitionStatement
-                        {
-                            Read  = dbTransitionStatement.Read ,
-                            Write = dbTransitionStatement.Write ,
-                            Move  = dbTransitionStatement.Move ,
-                        };
+                ResponseStatus status;
 
-                    (ResponseStatus status , IList<Vector2>? pathSteps) = TransitionLinePathInteraction.GetTransitionLinePath(dbMachineTransition.TransitionID.ToString() , db).ToTuple();
-                    if (status != ResponseStatus.SUCCESS)
-                        return new ServerResponse<ResponseTuringMachineDesign>(status);
+                (status, IList<ResponseTuringMachineHead>? responseMachineHeads) = GetMachineHead(dbMachine.MachineID.ToString() , db).ToTuple();
+                if (status != ResponseStatus.SUCCESS)
+                    return new ServerResponse<ResponseTuringMachineDesign>(status);
 
-                    responseTransitions.Add(
-                        new ResponseTransition
-                        {
-                            Source              = dbMachineTransition.Source ,
-                            Target              = dbMachineTransition.Target ,
-                            Statements          = responseTransitionStatements ,
-                            TransitionLineSteps = pathSteps! ,
-                        }
-                    );
-                }
+                (status , ICollection<ResponseTransition>? transitions) = GetTuringMachineTransitions(dbMachine.MachineID.ToString() , db).ToTuple().ToTuple();
+                if (status != ResponseStatus.SUCCESS)
+                    return new ServerResponse<ResponseTuringMachineDesign>(status);
 
-                ResponseTuringMachineHead[] responseMachineHeads = new ResponseTuringMachineHead[dbMachine.Heads.Count];
-                foreach (DbTuringMachineHead dbMachineHead in dbMachine.Heads)
-                {
-                    HeadType headType;
-// @formatter:off
-                    switch (dbMachineHead.IsReadable, dbMachineHead.IsWritable)
-                    {
-                        case (true , false): headType = HeadType.Read     ; break;
-                        case (false, true ): headType = HeadType.Write    ; break;
-                        case (true , true ): headType = HeadType.ReadWrite; break;
-
-                        default: return new ServerResponse<ResponseTuringMachineDesign>(ResponseStatus.BACKEND_ERROR);
-                    }
-// @formatter:on
-                    responseMachineHeads[dbMachineHead.HeadIndex] = new ResponseTuringMachineHead
-                    {
-                        Type     = headType ,
-                        Position = dbMachineHead.Position ,
-                        Tape     = dbMachineHead.TapeReferenceIndex ,
-                    };
-                }
-
-                ResponseTuringMachine responseTuringMachine = new ResponseTuringMachine { Transitions = responseTransitions , Heads = responseMachineHeads , StartNode = dbMachine.StartNode };
+                
+                ResponseTuringMachine responseTuringMachine = new ResponseTuringMachine { Transitions = transitions! , Heads = responseMachineHeads! , StartNode = dbMachine.StartNode };
                 switch (MachineLabelInteraction.GetMachineLabel(dbMachine.MachineID.ToString() , db).ToTuple())
                 {
                     case (ResponseStatus.SUCCESS , { } label):
@@ -126,6 +86,10 @@ namespace TuringMachine.Backend.Server.DbInteraction
             return new ServerResponse<ResponseTuringMachineDesign>(ResponseStatus.SUCCESS , new ResponseTuringMachineDesign { Tapes = responseTapes , Machines = responseTuringMachines });
         }
 
+        /// <returns>
+        ///     When successfully inserted a turing machine design, return status "SUCCESS". <br/><br/>
+        ///     Status is either "SUCCESS" or "BACKEND_ERROR".
+        /// </returns>
         public static async Task<ServerResponse<string>> InsertTuringMachineDesignAsync(ResponseTuringMachineDesign design , DataContext db)
         {
             DbTuringMachineDesign dbDesign = new DbTuringMachineDesign
@@ -153,21 +117,104 @@ namespace TuringMachine.Backend.Server.DbInteraction
         #region Helper Functions
         #region Get Turing Machine Design
         // TODO: Extract some of the code in GetTuringMachine() function as a helper functions to enhance readability.
-        public static async Task<ServerResponse<ICollection<ResponseTuringMachineTape>>> GetTapes(string designID , DataContext db)
+
+
+        /// <returns>
+        ///     Returns a list of transition (for a particular machine) when "SUCCESS". <br/><br/>
+        ///     Status is either "SUCCESS", "MACHINE_NOT_FOUND", "DUPLICATED_MACHINE", "NO_SUCH_ITEM", "DUPLICATED_ITEM" or "BACKEND_ERROR".
+        /// </returns>
+        private static ServerResponse<ICollection<ResponseTransition>> GetTuringMachineTransitions(string machineID , DataContext db)
         {
-            IEnumerator<DbTuringMachineTape> dbTapes = db.Tapes.Where(tape => tape.DesignID.ToString() == designID).GetEnumerator();
-            List<ResponseTuringMachineTape> responseTapes = new List<ResponseTuringMachineTape>();
-            while (dbTapes.MoveNext())
+// @formatter:off
+            using IEnumerator<DbTuringMachine> machines = db.Machines.Where(machine => machine.MachineID == Guid.Parse(machineID))
+                                                                     .Include(machine => machine.Transitions).ThenInclude(transition => transition.Statements)
+                                                                     .GetEnumerator();
+// @formatter:on
+
+            if (!machines.MoveNext()) return new ServerResponse<ICollection<ResponseTransition>>(ResponseStatus.MACHINE_NOT_FOUND);
+            ICollection<DbTransition> dbTransitions = machines.Current.Transitions;
+            if (machines.MoveNext()) return new ServerResponse<ICollection<ResponseTransition>>(ResponseStatus.DUPLICATED_MACHINE);
+
+            List<ResponseTransition> responseTransitions = new List<ResponseTransition>(dbTransitions.Count);
+            foreach (DbTransition dbTransition in dbTransitions)
             {
-                DbTuringMachineTape dbTape = dbTapes.Current;
+                ResponseTransitionStatement[] responseTransitionStatements = new ResponseTransitionStatement[dbTransition.Statements.Count];
+                foreach (DbTransitionStatement dbTransitionStatement in dbTransition.Statements)
+                    responseTransitionStatements[dbTransitionStatement.StatementIndex] = new ResponseTransitionStatement
+                    {
+                        Read = dbTransitionStatement.Read ,
+                        Write = dbTransitionStatement.Write ,
+                        Move = dbTransitionStatement.Move ,
+                    };
+
+                (ResponseStatus status, IList<Vector2>? paths) = DbTransitionLinePathInteraction.GetTransitionLinePath(dbTransition.TransitionID.ToString() , db).ToTuple();
+                if (status != ResponseStatus.SUCCESS)
+                    return new ServerResponse<ICollection<ResponseTransition>>(status);
+
+                responseTransitions.Add(
+                    new ResponseTransition
+                    {
+                        Source = dbTransition.Source ,
+                        Target = dbTransition.Target ,
+                        Statements = responseTransitionStatements ,
+                        TransitionLineSteps = paths ,
+                    }
+                );
+            }
+            return new ServerResponse<ICollection<ResponseTransition>>(ResponseStatus.SUCCESS , responseTransitions);
+        }
+
+        /// <returns>
+        ///     Returns a list of machine head (for a particular machine) when "SUCCESS". <br/><br/>
+        ///     Status is either "SUCCESS" or "BACKEND_ERROR".
+        /// </returns>
+        private static ServerResponse<IList<ResponseTuringMachineHead>> GetMachineHead(string machineID , DataContext db)
+        {
+            IQueryable<DbTuringMachineHead> dbMachineHeads = db.Heads.Where(head => head.MachineID.ToString() == machineID);
+
+            ResponseTuringMachineHead[] responseMachineHeads = new ResponseTuringMachineHead[dbMachineHeads.Count()];
+            foreach (DbTuringMachineHead dbMachineHead in db.Heads.Where(head => head.MachineID.ToString() == machineID))
+            {
+// @formatter:off
+                HeadType headType;
+                switch (dbMachineHead.IsReadable, dbMachineHead.IsWritable)
+                {
+                    case (true  , false): headType = HeadType.Read     ; break;
+                    case (false , true ): headType = HeadType.Write    ; break;
+                    case (true  , true ): headType = HeadType.ReadWrite; break;
+
+                    default: return new ServerResponse<IList<ResponseTuringMachineHead>>(ResponseStatus.BACKEND_ERROR);
+                }
+// @formatter:on
+
+                responseMachineHeads[dbMachineHead.HeadIndex] = new ResponseTuringMachineHead
+                {
+                    Type     = headType ,
+                    Position = dbMachineHead.Position ,
+                    Tape     = dbMachineHead.TapeReferenceIndex ,
+                };
+            }
+            return new ServerResponse<IList<ResponseTuringMachineHead>>(ResponseStatus.SUCCESS , responseMachineHeads);
+        }
+
+        /// <returns>
+        ///     Returns a list of transition (for a particular machine) when "SUCCESS". <br/><br/>
+        ///     Status will always be "SUCCESS". But still include status comparison in case implementation changes (with error arise).
+        /// </returns>
+        public static ServerResponse<ICollection<ResponseTuringMachineTape>> GetTapes(string designID , DataContext db)
+        {
+            IQueryable<DbTuringMachineTape> dbTapes = db.Tapes.Where(tape => tape.DesignID.ToString() == designID);
+            
+            List<ResponseTuringMachineTape> responseTapes = new List<ResponseTuringMachineTape>();
+            foreach (DbTuringMachineTape dbTape in dbTapes)
                 responseTapes.Add(new ResponseTuringMachineTape
                 {
-                    Type = dbTape.TapeType ,
-                    Values = dbTape.TapeValues ,
-                    IsInput = dbTape.IsInput ,
+                    Type     = dbTape.TapeType ,
+                    Values   = dbTape.TapeValues ,
+                    IsInput  = dbTape.IsInput ,
                     IsOutput = dbTape.IsOutput ,
                 });
-            }
+
             return new ServerResponse<ICollection<ResponseTuringMachineTape>>(ResponseStatus.SUCCESS , responseTapes);
         }
         #endregion
@@ -204,12 +251,13 @@ namespace TuringMachine.Backend.Server.DbInteraction
         }
 
         /// <returns>
-        ///     When successfully inserted a list of turing machine heads, return status "SUCCESS". <br/><br/>
-        ///     Status is either "SUCCESS" or "BACKEND_ERROR".
+        ///     When successfully inserted a turing machine, return status "SUCCESS". <br/><br/>
+        ///     Status will always be "SUCCESS". But still include status comparison in case implementation changes (with error arise).
         /// </returns>
         private static async Task<ServerResponse> InsertTuringMachineAsync(ResponseTuringMachine machine , string designID , DataContext db)  // TODO: clear changes when failure, change BACKEND_ERROR to FAILURE when cleared.
         {
             ServerResponse response;
+
             DbTuringMachine dbMachine = new DbTuringMachine
             {
                 MachineID = Guid.NewGuid() ,
@@ -267,7 +315,11 @@ namespace TuringMachine.Backend.Server.DbInteraction
             return changedEntries == head.Count ? new ServerResponse(ResponseStatus.SUCCESS)
                                                 : new ServerResponse(ResponseStatus.BACKEND_ERROR);
         }
-
+        
+        /// <returns>
+        ///     When successfully inserted a transition, return status "SUCCESS". <br/><br/>
+        ///     Status is either "SUCCESS" or "BACKEND_ERROR".
+        /// </returns>
         private static async Task<ServerResponse> InsertTransitionAsync(ResponseTransition transition , string machineID , DataContext db)
         {
             DbTransition dbTransition = new DbTransition
@@ -291,7 +343,7 @@ namespace TuringMachine.Backend.Server.DbInteraction
                     }
                 );
 
-            ServerResponse response = TransitionLinePathInteraction.InsertTransitionLinePath(dbTransition.TransitionID.ToString() , transition.TransitionLineSteps , db);
+            ServerResponse response = DbTransitionLinePathInteraction.InsertTransitionLinePath(dbTransition.TransitionID.ToString() , transition.TransitionLineSteps , db);
             if (response.Status is not ResponseStatus.SUCCESS)
                 return response;
 

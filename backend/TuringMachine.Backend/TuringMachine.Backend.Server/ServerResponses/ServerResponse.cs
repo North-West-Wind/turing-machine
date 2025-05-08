@@ -58,7 +58,7 @@ namespace TuringMachine.Backend.Server.ServerResponses
             Description = description;
         }
 
-
+        
         public (ResponseStatus , T?) ToTuple() => (Status , Data);
     }
 }
