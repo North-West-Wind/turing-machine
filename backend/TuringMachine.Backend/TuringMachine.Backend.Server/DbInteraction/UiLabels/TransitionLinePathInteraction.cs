@@ -71,5 +71,23 @@ namespace TuringMachine.Backend.Server.DbInteraction.UiLabels
             db.SaveChanges();
             return new ServerResponse(ResponseStatus.SUCCESS);
         }
+
+        /// <returns>
+        ///     When successfully deleted a list of transition line paths associated to a transition, return status "SUCCESS". <br/><br/>
+        ///     Status is either "SUCCESS", "NO_SUCH_ITEM" or "DUPLICATED_ITEM".
+        /// </returns>
+        public static async Task<ServerResponse> DeleteTransitionLinePathAsync(string transitionID , DataContext db)
+        {
+            using IEnumerator<DbTransitionLinePath> rawPaths = db.TransitionLinePath.Where(path => path.TransitionID.ToString() == transitionID).GetEnumerator();
+
+            if (!rawPaths.MoveNext()) return new ServerResponse(ResponseStatus.NO_SUCH_ITEM);
+            DbTransitionLinePath rawPath = rawPaths.Current;
+            if (rawPaths.MoveNext()) return new ServerResponse(ResponseStatus.DUPLICATED_ITEM);
+
+            db.TransitionLinePath.Remove(rawPath);
+
+            await db.SaveChangesAsync();
+            return new ServerResponse(ResponseStatus.SUCCESS);
+        }
     }
 }

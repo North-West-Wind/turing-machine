@@ -164,9 +164,41 @@ namespace TuringMachine.Backend.Server
             #endregion
 
             #region Designer
-            app.MapPost("/api/level" , (_) => throw new NotImplementedException());
+            app.MapPost(
+                    "/api/level" , async (string accessToken , byte levelID , LevelResponseBody level , DataContext db) =>
+                        {
+                            return (await AccessTokenInteraction.GetAndValidateUserAsync(accessToken , db)).ToTuple() switch
+                            {
+// @formatter:off
+                                (ResponseStatus.SUCCESS          , { } user) => await ProgressInteraction.UpdateProgress(user.UUID.ToString() , levelID , level.Design , level.IsSolved , db) ,
+                                (ResponseStatus.TOKEN_EXPIRED    ,  _      ) => new ServerResponse(ResponseStatus.TOKEN_EXPIRED) ,
+                                (ResponseStatus.USER_NOT_FOUND   ,  _      ) => new ServerResponse(ResponseStatus.USER_NOT_FOUND) ,
+                                (ResponseStatus.DUPLICATED_USER  ,  _      ) => new ServerResponse(ResponseStatus.DUPLICATED_USER) ,
+                                _ => throw new UnreachableException("/api/login"),
+// @formatter:on
+                            };
+                        }
+                )
+                .WithName("PostLevelProgress")
+                .WithOpenApi();
 
-            app.MapPost("/api/save" , (_) => throw new NotImplementedException());
+            app.MapPost(
+                    "/api/save" , async (string accessToken , byte levelID , TuringMachineDesign design , DataContext db) =>
+                        {
+                            return (await AccessTokenInteraction.GetAndValidateUserAsync(accessToken , db)).ToTuple() switch
+                            {
+// @formatter:off
+                            (ResponseStatus.SUCCESS         , { } user) => await ProgressInteraction.UpdateProgress(user.UUID.ToString() , levelID , design , false , db) ,
+                            (ResponseStatus.TOKEN_EXPIRED   ,  _      ) => new ServerResponse(ResponseStatus.TOKEN_EXPIRED),
+                            (ResponseStatus.USER_NOT_FOUND  ,  _      ) => new ServerResponse(ResponseStatus.USER_NOT_FOUND),
+                            (ResponseStatus.DUPLICATED_USER ,  _      ) => new ServerResponse(ResponseStatus.DUPLICATED_USER),
+                            _ => throw new UnreachableException("/api/login"),
+// @formatter:on
+                            };
+                        }
+                )
+                .WithName("PostLevelDesign")
+                .WithOpenApi();
 
             app.MapPost(
                     "/api/upload" , async (string accessToken , TuringMachineDesign design , DataContext db) =>
