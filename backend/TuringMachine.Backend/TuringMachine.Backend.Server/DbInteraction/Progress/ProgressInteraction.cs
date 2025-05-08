@@ -121,6 +121,8 @@ namespace TuringMachine.Backend.Server.DbInteraction.Progress
             ServerResponse response = await InsertProgressAsync(uuid , levelID , level.MachineDesign , isSolved , db);
             if (response.Status != ResponseStatus.SUCCESS)
                 return new ServerResponse<ResponseLevelProgress>(response.Status);
+
+            return new ServerResponse(ResponseStatus.SUCCESS);
         }
 
         /// <returns>
