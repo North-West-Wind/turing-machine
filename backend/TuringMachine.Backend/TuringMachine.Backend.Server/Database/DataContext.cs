@@ -38,8 +38,9 @@ namespace TuringMachine.Backend.Server.Database
         #endregion
 
         #region User
-        public DbSet<User>       Users       { get; set; }
-        public DbSet<LicenseKey> LicenseKeys { get; set; }
+        public DbSet<User>            Users            { get; set; }
+        public DbSet<LicenseKey>      LicenseKeys      { get; set; }
+        public DbSet<UserLicensePair> UserKeyPairs { get; set; }
         #endregion
 
 
@@ -94,7 +95,7 @@ namespace TuringMachine.Backend.Server.Database
             modelBuilder.Entity<LicenseKey>()
                         .ToTable("LicenseKeys" , "User");
             modelBuilder.Entity<UserLicensePair>()
-                        .ToTable("UserLicensePair" , "User");
+                        .ToTable("UserKeyPairs" , "User");
             #endregion
 
             #region Primary Key Assignment

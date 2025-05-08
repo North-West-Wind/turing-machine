@@ -33,7 +33,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.Level
         public static async Task<ServerResponse<LevelResponseBody>> GetUserLevelInfoAsync(string uuid , byte levelID , DataContext db)
         {
             // check if user exists
-            (ResponseStatus status , ResponseUser? user) = UserInteraction.GetUser(uuid , db).ToTuple();
+            (ResponseStatus status , ResponseUser? user) = (await AccessTokenInteraction.GetAndValidateUserAsync(uuid , db)).ToTuple();
             if (status is not ResponseStatus.SUCCESS)
                 return new ServerResponse<LevelResponseBody>(status);
 

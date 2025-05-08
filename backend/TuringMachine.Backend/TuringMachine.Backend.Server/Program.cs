@@ -232,6 +232,24 @@ namespace TuringMachine.Backend.Server
                 .WithName("GetTuringMachine")
                 .WithOpenApi();
             #endregion
+
+            #region License Key
+            app.MapPost(
+                    "/api/gen-key" , async (DataContext db) =>
+                        {
+                            return (await LicenseKeyInteraction.CreateLicenseAsync(db)).ToTuple() switch
+                            {
+// @formatter:off
+                                (ResponseStatus.SUCCESS          , { } key) => new ServerResponse<string>(ResponseStatus.SUCCESS , key) ,
+                                (ResponseStatus.TOO_MANY_REQUEST ,  _     ) => new ServerResponse<string>(ResponseStatus.TOO_MANY_REQUEST) ,
+                                _                                           => throw new UnreachableException("/api/gen-key") ,
+// @formatter:on
+                            };
+                        }
+                )
+                .WithName("PostGenerateLicenseKey")
+                .WithOpenApi();
+            #endregion
             #endregion
 
             app.Run();

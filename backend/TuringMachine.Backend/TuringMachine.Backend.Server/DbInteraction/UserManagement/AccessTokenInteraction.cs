@@ -78,7 +78,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.UserManagement
         /// </returns>
         public static async Task<ServerResponse<ResponseUser>> GetAndValidateUserAsync(string accessToken , DataContext db)
         {
-            using IEnumerator<DbUser> users = db.Users.Where(user => user.AccessToken == accessToken).GetEnumerator();
+            using IEnumerator<DbUser> users = db.Users.Where(user => string.Equals(user.AccessToken , accessToken)).GetEnumerator();
 
             if (!users.MoveNext())
                 return new ServerResponse<ResponseUser>(ResponseStatus.USER_NOT_FOUND);

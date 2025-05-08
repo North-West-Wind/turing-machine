@@ -25,15 +25,21 @@ namespace TuringMachine.Backend.Server.DbInteraction.UserManagement
         /// </returns>
         public static async Task<ServerResponse> AssociateLicenceAsync(string uuid , string licenseKey , DataContext db)
         {
-// @formatter:off
             using IEnumerator<DbUser> users = db.Users.Where(user => user.UUID.ToString() == uuid).GetEnumerator();
-            if (!users.MoveNext()) return new ServerResponse(ResponseStatus.USER_NOT_FOUND );             DbUser user = users.Current;
-            if ( users.MoveNext()) return new ServerResponse(ResponseStatus.DUPLICATED_USER); 
+            if (!users.MoveNext()) return new ServerResponse(ResponseStatus.USER_NOT_FOUND);
+            DbUser user = users.Current;
+            if (users.MoveNext()) return new ServerResponse(ResponseStatus.DUPLICATED_USER);
+
             using IEnumerator<DbLicenseKey> licenseKeys = db.LicenseKeys.Where(key => key.License.ToString() == licenseKey).GetEnumerator();
-            if (!licenseKeys.MoveNext()) return new ServerResponse(ResponseStatus.NO_SUCH_ITEM   );             DbLicenseKey license = licenseKeys.Current;
-            if ( licenseKeys.MoveNext()) return new ServerResponse(ResponseStatus.DUPLICATED_ITEM); 
+            if (!licenseKeys.MoveNext()) return new ServerResponse(ResponseStatus.NO_SUCH_ITEM);
+            DbLicenseKey license = licenseKeys.Current;
+            if (licenseKeys.MoveNext()) return new ServerResponse(ResponseStatus.DUPLICATED_ITEM);
+
+            if (user.Licenses is null)
+                user.Licenses = new List<DbUserLicensePair>();
+
             using IEnumerator<DbUserLicensePair> userKeyPairs = user.Licenses.Where(pair => pair.LicenseKey.ToString() == licenseKey).GetEnumerator();
-            if (userKeyPairs.MoveNext()) return new ServerResponse(ResponseStatus.SUCCESS); // @formatter:on
+            if (userKeyPairs.MoveNext()) return new ServerResponse(ResponseStatus.SUCCESS);
 
             user.Licenses.Add(
                 new DbUserLicensePair

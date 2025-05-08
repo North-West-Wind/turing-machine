@@ -21,10 +21,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.UserManagement
         /// <exception cref="NotImplementedException"></exception>
         public static async Task<ServerResponse<string>> CreateLicenseAsync(DataContext db)
         {
-            // generate a new GUID that does not exist in the licenses database
-            Guid newLicense;
-            do newLicense = Guid.NewGuid();
-            while (!await db.LicenseKeys.AnyAsync(licenseKey => licenseKey.License == newLicense));
+            Guid newLicense = Guid.NewGuid();
 
             // add the new GUID into the database and return a copy to caller
             db.LicenseKeys.Add(new DbLicenseKey { License = newLicense , });

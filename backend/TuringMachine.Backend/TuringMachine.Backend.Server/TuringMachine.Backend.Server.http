@@ -1,6 +1,41 @@
 @TuringMachine.Backend.Server_HostAddress = http://localhost:5066
 
+//  Variable Section. Modify content when needed
+@username = Test_User
+@rsaEncryptedPassword = Password
+@hashedPassword = E7CF3EF4F17C3999A94F2C6F612E8A888E5B1026878E4E19398B23BD38EC221A
+@salt = 0
+@licenseKey = 6a2da466-b130-47a0-97eb-6ae467a28623
+@access_token = DR4jkn8Vb0SYJZf2kOMaQhMeQFVLWauO
+@levelID = 0
+
+//  Run the following testing to create database access
+GET {{TuringMachine.Backend.Server_HostAddress}}/api/get-rsa-key/
+Accept: application/json
+###
+
+POST {{TuringMachine.Backend.Server_HostAddress}}/api/gen-key
+Accept: application/json
+###
+
+POST {{TuringMachine.Backend.Server_HostAddress}}/api/register?username={{username}}&rsaEncryptedPassword={{rsaEncryptedPassword}}&licenseKey={{licenseKey}}
+Accept: application/json
+###
+
+POST {{TuringMachine.Backend.Server_HostAddress}}/api/login?username={{username}}&hashedPassword={{hashedPassword}}&salt={{salt}}
+Accept: application/json
+###
+
+//  Sample use cases
 GET {{TuringMachine.Backend.Server_HostAddress}}/api/try-get-response/
+Accept: application/json
+###
+
+GET {{TuringMachine.Backend.Server_HostAddress}}/api/validate?accessToken={{access_token}}
+Accept: application/json
+###
+
+GET {{TuringMachine.Backend.Server_HostAddress}}/api/progress?accessToken={{access_token}}
 Accept: application/json
 ###
 
@@ -8,26 +43,10 @@ GET {{TuringMachine.Backend.Server_HostAddress}}/api/get-rsa-key/
 Accept: application/json
 ###
 
-GET {{TuringMachine.Backend.Server_HostAddress}}/api/validate?accessToken=___a_sample_test_access_token___
+GET {{TuringMachine.Backend.Server_HostAddress}}/api/levels?accessToken={{access_token}}
 Accept: application/json
 ###
 
-GET {{TuringMachine.Backend.Server_HostAddress}}/api/progress/?accessToken=___a_sample_test_access_token___
+GET {{TuringMachine.Backend.Server_HostAddress}}/api/level?accessToken={{access_token}}&levelID={{levelID}}
 Accept: application/json
-###
-
-
-@username=string
-@rsaEncryptedPassword=string
-@licenseKey=string
-POST {{TuringMachine.Backend.Server_HostAddress}}/api/register?username={{username}}&rsaEncryptedPassword={{rsaEncryptedPassword}}&licenseKey={{licenseKey}}
-###
-
-
-POST {{TuringMachine.Backend.Server_HostAddress}}/api/upload
-Accept: application/json
-Content-Type: application/json
-{
-    "Machine": null
-}
 ###

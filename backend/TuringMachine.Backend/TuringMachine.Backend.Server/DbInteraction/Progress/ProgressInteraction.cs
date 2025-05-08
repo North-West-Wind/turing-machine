@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using TuringMachine.Backend.Server.Database;
 using TuringMachine.Backend.Server.DbInteraction.Machine;
 using TuringMachine.Backend.Server.DbInteraction.UserManagement;
@@ -64,6 +65,9 @@ namespace TuringMachine.Backend.Server.DbInteraction.Progress
         public static async Task<ServerResponse<ResponseLevelProgress>> GetLatestProgressAsync(string uuid , DataContext db)
         {
             IQueryable<DbLevelProgress> progresses = db.LevelProgresses.Where(progress => progress.UUID.ToString() == uuid);
+            if (progresses.IsNullOrEmpty())
+                return new ServerResponse<ResponseLevelProgress>(ResponseStatus.NO_SUCH_ITEM);
+
 // @formatter:off
             DbLevelProgress? latestProgress = await (   from progress in progresses
                                                         orderby progress.SubmissionTime

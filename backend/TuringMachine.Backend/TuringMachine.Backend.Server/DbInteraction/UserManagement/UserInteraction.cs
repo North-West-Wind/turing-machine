@@ -35,6 +35,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.UserManagement
 
             DbUser user = new DbUser
             {
+                UUID = Guid.NewGuid() ,
                 Username = username ,
                 Password = Convert.ToHexString(SHA256.HashData(Encoding.ASCII.GetBytes(password))) ,
             };
@@ -64,12 +65,31 @@ namespace TuringMachine.Backend.Server.DbInteraction.UserManagement
         /// </returns>
         public static async Task<ServerResponse<string>> RegisterAsync(string username , string password , string licenseKey , DataContext db)
         {
-            throw new NotImplementedException();
+            (ResponseStatus status , string? accessToken) = (await RegisterAsync(username , password , db)).ToTuple();
+            if (status != ResponseStatus.SUCCESS)
+                return new ServerResponse<string>(status);
+
+            if ((await AddLicenseKeyAsync(accessToken! , licenseKey , db)).Status != ResponseStatus.SUCCESS)
+                return new ServerResponse<string>(ResponseStatus.INVALID_LICENSE);
+
+            return new ServerResponse<string>(ResponseStatus.SUCCESS , accessToken);
         }
 
-        public static async Task<ServerResponse> AddLicenseKey(string accessToken , string licenseKey , DataContext db)
+        public static async Task<ServerResponse> AddLicenseKeyAsync(string accessToken , string licenseKey , DataContext db)
         {
-            throw new NotImplementedException();
+            (ResponseStatus status , ResponseUser? user) = (await AccessTokenInteraction.GetAndValidateUserAsync(accessToken , db)).ToTuple();
+            if (status != ResponseStatus.SUCCESS)
+                return new ServerResponse(status);
+
+            if (LicenseKeyInteraction.ValidateLicenseKey(licenseKey , db).Status != ResponseStatus.SUCCESS)
+                return new ServerResponse(ResponseStatus.INVALID_LICENSE);
+
+            status = (await UserLicenseInteraction.AssociateLicenceAsync(user!.UUID.ToString() , licenseKey , db)).Status;
+            if (status != ResponseStatus.SUCCESS)
+                return new ServerResponse(status);
+
+            await db.SaveChangesAsync();
+            return new ServerResponse(ResponseStatus.SUCCESS);
         }
 
         /// <summary> Change username. </summary>
