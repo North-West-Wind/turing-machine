@@ -6,21 +6,22 @@ using TuringMachine.Backend.Server.ServerResponses.ResponseBody;
 
 #region Type Alias
 // @formatter:off
-using DbProgress          = TuringMachine.Backend.Server.Database.Entity.Progress.LevelProgress;
-using DbTestCase          = TuringMachine.Backend.Server.Database.Entity.Level.TestCase;
-using DbLevelInfo         = TuringMachine.Backend.Server.Database.Entity.Level.LevelInfo;
+using DbProgress = TuringMachine.Backend.Server.Database.Entity.Progress.LevelProgress;
+using DbTestCase = TuringMachine.Backend.Server.Database.Entity.Level.TestCase;
+using DbLevelInfo = TuringMachine.Backend.Server.Database.Entity.Level.LevelInfo;
 
 using TapeType = TuringMachine.Backend.Server.Models.Machines.Tapes.TapeType;
 
-using ResponseUser            = TuringMachine.Backend.Server.Models.UserManagement.User;
-using ResponseTestCase        = TuringMachine.Backend.Server.Models.Levels.TestCase;
-using ResponseMachineDesign   = TuringMachine.Backend.Server.Models.Machines.TuringMachineDesign;
+using ResponseUser = TuringMachine.Backend.Server.Models.UserManagement.User;
+using ResponseTestCase = TuringMachine.Backend.Server.Models.Levels.TestCase;
+using ResponseMachineDesign = TuringMachine.Backend.Server.Models.Machines.TuringMachineDesign;
 using ResponseLevelConstraint = TuringMachine.Backend.Server.Models.Levels.Constraint;
 using TuringMachine.Backend.Server.ServerResponses;
+using TuringMachine.Backend.Server.DbInteraction.UserManagement;
 // @formatter:on
 #endregion
 
-namespace TuringMachine.Backend.Server.DbInteraction
+namespace TuringMachine.Backend.Server.DbInteraction.Level
 {
     internal static class LevelInteraction
     {
@@ -45,25 +46,18 @@ namespace TuringMachine.Backend.Server.DbInteraction
 // @formatter:on
 
             // confirms there is only one associated target progress in the database
-            if (!progresses.MoveNext()) { return new ServerResponse<LevelResponseBody>(ResponseStatus.NO_SUCH_ITEM); }
-            DbProgress progress = progresses.Current;
-            if (progresses.MoveNext()) { return new ServerResponse<LevelResponseBody>(ResponseStatus.DUPLICATED_ITEM); }
-
+            if (!progresses.MoveNext()) return new ServerResponse<LevelResponseBody>(ResponseStatus.NO_SUCH_ITEM);             DbProgress progress = progresses.Current;
+            if (progresses.MoveNext()) return new ServerResponse<LevelResponseBody>(ResponseStatus.DUPLICATED_ITEM); 
             // get last submitted design if user had submitted last time
             (status , ResponseMachineDesign? design) = (ResponseStatus.MACHINE_NOT_FOUND , null);
             if (progress.Solution is not null)
-                (status , design) = MachineInteraction.GetTuringMachine(progress.Solution.DesignID.ToString() , db).ToTuple();
+                (status , design) = MachineInteraction.GetTuringMachineDesign(progress.Solution.DesignID.ToString() , db).ToTuple();
             if (status is not ResponseStatus.SUCCESS and ResponseStatus.MACHINE_NOT_FOUND)  // if status is neither SUCCESS nor MACHINE_NOT_FOUND, return error status to indicate a backend problem.
                 return new ServerResponse<LevelResponseBody>(status);
 
 // @formatter:off    concatenate allowed tape type into array
             List<TapeType> allowedTapeTypes = new List<TapeType>();
-            if (progress.LevelInfo.AllowInfiniteTape        ) { allowedTapeTypes.Add(TapeType.Infinite        ); }
-            if (progress.LevelInfo.AllowLeftLimitedTape     ) { allowedTapeTypes.Add(TapeType.LeftLimited     ); }
-            if (progress.LevelInfo.AllowRightLimitedTape    ) { allowedTapeTypes.Add(TapeType.RightLimited    ); }
-            if (progress.LevelInfo.AllowLeftRightLimitedTape) { allowedTapeTypes.Add(TapeType.LeftRightLimited); }
-            if (progress.LevelInfo.AllowCircularTape        ) { allowedTapeTypes.Add(TapeType.Circular        ); }
-            ResponseLevelConstraint levelConstraints = new ResponseLevelConstraint
+            if (progress.LevelInfo.AllowInfiniteTape        ) allowedTapeTypes.Add(TapeType.Infinite        );             if (progress.LevelInfo.AllowLeftLimitedTape     ) allowedTapeTypes.Add(TapeType.LeftLimited     );             if (progress.LevelInfo.AllowRightLimitedTape    ) allowedTapeTypes.Add(TapeType.RightLimited    );             if (progress.LevelInfo.AllowLeftRightLimitedTape) allowedTapeTypes.Add(TapeType.LeftRightLimited);             if (progress.LevelInfo.AllowCircularTape        ) allowedTapeTypes.Add(TapeType.Circular        );             ResponseLevelConstraint levelConstraints = new ResponseLevelConstraint
             {
                 States      = progress.LevelInfo.HasStateLimit      ? new ConstraintRange { Max = progress.LevelInfo.MaxState      , Min = progress.LevelInfo.MinState      } : null ,
                 Transitions = progress.LevelInfo.HasTransitionLimit ? new ConstraintRange { Max = progress.LevelInfo.MaxTransition , Min = progress.LevelInfo.MinTransition } : null ,

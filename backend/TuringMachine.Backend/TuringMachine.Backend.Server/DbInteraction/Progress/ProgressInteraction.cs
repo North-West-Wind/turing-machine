@@ -12,7 +12,7 @@ using ResponseLevelProgress = TuringMachine.Backend.Server.ServerResponses.Respo
 using ResponseTuringMachineDesign = TuringMachine.Backend.Server.Models.Machines.TuringMachineDesign;
 #endregion
 
-namespace TuringMachine.Backend.Server.DbInteraction
+namespace TuringMachine.Backend.Server.DbInteraction.Progress
 {
     internal static class ProgressInteraction
     {
@@ -27,10 +27,8 @@ namespace TuringMachine.Backend.Server.DbInteraction
                                                                               .Include(progress => progress.Solution)
                                                                               .GetEnumerator();
 
-            if (!progresses.MoveNext()) { return new ServerResponse<ResponseLevelProgress>(ResponseStatus.NO_SUCH_ITEM   ); }
-            DbLevelProgress dbLevelProgress = progresses.Current;
-            if ( progresses.MoveNext()) { return new ServerResponse<ResponseLevelProgress>(ResponseStatus.DUPLICATED_ITEM); }
-// @formatter:on
+            if (!progresses.MoveNext()) return new ServerResponse<ResponseLevelProgress>(ResponseStatus.NO_SUCH_ITEM   );             DbLevelProgress dbLevelProgress = progresses.Current;
+            if ( progresses.MoveNext()) return new ServerResponse<ResponseLevelProgress>(ResponseStatus.DUPLICATED_ITEM); // @formatter:on
 
             ResponseLevelProgress responseLevelProcess = new ResponseLevelProgress
             {
@@ -42,7 +40,7 @@ namespace TuringMachine.Backend.Server.DbInteraction
                 return new ServerResponse<ResponseLevelProgress>(ResponseStatus.SUCCESS , responseLevelProcess);
 
             // obtain last user saved the turing machine design
-            (ResponseStatus status , ResponseTuringMachineDesign? design) = MachineInteraction.GetTuringMachine(dbLevelProgress.DesignID.ToString()! , db).ToTuple();
+            (ResponseStatus status , ResponseTuringMachineDesign? design) = MachineInteraction.GetTuringMachineDesign(dbLevelProgress.DesignID.ToString()! , db).ToTuple();
             responseLevelProcess.MachineDesign = design;
             return status switch
             {

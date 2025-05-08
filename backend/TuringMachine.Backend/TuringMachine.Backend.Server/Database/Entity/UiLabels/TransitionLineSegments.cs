@@ -5,7 +5,6 @@ namespace TuringMachine.Backend.Server.Database.Entity.UiLabels
     internal class TransitionLinePath
     {
         public Guid   TransitionID { get; set; }
-        public short  SegmentIndex { get; set; }
         public byte[] PathX        { get; set; }
         public byte[] PathY        { get; set; }
 

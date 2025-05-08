@@ -8,7 +8,7 @@ using TuringMachine.Backend.Server.ServerResponses;
 using DbLicenseKey = TuringMachine.Backend.Server.Database.Entity.UserManagement.LicenseKey;
 #endregion
 
-namespace TuringMachine.Backend.Server.DbInteraction
+namespace TuringMachine.Backend.Server.DbInteraction.UserManagement
 {
     internal static class LicenseKeyInteraction
     {
@@ -55,10 +55,8 @@ namespace TuringMachine.Backend.Server.DbInteraction
         {
             using IEnumerator<DbLicenseKey> licenseKeys = db.LicenseKeys.Where(key => key.License.ToString() == licenseKey).GetEnumerator();
 // @formatter:off
-            if (!licenseKeys.MoveNext()) { return new ServerResponse(ResponseStatus.NO_SUCH_ITEM   ); }
-            DbLicenseKey key = licenseKeys.Current;
-            if ( licenseKeys.MoveNext()) { return new ServerResponse(ResponseStatus.DUPLICATED_ITEM); }
-// @formatter:on
+            if (!licenseKeys.MoveNext()) return new ServerResponse(ResponseStatus.NO_SUCH_ITEM   );             DbLicenseKey key = licenseKeys.Current;
+            if ( licenseKeys.MoveNext()) return new ServerResponse(ResponseStatus.DUPLICATED_ITEM); // @formatter:on
             db.LicenseKeys.Remove(key);
             await db.SaveChangesAsync();
             return new ServerResponse(ResponseStatus.SUCCESS);
@@ -76,9 +74,7 @@ namespace TuringMachine.Backend.Server.DbInteraction
         {
             using IEnumerator<DbLicenseKey> licenseKeys = db.LicenseKeys.Where(key => key.License.ToString() == licenseKey).GetEnumerator();
 // @formatter:off
-            if (!licenseKeys.MoveNext()) { return new ServerResponse(ResponseStatus.NO_SUCH_ITEM   ); }
-            if ( licenseKeys.MoveNext()) { return new ServerResponse(ResponseStatus.DUPLICATED_ITEM); }
-                                           return new ServerResponse(ResponseStatus.SUCCESS        );
+            if (!licenseKeys.MoveNext()) return new ServerResponse(ResponseStatus.NO_SUCH_ITEM   );             if ( licenseKeys.MoveNext()) return new ServerResponse(ResponseStatus.DUPLICATED_ITEM);                                            return new ServerResponse(ResponseStatus.SUCCESS        );
 // @formatter:on
         }
         #endregion

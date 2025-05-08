@@ -8,10 +8,26 @@ GET {{TuringMachine.Backend.Server_HostAddress}}/api/get-rsa-key/
 Accept: application/json
 ###
 
-GET {{TuringMachine.Backend.Server_HostAddress}}/api/validate/?accessToken=___a_sample_test_access_token___
+GET {{TuringMachine.Backend.Server_HostAddress}}/api/validate?accessToken=___a_sample_test_access_token___
 Accept: application/json
 ###
 
 GET {{TuringMachine.Backend.Server_HostAddress}}/api/progress/?accessToken=___a_sample_test_access_token___
 Accept: application/json
+###
+
+
+@username=string
+@rsaEncryptedPassword=string
+@licenseKey=string
+POST {{TuringMachine.Backend.Server_HostAddress}}/api/register?username={{username}}&rsaEncryptedPassword={{rsaEncryptedPassword}}&licenseKey={{licenseKey}}
+###
+
+
+POST {{TuringMachine.Backend.Server_HostAddress}}/api/upload
+Accept: application/json
+Content-Type: application/json
+{
+    "Machine": null
+}
 ###

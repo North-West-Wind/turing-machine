@@ -8,8 +8,8 @@ namespace TuringMachine.Backend.Server.Models.Machines.Transitions
         public byte Source { get; set; }
         public byte Target { get; set; }
 
-        public ICollection<TransitionStatement> Statements { get; set; }
+        public IList<TransitionStatement> Statements { get; set; }
 
-        public ICollection<Vector2> TransitionLineSteps { get; set; }
+        public IList<Vector2> TransitionLineSteps { get; set; }
     }
 }

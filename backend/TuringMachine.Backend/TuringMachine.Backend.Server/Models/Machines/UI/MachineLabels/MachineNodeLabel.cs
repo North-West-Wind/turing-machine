@@ -2,7 +2,7 @@
 using System.Text.Json.Serialization;
 using TuringMachine.Backend.Server.Models.Misc;
 
-namespace TuringMachine.Backend.Server.Models.Machines.UI
+namespace TuringMachine.Backend.Server.Models.Machines.UI.MachineLabels
 {
     internal class MachineNodeLabel
     {

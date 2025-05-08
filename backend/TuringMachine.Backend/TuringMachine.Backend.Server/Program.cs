@@ -9,6 +9,9 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using TuringMachine.Backend.Server.Database;
 using TuringMachine.Backend.Server.DbInteraction;
+using TuringMachine.Backend.Server.DbInteraction.Level;
+using TuringMachine.Backend.Server.DbInteraction.Progress;
+using TuringMachine.Backend.Server.DbInteraction.UserManagement;
 using TuringMachine.Backend.Server.Models.Machines;
 using TuringMachine.Backend.Server.Models.Misc;
 using TuringMachine.Backend.Server.Models.UserManagement;
@@ -165,14 +168,21 @@ namespace TuringMachine.Backend.Server
 
             app.MapPost("/api/save" , (_) => throw new NotImplementedException());
 
-            app.MapPost("/api/upload" , (_) => throw new NotImplementedException());
+            app.MapPost(
+                    "/api/upload" , async (string accessToken , TuringMachineDesign design , DataContext db) =>
+                        {
+                            return new ServerResponse<TuringMachineDesign>(ResponseStatus.SUCCESS , design);
+                        }
+                )
+                .WithName("PostDesign")
+                .WithOpenApi();
 
             app.MapGet(
                     "/api/import" , async (string accessToken , string designID , DataContext db) =>
                         {
                             return (await AccessTokenInteraction.ValidateAccessTokenAsync(accessToken , db)).Status switch
                             {
-                                ResponseStatus.SUCCESS         => MachineInteraction.GetTuringMachine(designID , db) ,
+                                ResponseStatus.SUCCESS         => MachineInteraction.GetTuringMachineDesign(designID , db) ,
                                 ResponseStatus.TOKEN_EXPIRED   => new ServerResponse<TuringMachineDesign>(ResponseStatus.TOKEN_EXPIRED) ,
                                 ResponseStatus.USER_NOT_FOUND  => new ServerResponse<TuringMachineDesign>(ResponseStatus.INVALID_TOKEN) ,
                                 ResponseStatus.DUPLICATED_USER => new ServerResponse<TuringMachineDesign>(ResponseStatus.DUPLICATED_USER) ,

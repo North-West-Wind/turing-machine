@@ -6,19 +6,19 @@ using TuringMachine.Backend.Server.ServerResponses;
 
 #region Type Alias
 // @formatter:off
-using DbMachineLabel     = TuringMachine.Backend.Server.Database.Entity.UiLabels.MachineLabels.MachineLabel;
-using DbMachineBoxLabel  = TuringMachine.Backend.Server.Database.Entity.UiLabels.MachineLabels.MachineBoxLabel;
+using DbMachineLabel = TuringMachine.Backend.Server.Database.Entity.UiLabels.MachineLabels.MachineLabel;
+using DbMachineBoxLabel = TuringMachine.Backend.Server.Database.Entity.UiLabels.MachineLabels.MachineBoxLabel;
 using DbMachineTextLabel = TuringMachine.Backend.Server.Database.Entity.UiLabels.MachineLabels.TextLabel;
 using DbMachineNodeLabel = TuringMachine.Backend.Server.Database.Entity.UiLabels.MachineLabels.NodeLabel;
 
-using ResponseMachineLabel     = TuringMachine.Backend.Server.Models.Machines.UI.MachineLabel;
-using ResponseMachineBoxLabel  = TuringMachine.Backend.Server.Models.Machines.UI.MachineBoxLabel;
-using ResponseMachineTextLabel = TuringMachine.Backend.Server.Models.Machines.UI.MachineTextLabel;
-using ResponseMachineNodeLabel = TuringMachine.Backend.Server.Models.Machines.UI.MachineNodeLabel;
+using ResponseMachineLabel = TuringMachine.Backend.Server.Models.Machines.UI.MachineLabels.MachineLabel;
+using ResponseMachineBoxLabel = TuringMachine.Backend.Server.Models.Machines.UI.MachineLabels.MachineBoxLabel;
+using ResponseMachineTextLabel = TuringMachine.Backend.Server.Models.Machines.UI.MachineLabels.MachineTextLabel;
+using ResponseMachineNodeLabel = TuringMachine.Backend.Server.Models.Machines.UI.MachineLabels.MachineNodeLabel;
 // @formatter:on
 #endregion
 
-namespace TuringMachine.Backend.Server.DbInteraction
+namespace TuringMachine.Backend.Server.DbInteraction.UiLabels
 {
     internal static class MachineLabelInteraction
     {
@@ -35,10 +35,8 @@ namespace TuringMachine.Backend.Server.DbInteraction
                                                                               .Include(machineLabel => machineLabel.NodeLabels)
                                                                               .GetEnumerator();
             
-            if (!machineLabels.MoveNext()) { return new ServerResponse<ResponseMachineLabel>(ResponseStatus.NO_SUCH_ITEM)   ; }
-            DbMachineLabel dbMachineLabel = machineLabels.Current;
-            if ( machineLabels.MoveNext()) { return new ServerResponse<ResponseMachineLabel>(ResponseStatus.DUPLICATED_ITEM); }
-// @formatter:on
+            if (!machineLabels.MoveNext()) return new ServerResponse<ResponseMachineLabel>(ResponseStatus.NO_SUCH_ITEM)   ;             DbMachineLabel dbMachineLabel = machineLabels.Current;
+            if ( machineLabels.MoveNext()) return new ServerResponse<ResponseMachineLabel>(ResponseStatus.DUPLICATED_ITEM); // @formatter:on
 
             ResponseMachineBoxLabel[] responseMachineBoxLabels = new ResponseMachineBoxLabel[dbMachineLabel.BoxLabels.Count];
             foreach (DbMachineBoxLabel dbMachineBoxLabel in dbMachineLabel.BoxLabels)
@@ -107,6 +105,67 @@ namespace TuringMachine.Backend.Server.DbInteraction
                     Nodes = responseMachineNodeLabels ,
                 }
             );
+        }
+
+        public static async Task<ServerResponse> InsertMachineLabelAsync(ResponseMachineLabel machineLabel , string machineID , DataContext db)
+        {
+            DbMachineLabel dbMachineLabel = new DbMachineLabel
+            {
+                MachineLabelID = Guid.NewGuid() ,
+                MachineID      = Guid.Parse(machineID) ,
+                Title          = machineLabel.Title ,
+                Color          = machineLabel.Color ,
+            };
+            await db.MachineLabels.AddAsync(dbMachineLabel);
+            string machineLabelID = dbMachineLabel.MachineLabelID.ToString();
+
+            for (byte i = 0; i < machineLabel.Boxes.Count; i++)
+                dbMachineLabel.BoxLabels.Add(
+                    new DbMachineBoxLabel
+                    {
+                        MachineLabelID = Guid.Parse(machineLabelID) ,
+                        StartX         = machineLabel.Boxes[i].Start.X ,
+                        StartY         = machineLabel.Boxes[i].Start.Y ,
+                        Width          = machineLabel.Boxes[i].Size.X ,
+                        Height         = machineLabel.Boxes[i].Size.Y ,
+                        Color          = machineLabel.Boxes[i].Color ,
+                        LabelIndex     = i ,
+                    }
+                );
+
+            for (byte i = 0; i < machineLabel.Texts.Count; i++)
+                dbMachineLabel.TextLabels.Add(
+                    new DbMachineTextLabel
+                    {
+                        MachineLabelID = Guid.Parse(machineLabelID) ,
+                        PosX           = machineLabel.Texts[i].Position.X ,
+                        PosY           = machineLabel.Texts[i].Position.Y ,
+                        Value          = machineLabel.Texts[i].Value ,
+                        LabelIndex     = i ,
+                    }
+                );
+
+            for (byte i = 0; i < machineLabel.Nodes.Count; i++)
+                dbMachineLabel.NodeLabels.Add(
+                    new DbMachineNodeLabel
+                    {
+                        PosX       = machineLabel.Nodes[i].Position.X ,
+                        PosY       = machineLabel.Nodes[i].Position.Y ,
+                        Label      = machineLabel.Nodes[i].Label ,
+                        IsFinal    = machineLabel.Nodes[i].IsFinal ,
+                        LabelIndex = i ,
+                    }
+                );
+
+            await db.SaveChangesAsync();
+            return new ServerResponse(ResponseStatus.SUCCESS);
+        }
+
+        public static async Task<ServerResponse> InsertTransitionLinePath(IList<Vector2> steps , string transitionID , DataContext db)
+        {
+
+
+            throw new NotImplementedException();
         }
     }
 }

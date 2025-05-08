@@ -7,7 +7,7 @@ namespace TuringMachine.Backend.Server.Models.Machines.Tapes
         public TapeType Type   { get; set; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public char[]?  Values { get; set; }
+        public string?  Values { get; set; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public bool IsInput { get; set; } = false;

@@ -5,17 +5,16 @@ using Microsoft.EntityFrameworkCore;
 using TuringMachine.Backend.Server.Database;
 using TuringMachine.Backend.Server.Models.Misc;
 using TuringMachine.Backend.Server.ServerResponses;
-using NotImplementedException = System.NotImplementedException;
 
 #region Type Alias
-using DbUser            = TuringMachine.Backend.Server.Database.Entity.UserManagement.User;
-using DbLicenseKey      = TuringMachine.Backend.Server.Database.Entity.UserManagement.LicenseKey;
+using DbUser = TuringMachine.Backend.Server.Database.Entity.UserManagement.User;
+using DbLicenseKey = TuringMachine.Backend.Server.Database.Entity.UserManagement.LicenseKey;
 using DbUserLicensePair = TuringMachine.Backend.Server.Database.Entity.UserManagement.UserLicensePair;
 
 using ResponseUser = TuringMachine.Backend.Server.Models.UserManagement.User;
 #endregion
 
-namespace TuringMachine.Backend.Server.DbInteraction
+namespace TuringMachine.Backend.Server.DbInteraction.UserManagement
 {
     internal static class UserInteraction
     {

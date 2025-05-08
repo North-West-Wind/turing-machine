@@ -12,7 +12,7 @@ using ResponseUser = TuringMachine.Backend.Server.Models.UserManagement.User;
 // @formatter:on
 #endregion
 
-namespace TuringMachine.Backend.Server.DbInteraction
+namespace TuringMachine.Backend.Server.DbInteraction.UserManagement
 {
     internal static class AccessTokenInteraction
     {
@@ -53,11 +53,9 @@ namespace TuringMachine.Backend.Server.DbInteraction
         public static async Task<ServerResponse> SetExpiredAsync(string accessToken , DataContext db)
         {
             using IEnumerator<DbUser> dbUsers = db.Users.Where(user => user.AccessToken == accessToken).GetEnumerator();
-            if (!dbUsers.MoveNext()) { return new ServerResponse(ResponseStatus.USER_NOT_FOUND); }
-
+            if (!dbUsers.MoveNext()) return new ServerResponse(ResponseStatus.USER_NOT_FOUND); 
             DbUser user = dbUsers.Current;
-            if (dbUsers.MoveNext()) { return new ServerResponse(ResponseStatus.DUPLICATED_USER); }
-
+            if (dbUsers.MoveNext()) return new ServerResponse(ResponseStatus.DUPLICATED_USER); 
             // set access token as expired
             user.TokenExpireTime = DateTime.Now.AddTicks(-1);
             await db.SaveChangesAsync();
@@ -70,7 +68,7 @@ namespace TuringMachine.Backend.Server.DbInteraction
         ///     No data is returned. <br/><br/>
         ///     Status is either "SUCCESS", "TOKEN_EXPIRED", "USER_NOT_FOUND" and "DUPLICATED_USER".
         /// </returns>
-        public static async Task<ServerResponse> ValidateAccessTokenAsync(string accessToken , DataContext db) => (await GetAndValidateUserAsync(accessToken , db));
+        public static async Task<ServerResponse> ValidateAccessTokenAsync(string accessToken , DataContext db) => await GetAndValidateUserAsync(accessToken , db);
 
         /// <summary> Get user by non-expired access token. </summary>
         /// <remarks> Extends the access time by 30 minutes. </remarks>

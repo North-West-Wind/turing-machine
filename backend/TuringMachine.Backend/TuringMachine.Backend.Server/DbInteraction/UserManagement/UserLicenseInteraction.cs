@@ -4,13 +4,13 @@ using TuringMachine.Backend.Server.ServerResponses;
 
 #region Type Alias
 using DbUserLicensePair = TuringMachine.Backend.Server.Database.Entity.UserManagement.UserLicensePair;
-using DbLicenseKey      = TuringMachine.Backend.Server.Database.Entity.UserManagement.LicenseKey;
-using DbUser            = TuringMachine.Backend.Server.Database.Entity.UserManagement.User;
+using DbLicenseKey = TuringMachine.Backend.Server.Database.Entity.UserManagement.LicenseKey;
+using DbUser = TuringMachine.Backend.Server.Database.Entity.UserManagement.User;
 
 using ResponseUser = TuringMachine.Backend.Server.Models.UserManagement.User;
 #endregion
 
-namespace TuringMachine.Backend.Server.DbInteraction
+namespace TuringMachine.Backend.Server.DbInteraction.UserManagement
 {
     internal static class UserLicenseInteraction
     {
@@ -27,18 +27,13 @@ namespace TuringMachine.Backend.Server.DbInteraction
         {
 // @formatter:off
             using IEnumerator<DbUser> users = db.Users.Where(user => user.UUID.ToString() == uuid).GetEnumerator();
-            if (!users.MoveNext()) { return new ServerResponse(ResponseStatus.USER_NOT_FOUND ); }
-            DbUser user = users.Current;
-            if ( users.MoveNext()) { return new ServerResponse(ResponseStatus.DUPLICATED_USER); }
-
+            if (!users.MoveNext()) return new ServerResponse(ResponseStatus.USER_NOT_FOUND );             DbUser user = users.Current;
+            if ( users.MoveNext()) return new ServerResponse(ResponseStatus.DUPLICATED_USER); 
             using IEnumerator<DbLicenseKey> licenseKeys = db.LicenseKeys.Where(key => key.License.ToString() == licenseKey).GetEnumerator();
-            if (!licenseKeys.MoveNext()) { return new ServerResponse(ResponseStatus.NO_SUCH_ITEM   ); }
-            DbLicenseKey license = licenseKeys.Current;
-            if ( licenseKeys.MoveNext()) { return new ServerResponse(ResponseStatus.DUPLICATED_ITEM); }
-
+            if (!licenseKeys.MoveNext()) return new ServerResponse(ResponseStatus.NO_SUCH_ITEM   );             DbLicenseKey license = licenseKeys.Current;
+            if ( licenseKeys.MoveNext()) return new ServerResponse(ResponseStatus.DUPLICATED_ITEM); 
             using IEnumerator<DbUserLicensePair> userKeyPairs = user.Licenses.Where(pair => pair.LicenseKey.ToString() == licenseKey).GetEnumerator();
-            if (userKeyPairs.MoveNext()) { return new ServerResponse(ResponseStatus.SUCCESS); }  // If the association exist, return success without changing database.
-// @formatter:on
+            if (userKeyPairs.MoveNext()) return new ServerResponse(ResponseStatus.SUCCESS); // @formatter:on
 
             user.Licenses.Add(
                 new DbUserLicensePair
