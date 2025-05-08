@@ -48,9 +48,9 @@ namespace TuringMachine.Backend.Server.DbInteraction.UiLabels
         ///     When successfully inserted a path for drawing transition line, return status "SUCCESS". <br/><br/>
         ///     Status will always be "SUCCESS". But still include status comparison in case implementation changes (with error arise).
         /// </returns>
-        public static ServerResponse InsertTransitionLinePath(string transitionID , IList<Vector2> paths , DataContext db)
+        public static ServerResponse InsertTransitionLinePath(string transitionID , IList<Vector2>? paths , DataContext db)
         {
-            if (paths.Count == 0)
+            if (paths is null || paths.Count == 0)
                 return new ServerResponse(ResponseStatus.SUCCESS);
 
             float[] pathX = new float[paths.Count];
