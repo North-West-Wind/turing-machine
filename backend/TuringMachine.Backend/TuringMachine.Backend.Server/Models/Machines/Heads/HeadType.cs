@@ -1,6 +1,10 @@
-﻿namespace TuringMachine.Backend.Server.Models.Machines.Heads
+﻿using System.Text.Json.Serialization;
+using TuringMachine.Backend.Server.Models.Machines.Tapes;
+
+namespace TuringMachine.Backend.Server.Models.Machines.Heads
 {
     [Flags]
+    [JsonConverter(typeof(JsonStringEnumConverter<HeadType>))]
     internal enum HeadType
     {
         Read  = 1 ,

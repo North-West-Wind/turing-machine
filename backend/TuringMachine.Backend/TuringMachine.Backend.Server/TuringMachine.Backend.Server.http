@@ -50,3 +50,55 @@ Accept: application/json
 GET {{TuringMachine.Backend.Server_HostAddress}}/api/level?accessToken={{access_token}}&levelID={{levelID}}
 Accept: application/json
 ###
+
+POST {{TuringMachine.Backend.Server_HostAddress}}/api/upload?accessToken={{access_token}}
+Content-Type: application/json
+{
+    "tapes": [
+        { "type": "Infinite"    , "isInput" : true },
+        { "type": "Infinite"    , "isOutput": true },
+        { "type": "LeftLimited", "values" : "a"  }
+    ],
+    "machines": [
+    {
+        "transitions": [
+            {
+                "source": 0,
+                "target": 1,
+                "statements": [
+                    { "read": "a", "write": "b", "move":  2 } ,
+                    { "read": "_", "write": "b", "move": -1 }
+                ],
+                "transitionLineSteps": [
+                    { "X": 50, "Y": 0 }, 
+                    { "X": 0, "Y": 50 }
+                ]
+            }
+        ],
+        "heads": [
+            { "type": "Read" , "tape": 0, "position":  2 },
+            { "type": "ReadWrite", "tape": 0, "position": -1 }
+        ],
+            "startNode": 0,
+            "label": {
+                "title": "title of the machine",
+                "color": 16777215,
+                "boxes": [
+                    { "start": { "X": 0, "Y": 0 }, "size": { "X": 20, "Y": 50 }, "color": 16777216 }
+                ],
+                "texts": [
+                    { "position": { "X": 10, "Y": 20 }, "value": "textbox string" }
+                ],
+                "nodes": [
+                    { "label": "q0", "position": { "X": 100, "Y": 200} }, 
+                    { "label": "q1", "position": { "X": 150, "Y": 250}, "isFinal": true }
+                ]
+            }
+        }
+    ]
+}
+###
+
+@designID = 3d7e4b65-d3ea-4842-ad8a-ba7b63bf50f3
+GET {{TuringMachine.Backend.Server_HostAddress}}/api/import?accessToken={{access_token}}&designID={{designID}}
+Accept: application/json

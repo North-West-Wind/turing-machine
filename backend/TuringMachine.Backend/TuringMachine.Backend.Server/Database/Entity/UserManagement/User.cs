@@ -13,8 +13,8 @@ namespace TuringMachine.Backend.Server.Database.Entity.UserManagement
 
 
         #region Relation
-        public ICollection<LevelProgress>   Progresses { get; set; }
-        public ICollection<UserLicensePair> Licenses   { get; set; }
+        public ICollection<LevelProgress>    Progresses { get; set; }
+        public ICollection<UserLicensePair>? Licenses   { get; set; }
         #endregion
     }
 }

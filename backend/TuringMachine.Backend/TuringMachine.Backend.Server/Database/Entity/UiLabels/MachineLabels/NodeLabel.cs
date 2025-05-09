@@ -4,8 +4,8 @@
     {
         public Guid   MachineLabelID { get; set; }
         public string Label          { get; set; }
-        public float  PosX           { get; set; }
-        public float  PosY           { get; set; }
+        public double PosX           { get; set; }
+        public double PosY           { get; set; }
         public byte   LabelIndex     { get; set; }
         public bool   IsFinal        { get; set; }
 

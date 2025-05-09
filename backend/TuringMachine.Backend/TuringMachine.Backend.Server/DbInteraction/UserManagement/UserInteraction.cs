@@ -19,12 +19,11 @@ namespace TuringMachine.Backend.Server.DbInteraction.UserManagement
     internal static class UserInteraction
     {
         #region User Information Manipulation
-
         /// <param name="username"> A string representing of the string. </param>
         /// <param name="password"> A hexed value representing the hashed password. </param>
         /// <returns>
         ///     Returns a string as access token when "SUCCESS". <br/><br/>
-        ///     Status is either "SUCCESS", "INVALID_LICENSE" or BACKEND_ERROR.
+        ///     Status is either "SUCCESS", "USER_EXISTED" or BACKEND_ERROR.
         /// </returns>
         public static async Task<ServerResponse<string>> RegisterAsync(string username , string password , DataContext db)
         {
@@ -61,7 +60,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.UserManagement
         /// </param>
         /// <returns>
         ///     Returns a string as access token when "SUCCESS". <br/><br/>
-        ///     Status is either "SUCCESS", "INVALID_LICENSE" or BACKEND_ERROR.
+        ///     Status is either "SUCCESS" or "INVALID_LICENSE".
         /// </returns>
         public static async Task<ServerResponse<string>> RegisterAsync(string username , string password , string licenseKey , DataContext db)
         {
@@ -75,6 +74,17 @@ namespace TuringMachine.Backend.Server.DbInteraction.UserManagement
             return new ServerResponse<string>(ResponseStatus.SUCCESS , accessToken);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="licenseKey">
+        ///     A GUID represented license key. <br/>
+        ///     The license key only contains hex represented symbols with format like "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" (8-4-4-4-12) and will be validated with database.
+        /// </param>
+        /// <returns>
+        ///     Returns nothing when "SUCCESS". <br/><br/>
+        ///     Status is either "SUCCESS", "NO_SUCH_ITEM", "DUPLICATED_ITEM", "TOKEN_EXPIRED", "USER_NOT_FOUND" or "DUPLICATED_USER".
+        /// </returns> 
         public static async Task<ServerResponse> AddLicenseKeyAsync(string accessToken , string licenseKey , DataContext db)
         {
             (ResponseStatus status , ResponseUser? user) = (await AccessTokenInteraction.GetAndValidateUserAsync(accessToken , db)).ToTuple();

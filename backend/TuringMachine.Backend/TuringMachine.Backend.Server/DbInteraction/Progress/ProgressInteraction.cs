@@ -22,7 +22,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.Progress
     {
         /// <returns>
         ///     Returns level progress when "SUCCESS". <br/><br/>
-        ///     Status is either "SUCCESS", "NO_SUCH_ITEM", "DUPLICATED_ITEM", "DUPLICATED_MACHINE" or "BACKEND_ERROR".
+        ///     Status is either "SUCCESS", "NO_SUCH_ITEM", "DUPLICATED_ITEM", "DUPLICATED_DESIGN" or "BACKEND_ERROR".
         /// </returns>
         public static async Task<ServerResponse<ResponseLevelProgress>> GetProgressAsync(string uuid , byte levelID , DataContext db)
         {
@@ -52,15 +52,15 @@ namespace TuringMachine.Backend.Server.DbInteraction.Progress
             {
                 ResponseStatus.SUCCESS            => new ServerResponse<ResponseLevelProgress>(ResponseStatus.SUCCESS , responseLevelProcess) ,
                 ResponseStatus.BACKEND_ERROR      => new ServerResponse<ResponseLevelProgress>(ResponseStatus.BACKEND_ERROR) ,
-                ResponseStatus.MACHINE_NOT_FOUND  => new ServerResponse<ResponseLevelProgress>(ResponseStatus.BACKEND_ERROR) ,
-                ResponseStatus.DUPLICATED_MACHINE => new ServerResponse<ResponseLevelProgress>(ResponseStatus.DUPLICATED_MACHINE) ,
+                ResponseStatus.DESIGN_NOT_FOUND  => new ServerResponse<ResponseLevelProgress>(ResponseStatus.BACKEND_ERROR) ,
+                ResponseStatus.DUPLICATED_DESIGN => new ServerResponse<ResponseLevelProgress>(ResponseStatus.DUPLICATED_DESIGN) ,
                 _                                 => throw new UnreachableException() ,
             };
         }
 
         /// <returns>
         ///     Returns level progress when "SUCCESS". <br/><br/>
-        ///     Status is either "SUCCESS", "NO_SUCH_ITEM", "DUPLICATED_ITEM", "DUPLICATED_MACHINE" or "BACKEND_ERROR".
+        ///     Status is either "SUCCESS", "NO_SUCH_ITEM", "DUPLICATED_ITEM", "DUPLICATED_DESIGN" or "BACKEND_ERROR".
         /// </returns>
         public static async Task<ServerResponse<ResponseLevelProgress>> GetLatestProgressAsync(string uuid , DataContext db)
         {
@@ -116,7 +116,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.Progress
 
         /// <returns>
         ///     When successfully update a progress info, return status "SUCCESS". <br/><br/>
-        ///     Status is either "SUCCESS", "MACHINE_NOT_FOUND", "DUPLICATED_MACHINE", "NO_SUCH_ITEM" or "DUPLICATED_ITEM".
+        ///     Status is either "SUCCESS", "DESIGN_NOT_FOUND", "DUPLICATED_DESIGN", "NO_SUCH_ITEM" or "DUPLICATED_ITEM".
         /// </returns>
         public static async Task<ServerResponse> UpdateProgress(string uuid , byte levelID , ResponseLevelProgress level , bool isSolved , DataContext db)
         {
@@ -131,7 +131,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.Progress
 
         /// <returns>
         ///     When successfully update a progress info, return status "SUCCESS". <br/><br/>
-        ///     Status is either "SUCCESS", "MACHINE_NOT_FOUND", "DUPLICATED_MACHINE", "NO_SUCH_ITEM" or "DUPLICATED_ITEM".
+        ///     Status is either "SUCCESS", "DESIGN_NOT_FOUND", "DUPLICATED_DESIGN", "NO_SUCH_ITEM" or "DUPLICATED_ITEM".
         /// </returns>
         public static async Task<ServerResponse> UpdateProgress(string uuid , byte levelID , ResponseTuringMachineDesign design , bool isSolved , DataContext db)
         {
@@ -146,7 +146,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.Progress
 
         /// <returns>
         ///     When successfully deleted a progress info, return status "SUCCESS". <br/><br/>
-        ///     Status is either "SUCCESS", "MACHINE_NOT_FOUND", "DUPLICATED_MACHINE", "NO_SUCH_ITEM" or "DUPLICATED_ITEM".
+        ///     Status is either "SUCCESS", "DESIGN_NOT_FOUND", "DUPLICATED_DESIGN", "NO_SUCH_ITEM" or "DUPLICATED_ITEM".
         /// </returns>
         public static async Task<ServerResponse> DeleteProgressAsync(string uuid , byte levelID , bool isDesignRemovable, DataContext db)
         {

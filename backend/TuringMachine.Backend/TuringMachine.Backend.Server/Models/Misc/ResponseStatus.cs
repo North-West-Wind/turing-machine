@@ -18,7 +18,7 @@ namespace TuringMachine.Backend.Server.Models.Misc
 
         NO_SUCH_ITEM ,
         USER_NOT_FOUND ,
-        MACHINE_NOT_FOUND ,
+        DESIGN_NOT_FOUND ,
 
         TOO_MANY_REQUEST ,
         BACKEND_ERROR ,
@@ -28,7 +28,7 @@ namespace TuringMachine.Backend.Server.Models.Misc
         INVALID_LICENSE ,
 
         DUPLICATED_USER ,
-        DUPLICATED_MACHINE ,
+        DUPLICATED_DESIGN ,
         DUPLICATED_ITEM ,
         DUPLICATED_MACHINE_LABEL ,
     }

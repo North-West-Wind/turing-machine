@@ -24,9 +24,9 @@ namespace TuringMachine.Backend.Server.DbInteraction.UiLabels
     {
         /// <returns>
         ///     Return a complete set of labels for one machine when "SUCCESS". <br/><br/>
-        ///     Status is either "SUCCESS", "MACHINE_NOT_FOUND", "DUPLICATED_MACHINE_LABEL" or "BACKEND_ERROR".
+        ///     Status is either "SUCCESS", "NO_SUCH_ITEM", "DUPLICATED_ITEM", "DESIGN_NOT_FOUND", "DUPLICATED_MACHINE_LABEL" or "BACKEND_ERROR".
         /// </returns>
-        public static ServerResponse<ResponseMachineLabel> GetMachineLabel(string machineID , DataContext db)
+        public static ServerResponse<ResponseMachineLabel> GetMachineLabel(string machineID , DataContext db)  // TODO: extract common method
         {
 // @formatter:off
             using IEnumerator<DbMachineLabel> machineLabels = db.MachineLabels.Where(label => label.MachineID.ToString() == machineID)
@@ -35,8 +35,10 @@ namespace TuringMachine.Backend.Server.DbInteraction.UiLabels
                                                                               .Include(machineLabel => machineLabel.NodeLabels)
                                                                               .GetEnumerator();
             
-            if (!machineLabels.MoveNext()) return new ServerResponse<ResponseMachineLabel>(ResponseStatus.NO_SUCH_ITEM)   ;             DbMachineLabel dbMachineLabel = machineLabels.Current;
-            if ( machineLabels.MoveNext()) return new ServerResponse<ResponseMachineLabel>(ResponseStatus.DUPLICATED_ITEM); // @formatter:on
+            if (!machineLabels.MoveNext()) return new ServerResponse<ResponseMachineLabel>(ResponseStatus.NO_SUCH_ITEM)   ;
+            DbMachineLabel dbMachineLabel = machineLabels.Current;
+            if ( machineLabels.MoveNext()) return new ServerResponse<ResponseMachineLabel>(ResponseStatus.DUPLICATED_ITEM);
+// @formatter:on
 
             ResponseMachineBoxLabel[] responseMachineBoxLabels = new ResponseMachineBoxLabel[dbMachineLabel.BoxLabels.Count];
             foreach (DbMachineBoxLabel dbMachineBoxLabel in dbMachineLabel.BoxLabels)
@@ -51,8 +53,8 @@ namespace TuringMachine.Backend.Server.DbInteraction.UiLabels
 
                 responseMachineBoxLabels[index] = new ResponseMachineBoxLabel
                 {
-                    Start = new Vector2 { X = dbMachineBoxLabel.StartX , Y = dbMachineBoxLabel.StartY } ,
-                    Size  = new Vector2 { X = dbMachineBoxLabel.Width , Y  = dbMachineBoxLabel.Height } ,
+                    Start = new Vector2 { X = (float)dbMachineBoxLabel.StartX , Y = (float)dbMachineBoxLabel.StartY } ,
+                    Size  = new Vector2 { X = (float)dbMachineBoxLabel.Width , Y  = (float)dbMachineBoxLabel.Height } ,
                     Color = dbMachineBoxLabel.Color ,
                 };
             }
@@ -70,7 +72,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.UiLabels
 
                 responseMachineTextLabels[index] = new ResponseMachineTextLabel
                 {
-                    Position = new Vector2 { X = dbMachineTextLabel.PosX , Y = dbMachineTextLabel.PosY } ,
+                    Position = new Vector2 { X = (float)dbMachineTextLabel.PosX , Y = (float)dbMachineTextLabel.PosY } ,
                     Value    = dbMachineTextLabel.Value ,
                 };
             }
@@ -89,7 +91,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.UiLabels
 
                 responseMachineNodeLabels[index] = new ResponseMachineNodeLabel
                 {
-                    Position = new Vector2 { X = dbMachineNodeLabel.PosX , Y = dbMachineNodeLabel.PosY } ,
+                    Position = new Vector2 { X = (float)dbMachineNodeLabel.PosX , Y = (float)dbMachineNodeLabel.PosY } ,
                     Label    = dbMachineNodeLabel.Label ,
                     IsFinal  = dbMachineNodeLabel.IsFinal ,
                 };
@@ -123,6 +125,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.UiLabels
             await db.MachineLabels.AddAsync(dbMachineLabel);
             string machineLabelID = dbMachineLabel.MachineLabelID.ToString();
 
+            dbMachineLabel.BoxLabels ??= new List<DbMachineBoxLabel>();
             for (byte i = 0; i < machineLabel.Boxes.Count; i++)
                 dbMachineLabel.BoxLabels.Add(
                     new DbMachineBoxLabel
@@ -137,6 +140,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.UiLabels
                     }
                 );
 
+            dbMachineLabel.TextLabels ??= new List<DbMachineTextLabel>();
             for (byte i = 0; i < machineLabel.Texts.Count; i++)
                 dbMachineLabel.TextLabels.Add(
                     new DbMachineTextLabel
@@ -149,6 +153,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.UiLabels
                     }
                 );
 
+            dbMachineLabel.NodeLabels ??= new List<DbMachineNodeLabel>();
             for (byte i = 0; i < machineLabel.Nodes.Count; i++)
                 dbMachineLabel.NodeLabels.Add(
                     new DbMachineNodeLabel

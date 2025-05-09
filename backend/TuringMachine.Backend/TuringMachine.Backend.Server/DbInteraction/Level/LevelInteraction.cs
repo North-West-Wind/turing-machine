@@ -28,7 +28,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.Level
     {
         /// <returns>
         ///     Return level information with user progress when "SUCCESS". <br/><br/>
-        ///     Status is either "SUCCESS", "NO_SUCH_ITEM", "MACHINE_NOT_FOUND", "USER_NOT_FOUND" or "DUPLICATED_USER".
+        ///     Status is either "SUCCESS", TOKEN_EXPIRED", "USER_NOT_FOUND" or "DUPLICATED_USER".
         /// </returns>
         public static async Task<ServerResponse<LevelResponseBody>> GetUserLevelInfoAsync(string uuid , byte levelID , DataContext db)
         {
@@ -53,10 +53,10 @@ namespace TuringMachine.Backend.Server.DbInteraction.Level
                 return new ServerResponse<LevelResponseBody>(ResponseStatus.DUPLICATED_ITEM); 
 
             // get last submitted design if user had submitted last time
-            (status , ResponseMachineDesign? design) = (ResponseStatus.MACHINE_NOT_FOUND , null);
+            (status , ResponseMachineDesign? design) = (ResponseStatus.DESIGN_NOT_FOUND , null);
             if (progress.Solution is not null)
                 (status , design) = MachineInteraction.GetTuringMachineDesign(progress.Solution.DesignID.ToString() , db).ToTuple();
-            if (status is not ResponseStatus.SUCCESS and ResponseStatus.MACHINE_NOT_FOUND)  // if status is neither SUCCESS nor MACHINE_NOT_FOUND, return error status to indicate a backend problem.
+            if (status is not ResponseStatus.SUCCESS and ResponseStatus.DESIGN_NOT_FOUND)  // if status is neither SUCCESS nor DESIGN_NOT_FOUND, return error status to indicate a backend problem.
                 return new ServerResponse<LevelResponseBody>(status);
 
 // @formatter:off    concatenate allowed tape type into array

@@ -88,9 +88,10 @@ namespace TuringMachine.Backend.Server.DbInteraction.UserManagement
                 return new ServerResponse<ResponseUser>(ResponseStatus.DUPLICATED_USER);
 #if RELEASE
             if (user.TokenExpireTime < DateTime.Now) 
-                return new ServerResponse<ResponseUser>(Status.Expired);
+                return new ServerResponse<ResponseUser>(ResponseStatus.TOKEN_EXPIRED);
 #endif
             user.TokenExpireTime = DateTime.Now.AddMinutes(30);  // updates access token expire time
+            
             await db.SaveChangesAsync();
             return new ServerResponse<ResponseUser>(ResponseStatus.SUCCESS , new ResponseUser { UUID = user.UUID , Username = user.Username , Password = user.Password });
         }

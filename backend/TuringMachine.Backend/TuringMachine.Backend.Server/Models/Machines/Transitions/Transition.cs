@@ -1,5 +1,7 @@
 ﻿using System.Numerics;
+using System.Text.Json.Serialization;
 using TuringMachine.Backend.Server.Database.Entity.UiLabels;
+using TuringMachine.Backend.Server.GlobalOptions.CustomJsonConverter;
 
 namespace TuringMachine.Backend.Server.Models.Machines.Transitions
 {
@@ -10,6 +12,7 @@ namespace TuringMachine.Backend.Server.Models.Machines.Transitions
 
         public IList<TransitionStatement> Statements { get; set; }
 
+        [JsonConverter(typeof(Vector2IListJsonConverter))]
         public IList<Vector2>? TransitionLineSteps { get; set; }
     }
 }

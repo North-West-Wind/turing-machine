@@ -32,10 +32,11 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
     {
         /// <returns>
         ///     Returns a turing machine design when "SUCCESS". <br/><br/>
-        ///     Status is either "SUCCESS", "MACHINE_NOT_FOUND", "DUPLICATED_MACHINE", "DUPLICATED_MACHINE_LABEL" or "BACKEND_ERROR".
+        ///     Status is either "SUCCESS", "DESIGN_NOT_FOUND", "DUPLICATED_DESIGN", "DUPLICATED_MACHINE_LABEL" or "BACKEND_ERROR".
         /// </returns>
         public static ServerResponse<ResponseTuringMachineDesign> GetTuringMachineDesign(string designID , DataContext db)
         {
+            ResponseStatus status;
 // @formatter:off
             using IEnumerator<DbTuringMachineDesign> designs = db.MachineDesigns.Where(design => design.DesignID.ToString() == designID)
                                                                                 .Include(design => design.Tapes)
@@ -43,20 +44,18 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
                                                                                 .Include(design => design.Machines).ThenInclude(machine => machine.Heads)
                                                                                 .GetEnumerator();
 
-            if (!designs.MoveNext()) return new ServerResponse<ResponseTuringMachineDesign>(ResponseStatus.MACHINE_NOT_FOUND );             
+            if (!designs.MoveNext()) return new ServerResponse<ResponseTuringMachineDesign>(ResponseStatus.DESIGN_NOT_FOUND );             
             DbTuringMachineDesign dbDesign = designs.Current;
-            if ( designs.MoveNext()) return new ServerResponse<ResponseTuringMachineDesign>(ResponseStatus.DUPLICATED_MACHINE); 
+            if ( designs.MoveNext()) return new ServerResponse<ResponseTuringMachineDesign>(ResponseStatus.DUPLICATED_DESIGN); 
 // @formatter:on
 
-            ResponseTuringMachineTape[] responseTapes = new ResponseTuringMachineTape[dbDesign.Tapes.Count];
-            foreach (DbTuringMachineTape dbTape in dbDesign.Tapes)
-                responseTapes[dbTape.TapeIndex] = new ResponseTuringMachineTape { Type = dbTape.TapeType , Values = dbTape.TapeValues , IsInput = dbTape.IsInput , IsOutput = dbTape.IsOutput };
+            (status , IList<ResponseTuringMachineTape>?responseTapes) = GetTapes(designID , db).ToTuple();
+            if (status != ResponseStatus.SUCCESS)
+                return new ServerResponse<ResponseTuringMachineDesign>(status);
 
             List<ResponseTuringMachine> responseTuringMachines = new List<ResponseTuringMachine>(dbDesign.Machines.Count);
             foreach (DbTuringMachine dbMachine in dbDesign.Machines)
             {
-                ResponseStatus status;
-
                 (status, IList<ResponseTuringMachineHead>? responseMachineHeads) = GetMachineHead(dbMachine.MachineID.ToString() , db).ToTuple();
                 if (status != ResponseStatus.SUCCESS)
                     return new ServerResponse<ResponseTuringMachineDesign>(status);
@@ -73,7 +72,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
                         responseTuringMachine.Label = label;
                         break;
 
-                    case (ResponseStatus.MACHINE_NOT_FOUND , _):
+                    case (ResponseStatus.DESIGN_NOT_FOUND , _):
                         responseTuringMachine.Label = null;
                         break;
 
@@ -116,9 +115,9 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
 
         /// <returns>
         ///     When successfully update a Turing Machine design, return status "SUCCESS". <br/><br/>
-        ///     Status is either "SUCCESS", "MACHINE_NOT_FOUND", "DUPLICATED_MACHINE", "NO_SUCH_ITEM" or "DUPLICATED_ITEM".
+        ///     Status is either "SUCCESS", "DESIGN_NOT_FOUND", "DUPLICATED_DESIGN", "NO_SUCH_ITEM" or "DUPLICATED_ITEM".
         /// </returns>
-        public static async Task<ServerResponse> UpdateTuringMachineDesignAsync(string oldDesignID , ResponseTuringMachineDesign newDesign , DataContext db)
+        public static async Task<ServerResponse> UpdateTuringMachineDesignAsync(string oldDesignID , ResponseTuringMachineDesign newDesign , DataContext db)  // BUG: when updating, the new design should have the same design ID as the old design.
         {
             ServerResponse response;
 
@@ -135,7 +134,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
 
         /// <returns>
         ///     When successfully deleted a Turing Machine design, return status "SUCCESS". <br/><br/>
-        ///     Status is either "SUCCESS", "MACHINE_NOT_FOUND", "DUPLICATED_MACHINE", "NO_SUCH_ITEM" or "DUPLICATED_ITEM".
+        ///     Status is either "SUCCESS", "DESIGN_NOT_FOUND", "DUPLICATED_DESIGN", "NO_SUCH_ITEM" or "DUPLICATED_ITEM".
         /// </returns>
         public static async Task<ServerResponse> DeleteTuringMachineDesignAsync(string designID , DataContext db)
         {
@@ -160,12 +159,9 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
 
         #region Helper Functions
         #region Get Turing Machine Design
-        // TODO: Extract some of the code in GetTuringMachine() function as a helper functions to enhance readability.
-
-
         /// <returns>
         ///     Returns a list of transition (for a particular machine) when "SUCCESS". <br/><br/>
-        ///     Status is either "SUCCESS", "MACHINE_NOT_FOUND", "DUPLICATED_MACHINE", "NO_SUCH_ITEM", "DUPLICATED_ITEM" or "BACKEND_ERROR".
+        ///     Status is either "SUCCESS", "DESIGN_NOT_FOUND", "DUPLICATED_DESIGN", "NO_SUCH_ITEM", "DUPLICATED_ITEM" or "BACKEND_ERROR".
         /// </returns>
         private static ServerResponse<ICollection<ResponseTransition>> GetTuringMachineTransitions(string machineID , DataContext db)
         {
@@ -175,9 +171,9 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
                                                                      .GetEnumerator();
 // @formatter:on
 
-            if (!machines.MoveNext()) return new ServerResponse<ICollection<ResponseTransition>>(ResponseStatus.MACHINE_NOT_FOUND);
+            if (!machines.MoveNext()) return new ServerResponse<ICollection<ResponseTransition>>(ResponseStatus.DESIGN_NOT_FOUND);
             ICollection<DbTransition> dbTransitions = machines.Current.Transitions;
-            if (machines.MoveNext()) return new ServerResponse<ICollection<ResponseTransition>>(ResponseStatus.DUPLICATED_MACHINE);
+            if (machines.MoveNext()) return new ServerResponse<ICollection<ResponseTransition>>(ResponseStatus.DUPLICATED_DESIGN);
 
             List<ResponseTransition> responseTransitions = new List<ResponseTransition>(dbTransitions.Count);
             foreach (DbTransition dbTransition in dbTransitions)
@@ -245,7 +241,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
         ///     Returns a list of transition (for a particular machine) when "SUCCESS". <br/><br/>
         ///     Status will always be "SUCCESS". But still include status comparison in case implementation changes (with error arise).
         /// </returns>
-        public static ServerResponse<ICollection<ResponseTuringMachineTape>> GetTapes(string designID , DataContext db)
+        public static ServerResponse<IList<ResponseTuringMachineTape>> GetTapes(string designID , DataContext db)
         {
             IQueryable<DbTuringMachineTape> dbTapes = db.Tapes.Where(tape => tape.DesignID.ToString() == designID);
             
@@ -259,14 +255,14 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
                     IsOutput = dbTape.IsOutput ,
                 });
 
-            return new ServerResponse<ICollection<ResponseTuringMachineTape>>(ResponseStatus.SUCCESS , responseTapes);
+            return new ServerResponse<IList<ResponseTuringMachineTape>>(ResponseStatus.SUCCESS , responseTapes);
         }
         #endregion
 
         #region Insert Turing Machine Design
         /// <returns>
         ///     When successfully inserted a list of turing machine tapes, return status "SUCCESS". <br/><br/>
-        ///     Status is either "SUCCESS" or "BACKEND_ERROR".
+        ///     Status will always be "SUCCESS". But still include status comparison in case implementation changes (with error arise).
         /// </returns>
         private static async Task<ServerResponse> InsertTuringMachineTapesAsync(IList<ResponseTuringMachineTape> tapes , string designID , DataContext db)  // TODO: clear changes when failure, change BACKEND_ERROR to FAILURE when cleared.
         {
@@ -288,15 +284,14 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
                     }
                 );
 
-            int changedEntries = await db.SaveChangesAsync();
-            return changedEntries == tapes.Count ? new ServerResponse(ResponseStatus.SUCCESS)
-                                                 : new ServerResponse(ResponseStatus.BACKEND_ERROR);
+            await db.SaveChangesAsync();
+            return new ServerResponse(ResponseStatus.SUCCESS);
 // @formatter:on
         }
 
         /// <returns>
         ///     When successfully inserted a turing machine, return status "SUCCESS". <br/><br/>
-        ///     Status will always be "SUCCESS". But still include status comparison in case implementation changes (with error arise).
+        ///     Status is either "SUCCESS" or "BACKEND_ERROR".
         /// </returns>
         private static async Task<ServerResponse> InsertTuringMachineAsync(ResponseTuringMachine machine , string designID , DataContext db)  // TODO: clear changes when failure, change BACKEND_ERROR to FAILURE when cleared.
         {
@@ -355,14 +350,13 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
                     }
                 );
 
-            int changedEntries = await db.SaveChangesAsync();
-            return changedEntries == head.Count ? new ServerResponse(ResponseStatus.SUCCESS)
-                                                : new ServerResponse(ResponseStatus.BACKEND_ERROR);
+            await db.SaveChangesAsync();
+            return new ServerResponse(ResponseStatus.SUCCESS);
         }
-        
+
         /// <returns>
         ///     When successfully inserted a transition, return status "SUCCESS". <br/><br/>
-        ///     Status is either "SUCCESS" or "BACKEND_ERROR".
+        ///     Status will always be "SUCCESS". But still include status comparison in case implementation changes (with error arise).
         /// </returns>
         private static async Task<ServerResponse> InsertTransitionAsync(ResponseTransition transition , string machineID , DataContext db)
         {
@@ -404,6 +398,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
         public static async Task<ServerResponse> DeleteMachineTapesAsync(string designID , DataContext db)
         {
             using IEnumerator<DbTuringMachineDesign> machines = db.MachineDesigns.Where(design => design.DesignID.ToString() == designID).GetEnumerator();
+            
             if (!machines.MoveNext()) return new ServerResponse(ResponseStatus.NO_SUCH_ITEM);
             DbTuringMachineDesign dbDesign = machines.Current;
             if (machines.MoveNext()) return new ServerResponse(ResponseStatus.DUPLICATED_ITEM);
@@ -416,14 +411,15 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
 
         /// <returns>
         ///     When successfully deleted a list of heads associated to a Turing Machine, return status "SUCCESS". <br/><br/>
-        ///     Status is either "SUCCESS", "MACHINE_NOT_FOUND" or "DUPLICATED_MACHINE".
+        ///     Status is either "SUCCESS", "DESIGN_NOT_FOUND" or "DUPLICATED_DESIGN".
         /// </returns>
         public static async Task<ServerResponse> DeleteMachineHeadsAsync(string machineID , DataContext db)
         {
             using IEnumerator<DbTuringMachine> machines = db.Machines.Where(machine => machine.MachineID.ToString() == machineID).GetEnumerator();
-            if (!machines.MoveNext()) return new ServerResponse(ResponseStatus.MACHINE_NOT_FOUND);
+            
+            if (!machines.MoveNext()) return new ServerResponse(ResponseStatus.DESIGN_NOT_FOUND);
             DbTuringMachine dbMachine = machines.Current;
-            if (machines.MoveNext()) return new ServerResponse(ResponseStatus.DUPLICATED_MACHINE);
+            if (machines.MoveNext()) return new ServerResponse(ResponseStatus.DUPLICATED_DESIGN);
             
             db.Heads.RemoveRange(db.Heads.Where(head => head.MachineID == dbMachine.MachineID));
             
@@ -433,14 +429,15 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
 
         /// <returns>
         ///     When successfully deleted a list of transitions associated to a Turing Machine design, return status "SUCCESS". <br/><br/>
-        ///     Status is either "SUCCESS", "MACHINE_NOT_FOUND", "DUPLICATED_MACHINE", "NO_SUCH_ITEM" or "DUPLICATED_ITEM".
+        ///     Status is either "SUCCESS", "DESIGN_NOT_FOUND", "DUPLICATED_DESIGN", "NO_SUCH_ITEM" or "DUPLICATED_ITEM".
         /// </returns>
         public static async Task<ServerResponse> DeleteMachineTransitionsAsync(string machineID , DataContext db)
         {
             using IEnumerator<DbTuringMachine> machines = db.Machines.Where(machine => machine.MachineID.ToString() == machineID).GetEnumerator();
-            if (!machines.MoveNext()) return new ServerResponse(ResponseStatus.MACHINE_NOT_FOUND);
+            
+            if (!machines.MoveNext()) return new ServerResponse(ResponseStatus.DESIGN_NOT_FOUND);
             DbTuringMachine dbMachine = machines.Current;
-            if (machines.MoveNext()) return new ServerResponse(ResponseStatus.DUPLICATED_MACHINE);
+            if (machines.MoveNext()) return new ServerResponse(ResponseStatus.DUPLICATED_DESIGN);
 
             foreach (DbTransition transition in db.Transition.Where(transition => transition.MachineID == dbMachine.MachineID))
             {
@@ -455,15 +452,15 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
 
         /// <returns>
         ///     When successfully deleted a turing machine, return status "SUCCESS". <br/><br/>
-        ///     Status is either "SUCCESS", "MACHINE_NOT_FOUND" or "DUPLICATED_MACHINE".
+        ///     Status is either "SUCCESS", "DESIGN_NOT_FOUND" or "DUPLICATED_DESIGN".
         /// </returns>
         public static async Task<ServerResponse> DeleteTuringMachineAsync(string machineID , DataContext db)
         {
             using IEnumerator<DbTuringMachine> machines = db.Machines.Where(machine => machine.MachineID.ToString() == machineID).GetEnumerator();
 
-            if (!machines.MoveNext()) return new ServerResponse(ResponseStatus.MACHINE_NOT_FOUND);
+            if (!machines.MoveNext()) return new ServerResponse(ResponseStatus.DESIGN_NOT_FOUND);
             DbTuringMachine dbMachine = machines.Current;
-            if (machines.MoveNext()) return new ServerResponse(ResponseStatus.DUPLICATED_MACHINE);
+            if (machines.MoveNext()) return new ServerResponse(ResponseStatus.DUPLICATED_DESIGN);
 
             db.Machines.Remove(dbMachine);
             

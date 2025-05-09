@@ -195,7 +195,7 @@ namespace TuringMachine.Backend.Server.Database
                         .HasPrincipalKey<Transition>(transition => transition.TransitionID);
             #endregion
 
-            #region Machine Label Diagram
+            #region Machine Value Diagram
             modelBuilder.Entity<MachineLabel>()
                         .HasMany(machineLabel => machineLabel.BoxLabels)
                         .WithOne(boxLabel => boxLabel.MachineLabel)

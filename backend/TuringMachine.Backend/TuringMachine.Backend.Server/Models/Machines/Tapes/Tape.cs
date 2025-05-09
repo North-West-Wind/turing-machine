@@ -11,6 +11,7 @@ namespace TuringMachine.Backend.Server.Models.Machines.Tapes
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public bool IsInput { get; set; } = false;
+
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public bool IsOutput { get; set; } = false;
     }
