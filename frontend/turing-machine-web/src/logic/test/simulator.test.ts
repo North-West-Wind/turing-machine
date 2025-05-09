@@ -240,6 +240,14 @@ test('Test case 5: Standard and meaningful simulation: reverser.', () => {
                 ]
             ),
             new TransitionStatement(
+                transitionNodes[0],
+                transitionNodes[1],
+                [
+                    new HeadTransition('b', 'b', 1),
+                    new HeadTransition(TapeSymbols.Blank, TapeSymbols.Blank, 0)
+                ]
+            ),
+            new TransitionStatement(
                 transitionNodes[1],
                 transitionNodes[1],
                 [
