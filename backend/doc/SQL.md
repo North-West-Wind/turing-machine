@@ -28,6 +28,8 @@ DesignID  | uniqueidentifier | No
 TapeIndex | tinyint          | No
 TapeType  | tinyint          | No
 TapeValue | text             | Yes
+IsInput   | bit              | No
+IsOutput  | bit              | No
 TapeID    | uniqueidentifier | No
 
 #### Machines
@@ -35,6 +37,7 @@ Name      | Type             | Nullable
 ----------|------------------|----------
 DesignID  | uniqueidentifier | No
 MachineID | uniqueidentifier | No
+StartNode | smallint         | No
 
 #### Heads
 Name               | Type             | Nullable
@@ -44,6 +47,7 @@ IsReadable         | bit              | No
 IsWriteable        | bit              | No
 TapeReferenceIndex | tinyint          | No
 Position           | smallint         | No
+HeadIndex          | tinyint          | No
 
 #### Transitions
 Name         | Type             | Nullable
@@ -136,31 +140,43 @@ DesignID | uniqueidentifier | Yes
 Name           | Type             | Nullable
 ---------------|------------------|----------
 MachineID      | uniqueidentifier | No
-Title          | text             | No
+Title          | text             | Yes
+Color          | int              | No
 MachineLabelID | uniqueidentifier | No
 
 #### MachineBoxLabel
 Name           | Type             | Nullable
 ---------------|------------------|----------
 MachineLabelID | uniqueidentifier | No
-StartX         | int              | No
-StartY         | int              | No
-Width          | smallint         | No
-Height         | smallint         | No
-Color          | int              | No
+StartX         | float            | Yes
+StartY         | float            | Yes
+Width          | float            | Yes
+Height         | float            | Yes
+Color          | int              | yes
+LabelIndex     | tinyint          | No
 
 #### NodeLabel
 Name           | Type             | Nullable
 ---------------|------------------|----------
 MachineLabelID | uniqueidentifier | No
-Label          | text             | No
-PosX           | int              | No
-PosY           | int              | No
+Label          | text             | Yes
+PosX           | float            | Yes
+PosY           | float            | Yes
+LabelIndex     | tinyint          | No
+IsFinal        | bit              | Yes
 
 #### TextLabel
 Name           | Type             | Nullable
 ---------------|------------------|----------
 MachineLabelID | uniqueidentifier | No
-PosX           | int              | No
-PosY           | int              | No
-Value          | Text             | No
+PosX           | int              | Yes
+PosY           | int              | Yes
+Value          | Text             | Yes
+LabelIndex     | tinyint          | No
+
+#### TransitionLinePath
+Name           | Type             | Nullable
+---------------|------------------|----------
+TransitionID   | uniqueidentifier | No
+PathX          | varbinary(16)    | No
+PathY          | varbinary(16)    | No
