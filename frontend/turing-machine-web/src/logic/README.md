@@ -14,8 +14,8 @@ At this stage, the core simulator has been ported to frontend, where it achieves
  - Dynamic add and delete of machines/tapes
  - System state feedbacks
  - Variants of tapes
-
- As for the requirement, only variants of heads and state control are still in progress.
+ - Variants of heads
+ - Control signal
 
 ## Structure
 
@@ -167,6 +167,20 @@ Tape 3 RightBoundary: 7
 // First data '1' is at position 2, last '4' at position 7
 // Underscores represent blank
 ```
+
+## State Control System
+
+The Turing machine simulation implements three core states:  
+✅ **Running** - Active execution  
+⏸️ **Pause** - Temporary suspension  
+🛑 **Halt** - Terminal shutdown  
+
+States propagate through tape cells, enabling inter-machine coordination:  
+- Machines read/write state signals to cells  
+- State changes trigger immediate behavioral responses  
+- Supports complex logic construction (e.g., NAND gates)  
+
+See design & imple doc (section 3.4) for transition rules and termination conditions.  
 
 ## Side Note
 
