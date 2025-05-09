@@ -2,10 +2,10 @@
 {
     internal class MachineLabel
     {
-        public Guid   MachineLabelID { get; set; }
-        public Guid   MachineID      { get; set; }
-        public string Title          { get; set; }
-        public int    Color          { get; set; }
+        public Guid    MachineLabelID { get; set; }
+        public Guid    MachineID      { get; set; }
+        public string? Title          { get; set; }
+        public int     Color          { get; set; }
 
 
         #region Relation

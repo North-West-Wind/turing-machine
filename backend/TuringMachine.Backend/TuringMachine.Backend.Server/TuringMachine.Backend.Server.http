@@ -99,6 +99,192 @@ Content-Type: application/json
 }
 ###
 
-@designID = 3d7e4b65-d3ea-4842-ad8a-ba7b63bf50f3
+POST {{TuringMachine.Backend.Server_HostAddress}}/api/upload?accessToken={{access_token}}
+Content-Type: application/json
+{
+	"tapes": [
+		{ "type": "infinite", "values": "aab", "isInput": true, "isOutput": false },
+		{ "type": "infinite", "isInput": false, "isOutput": true },
+		{ "type": "infinite", "isInput": false, "isOutput": false }
+	],
+	"machines": [
+		{
+			"transitions": [
+				{
+					"source": 0,
+					"target": 2,
+					"statements": [
+						{ "read": "a", "write": "a", "move": 0 },
+						{ "read": "/", "write": "_", "move": 0 }
+					],
+					"transitionLineSteps": [
+						{ "x": 0, "y": -115.75178997613364 },
+						{ "x": 360.3818615751783, "y": 0 }
+					]
+				},
+				{
+					"source": 0,
+					"target": 2,
+					"statements": [
+						{ "read": "b", "write": "b", "move": 0 },
+						{ "read": "/", "write": "_", "move": 0 }
+					],
+					"transitionLineSteps": [
+						{ "x": 0, "y": -115.75178997613364 },
+						{ "x": 360.3818615751783, "y": 0 }
+					]
+				},
+				{
+					"source": 0,
+					"target": 2,
+					"statements": [
+						{ "read": "_", "write": "_", "move": 0 },
+						{ "read": "/", "write": "_", "move": 0 }
+					],
+					"transitionLineSteps": [
+						{ "x": 0, "y": -115.75178997613364 },
+						{ "x": 360.3818615751783, "y": 0 }
+					]
+				},
+				{
+					"source": 2,
+					"target": 4,
+					"statements": [
+						{ "read": "_", "write": "_", "move": 0 },
+						{ "read": "/", "write": "_", "move": 1 }
+					],
+					"transitionLineSteps": [
+						{ "x": 0, "y": 189.73747016706443 },
+						{ "x": 377.0883054892601, "y": 0 }
+					]
+				},
+				{
+					"source": 2,
+					"target": 2,
+					"statements": [
+						{ "read": "a", "write": "_", "move": 1 },
+						{ "read": "/", "write": "a", "move": -1 }
+					],
+					"transitionLineSteps": [
+						{ "x": 368.73508353221945, "y": 0 },
+						{ "x": 0, "y": -262.5298329355608 },
+						{ "x": -368.73508353221945, "y": 0 },
+						{ "x": 0, "y": 262.5298329355608 }
+					]
+				},
+				{
+					"source": 2,
+					"target": 2,
+					"statements": [
+						{
+							"read": "b",
+							"write": "_",
+							"move": 1
+						},
+						{
+							"read": "/",
+							"write": "b",
+							"move": -1
+						}
+					],
+					"transitionLineSteps": [
+						{ "x": 368.73508353221945, "y": 0 },
+						{ "x": 0, "y": -262.5298329355608 },
+						{ "x": -368.73508353221945, "y": 0 },
+						{ "x": 0, "y": 262.5298329355608 }
+					]
+				}
+			],
+			"heads": [
+				{
+					"type": "ReadWrite",
+					"tape": 0,
+					"position": 0
+				},
+				{
+					"type": "Write",
+					"tape": 1,
+					"position": 0
+				}
+			],
+			"startNode": 0,
+			"label": {
+				"color": 3351585,
+				"boxes": [
+					{
+						"start": { "x": 63, "y": -136 },
+						"size": { "x": 96, "y": 99 },
+						"color": 10783844
+					},
+					{},
+					{
+						"start": { "x": 282, "y": -133 },
+						"size": { "x": 90, "y": 100 },
+						"color": 13876984
+					},
+					{},
+					{
+						"start": { "x": 235, "y": -10 },
+						"size": { "x": 83, "y": 85 },
+						"color": 5829724
+					}
+				],
+				"texts": [
+					{
+						"position": { "x": 613, "y": 11 },
+						"value": "a"
+					},
+					{
+						"position": { "x": 632, "y": 39 },
+						"value": "b"
+					},
+					{},
+					{
+						"position": { "x": 674, "y": 38 },
+						"value": "d"
+					},
+					{
+						"position": { "x": 702, "y": 12 },
+						"value": "e"
+					}
+				],
+				"nodes": [
+					{
+						"position": { "x": 114.70239302072802, "y": 260.4282377869705 },
+						"isFinal": false
+					},
+					{},
+					{
+						"position": { "x": 475.084254595907, "y": 144.67644781083686 },
+						"isFinal": false
+					},
+					{},
+					{
+						"position": { "x": 852.1725600851671, "y": 334.4139179779013 },
+						"isFinal": false
+					}
+				]
+			}
+		},
+		{
+			"transitions": [],
+			"heads": [],
+			"startNode": 0,
+			"label": {
+				"color": 13185241,
+				"boxes": [],
+				"texts": [],
+				"nodes": [
+					{
+						"position": { "x": 100, "y": 100 }
+					}
+				]
+			}
+		}
+	]
+}
+###
+
+@designID = d3eb906e-3657-4ba5-a88a-9a4915b96c51
 GET {{TuringMachine.Backend.Server_HostAddress}}/api/import?accessToken={{access_token}}&designID={{designID}}
 Accept: application/json

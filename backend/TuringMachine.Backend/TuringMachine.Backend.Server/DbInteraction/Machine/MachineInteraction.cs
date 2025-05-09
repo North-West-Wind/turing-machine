@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using TuringMachine.Backend.Server.Database;
 using TuringMachine.Backend.Server.DbInteraction.UiLabels;
 using TuringMachine.Backend.Server.Models.Machines.Heads;
+using TuringMachine.Backend.Server.Models.Machines.UI.MachineLabels;
 using TuringMachine.Backend.Server.Models.Misc;
 using TuringMachine.Backend.Server.ServerResponses;
 
@@ -22,6 +23,7 @@ using ResponseTuringMachine = TuringMachine.Backend.Server.Models.Machines.Turin
 using ResponseTransition = TuringMachine.Backend.Server.Models.Machines.Transitions.Transition;
 using ResponseTransitionStatement = TuringMachine.Backend.Server.Models.Machines.Transitions.TransitionStatement;
 using ResponseTuringMachineHead = TuringMachine.Backend.Server.Models.Machines.Heads.Head;
+using System.Collections.Generic;
 // @formatter:on
 #endregion
 
@@ -32,57 +34,76 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
     {
         /// <returns>
         ///     Returns a turing machine design when "SUCCESS". <br/><br/>
-        ///     Status is either "SUCCESS", "DESIGN_NOT_FOUND", "DUPLICATED_DESIGN", "DUPLICATED_MACHINE_LABEL" or "BACKEND_ERROR".
+        ///     Status is either "SUCCESS", "DESIGN_NOT_FOUND", "DUPLICATED_DESIGN" or "BACKEND_ERROR".
         /// </returns>
         public static ServerResponse<ResponseTuringMachineDesign> GetTuringMachineDesign(string designID , DataContext db)
         {
             ResponseStatus status;
-// @formatter:off
+            /*  Logic:
+             *  1. Get the design from the database.
+             *  2. Get the tapes associated to the design.
+             *  3. Get the machines associated to the design by the following logic:
+             *      a. Get machine heads associated to the machine.
+             *      b. Get transitions associated to the machine.
+             *      d. Get the machine label associated to the machine by the follow logic:
+             *          If the machine has label => assign label to the machine.
+             *          Otherwise,               => set label to null.
+             */
+
+            // @formatter:off
             using IEnumerator<DbTuringMachineDesign> designs = db.MachineDesigns.Where(design => design.DesignID.ToString() == designID)
                                                                                 .Include(design => design.Tapes)
                                                                                 .Include(design => design.Machines).ThenInclude(machine => machine.Transitions).ThenInclude(transition => transition.Statements)
                                                                                 .Include(design => design.Machines).ThenInclude(machine => machine.Heads)
                                                                                 .GetEnumerator();
 
-            if (!designs.MoveNext()) return new ServerResponse<ResponseTuringMachineDesign>(ResponseStatus.DESIGN_NOT_FOUND );             
+            if (!designs.MoveNext()) return ServerResponse.StartTracing<ResponseTuringMachineDesign>(nameof(GetTuringMachineDesign) , ResponseStatus.DESIGN_NOT_FOUND);
             DbTuringMachineDesign dbDesign = designs.Current;
-            if ( designs.MoveNext()) return new ServerResponse<ResponseTuringMachineDesign>(ResponseStatus.DUPLICATED_DESIGN); 
+            if ( designs.MoveNext()) return ServerResponse.StartTracing<ResponseTuringMachineDesign>(nameof(GetTuringMachineDesign) , ResponseStatus.DUPLICATED_DESIGN); 
 // @formatter:on
 
-            (status , IList<ResponseTuringMachineTape>?responseTapes) = GetTapes(designID , db).ToTuple();
-            if (status != ResponseStatus.SUCCESS)
-                return new ServerResponse<ResponseTuringMachineDesign>(status);
+            ServerResponse<IList<ResponseTuringMachineTape>> getTapesResponse = GetTapes(designID , db);
+            if (getTapesResponse.Status is not ResponseStatus.SUCCESS)
+                return getTapesResponse.WithThisTraceInfo<ResponseTuringMachineDesign>(nameof(GetTuringMachineDesign) , ResponseStatus.BACKEND_ERROR);
 
             List<ResponseTuringMachine> responseTuringMachines = new List<ResponseTuringMachine>(dbDesign.Machines.Count);
             foreach (DbTuringMachine dbMachine in dbDesign.Machines)
             {
-                (status, IList<ResponseTuringMachineHead>? responseMachineHeads) = GetMachineHead(dbMachine.MachineID.ToString() , db).ToTuple();
-                if (status != ResponseStatus.SUCCESS)
-                    return new ServerResponse<ResponseTuringMachineDesign>(status);
+                ServerResponse<IList<ResponseTuringMachineHead>> getMachineHeadResponse = GetMachineHead(dbMachine.MachineID.ToString() , db);
+                if (getMachineHeadResponse.Status is not ResponseStatus.SUCCESS)
+                    return getTapesResponse.WithThisTraceInfo<ResponseTuringMachineDesign>(nameof(GetTuringMachineDesign) , ResponseStatus.BACKEND_ERROR);
 
-                (status , ICollection<ResponseTransition>? transitions) = GetTuringMachineTransitions(dbMachine.MachineID.ToString() , db).ToTuple().ToTuple();
-                if (status != ResponseStatus.SUCCESS)
-                    return new ServerResponse<ResponseTuringMachineDesign>(status);
-
-                
-                ResponseTuringMachine responseTuringMachine = new ResponseTuringMachine { Transitions = transitions! , Heads = responseMachineHeads! , StartNode = dbMachine.StartNode };
-                switch (MachineLabelInteraction.GetMachineLabel(dbMachine.MachineID.ToString() , db).ToTuple())
+                ServerResponse<ICollection<ResponseTransition>> getTransitionResponse = GetTuringMachineTransitions(dbMachine.MachineID.ToString() , db);
+                if (getTransitionResponse.Status is not ResponseStatus.SUCCESS)
                 {
-                    case (ResponseStatus.SUCCESS , { } label):
-                        responseTuringMachine.Label = label;
+                    return getTransitionResponse.WithThisTraceInfo<ResponseTuringMachineDesign>(
+                        nameof(GetTuringMachineDesign) ,
+                        getTransitionResponse.Status is ResponseStatus.DESIGN_NOT_FOUND or ResponseStatus.NO_SUCH_ITEM
+                            ? ResponseStatus.DESIGN_NOT_FOUND
+                            : ResponseStatus.BACKEND_ERROR
+                    );
+                }
+
+                ResponseTuringMachine responseTuringMachine = new ResponseTuringMachine { Transitions = getTransitionResponse.Result! , Heads = getMachineHeadResponse.Result! , StartNode = dbMachine.StartNode };
+
+                // If the machine has label, assign label to the machine. 
+                // Otherwise, set label to null.
+                ServerResponse<MachineLabel> getMachineLabelResponse = MachineLabelInteraction.GetMachineLabel(dbMachine.MachineID.ToString() , db);
+                switch (getMachineLabelResponse.Status)
+                {
+                    case ResponseStatus.SUCCESS:
+                        responseTuringMachine.Label = getMachineLabelResponse.Result;
                         break;
 
-                    case (ResponseStatus.DESIGN_NOT_FOUND , _):
+                    case ResponseStatus.NO_SUCH_ITEM:
                         responseTuringMachine.Label = null;
                         break;
 
-                    case (ResponseStatus.BACKEND_ERROR , _):            return new ServerResponse<ResponseTuringMachineDesign>(ResponseStatus.BACKEND_ERROR);
-                    case (ResponseStatus.DUPLICATED_MACHINE_LABEL , _): return new ServerResponse<ResponseTuringMachineDesign>(ResponseStatus.DUPLICATED_MACHINE_LABEL);
+                    default: return getMachineLabelResponse.WithThisTraceInfo<ResponseTuringMachineDesign>(nameof(GetTuringMachineDesign) , ResponseStatus.BACKEND_ERROR);
                 }
-
                 responseTuringMachines.Add(responseTuringMachine);
             }
-            return new ServerResponse<ResponseTuringMachineDesign>(ResponseStatus.SUCCESS , new ResponseTuringMachineDesign { Tapes = responseTapes , Machines = responseTuringMachines });
+            return new ServerResponse<ResponseTuringMachineDesign>(ResponseStatus.SUCCESS , new ResponseTuringMachineDesign { Tapes = getTapesResponse.Result! , Machines = responseTuringMachines });
         }
 
         /// <returns>
@@ -100,13 +121,13 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
 
             ServerResponse response = await InsertTuringMachineTapesAsync(design.Tapes , designID , db);
             if (response.Status is not ResponseStatus.SUCCESS)
-                return new ServerResponse<string>(response.Status);
+                return response.WithThisTraceInfo<string>(nameof(InsertTuringMachineDesignAsync) , ResponseStatus.BACKEND_ERROR);
 
             foreach (ResponseTuringMachine machine in design.Machines)
             {
                 response = await InsertTuringMachineAsync(machine , designID , db);
                 if (response.Status is not ResponseStatus.SUCCESS)
-                    return new ServerResponse<string>(response.Status);
+                    return response.WithThisTraceInfo<string>(nameof(InsertTuringMachineDesignAsync) , ResponseStatus.BACKEND_ERROR);
             }
 
             await db.SaveChangesAsync();
@@ -115,7 +136,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
 
         /// <returns>
         ///     When successfully update a Turing Machine design, return status "SUCCESS". <br/><br/>
-        ///     Status is either "SUCCESS", "DESIGN_NOT_FOUND", "DUPLICATED_DESIGN", "NO_SUCH_ITEM" or "DUPLICATED_ITEM".
+        ///     Status is either "SUCCESS" or "BACKEND_ERROR".
         /// </returns>
         public static async Task<ServerResponse> UpdateTuringMachineDesignAsync(string oldDesignID , ResponseTuringMachineDesign newDesign , DataContext db)  // BUG: when updating, the new design should have the same design ID as the old design.
         {
@@ -123,32 +144,43 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
 
             response = await DeleteTuringMachineDesignAsync(oldDesignID , db);
             if (response.Status is not ResponseStatus.SUCCESS)
-                return response;
+                return response.WithThisTraceInfo(nameof(UpdateTuringMachineDesignAsync) , ResponseStatus.BACKEND_ERROR);
 
             response = await InsertTuringMachineDesignAsync(newDesign , db);
             if (response.Status is not ResponseStatus.SUCCESS)
-                return response;
+                return response.WithThisTraceInfo(nameof(UpdateTuringMachineDesignAsync) , ResponseStatus.BACKEND_ERROR);
 
             return new ServerResponse(ResponseStatus.SUCCESS);
         }
 
         /// <returns>
         ///     When successfully deleted a Turing Machine design, return status "SUCCESS". <br/><br/>
-        ///     Status is either "SUCCESS", "DESIGN_NOT_FOUND", "DUPLICATED_DESIGN", "NO_SUCH_ITEM" or "DUPLICATED_ITEM".
+        ///     Status is either "SUCCESS", "NO_SUCH_ITEM" or "DUPLICATED_ITEM" or "BACKEND_ERROR".
         /// </returns>
         public static async Task<ServerResponse> DeleteTuringMachineDesignAsync(string designID , DataContext db)
         {
             using IEnumerator<DbTuringMachineDesign> designs = db.MachineDesigns.Where(design => design.DesignID.ToString() == designID).GetEnumerator();
-            if (!designs.MoveNext()) return new ServerResponse(ResponseStatus.NO_SUCH_ITEM);
+            if (!designs.MoveNext()) return ServerResponse.StartTracing(nameof(DeleteTuringMachineDesignAsync) , ResponseStatus.NO_SUCH_ITEM);
             DbTuringMachineDesign dbDesign = designs.Current;
-            if (designs.MoveNext()) return new ServerResponse(ResponseStatus.DUPLICATED_ITEM);
+            if (designs.MoveNext()) return ServerResponse.StartTracing(nameof(DeleteTuringMachineDesignAsync) , ResponseStatus.DUPLICATED_ITEM);
 
             foreach (DbTuringMachine dbDesignMachine in dbDesign.Machines)
             {
+                ServerResponse response;
+
                 string machineID = dbDesignMachine.MachineID.ToString();
-                await DeleteMachineTransitionsAsync(machineID , db);
-                await DeleteMachineHeadsAsync(machineID , db);
-                await DeleteMachineTapesAsync(machineID , db);
+
+                response = await DeleteMachineTransitionsAsync(machineID , db);
+                if (response.Status != ResponseStatus.SUCCESS)
+                    return response.WithThisTraceInfo(nameof(DeleteTuringMachineDesignAsync) , ResponseStatus.BACKEND_ERROR);
+
+                response =  await DeleteMachineHeadsAsync(machineID , db);
+                if (response.Status != ResponseStatus.SUCCESS)
+                    return response.WithThisTraceInfo(nameof(DeleteTuringMachineDesignAsync) , ResponseStatus.BACKEND_ERROR);
+
+                response = await DeleteMachineTapesAsync(machineID , db);
+                if (response.Status != ResponseStatus.SUCCESS)
+                    return response.WithThisTraceInfo(nameof(DeleteTuringMachineDesignAsync) , ResponseStatus.BACKEND_ERROR);
             }
             db.MachineDesigns.Remove(dbDesign);
 
@@ -161,7 +193,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
         #region Get Turing Machine Design
         /// <returns>
         ///     Returns a list of transition (for a particular machine) when "SUCCESS". <br/><br/>
-        ///     Status is either "SUCCESS", "DESIGN_NOT_FOUND", "DUPLICATED_DESIGN", "NO_SUCH_ITEM", "DUPLICATED_ITEM" or "BACKEND_ERROR".
+        ///     Status is either "SUCCESS", "NO_SUCH_ITEM", "DUPLICATED_ITEM" or "BACKEND_ERROR".
         /// </returns>
         private static ServerResponse<ICollection<ResponseTransition>> GetTuringMachineTransitions(string machineID , DataContext db)
         {
@@ -171,9 +203,9 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
                                                                      .GetEnumerator();
 // @formatter:on
 
-            if (!machines.MoveNext()) return new ServerResponse<ICollection<ResponseTransition>>(ResponseStatus.DESIGN_NOT_FOUND);
+            if (!machines.MoveNext()) return ServerResponse.StartTracing<ICollection<ResponseTransition>>(nameof(GetTuringMachineTransitions) , ResponseStatus.NO_SUCH_ITEM);
             ICollection<DbTransition> dbTransitions = machines.Current.Transitions;
-            if (machines.MoveNext()) return new ServerResponse<ICollection<ResponseTransition>>(ResponseStatus.DUPLICATED_DESIGN);
+            if (machines.MoveNext()) return ServerResponse.StartTracing<ICollection<ResponseTransition>>(nameof(GetTuringMachineTransitions) , ResponseStatus.DUPLICATED_ITEM);
 
             List<ResponseTransition> responseTransitions = new List<ResponseTransition>(dbTransitions.Count);
             foreach (DbTransition dbTransition in dbTransitions)
@@ -187,9 +219,9 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
                         Move = dbTransitionStatement.Move ,
                     };
 
-                (ResponseStatus status, IList<Vector2>? paths) = DbTransitionLinePathInteraction.GetTransitionLinePath(dbTransition.TransitionID.ToString() , db).ToTuple();
-                if (status != ResponseStatus.SUCCESS)
-                    return new ServerResponse<ICollection<ResponseTransition>>(status);
+                ServerResponse<IList<Point>> getPathResponse = DbTransitionLinePathInteraction.GetTransitionLinePath(dbTransition.TransitionID.ToString() , db);
+                if (getPathResponse.Status != ResponseStatus.SUCCESS)
+                    return getPathResponse.WithThisTraceInfo<ICollection<ResponseTransition>>(nameof(GetTuringMachineTransitions) , ResponseStatus.BACKEND_ERROR);
 
                 responseTransitions.Add(
                     new ResponseTransition
@@ -197,7 +229,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
                         Source = dbTransition.Source ,
                         Target = dbTransition.Target ,
                         Statements = responseTransitionStatements ,
-                        TransitionLineSteps = paths ,
+                        TransitionLineSteps = getPathResponse.Result ,
                     }
                 );
             }
@@ -223,7 +255,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
                     case (false , true ): headType = HeadType.Write    ; break;
                     case (true  , true ): headType = HeadType.ReadWrite; break;
 
-                    default: return new ServerResponse<IList<ResponseTuringMachineHead>>(ResponseStatus.BACKEND_ERROR);
+                    default: return ServerResponse.StartTracing<IList<ResponseTuringMachineHead>>(nameof(GetMachineHead) , ResponseStatus.BACKEND_ERROR);
                 }
 // @formatter:on
 
@@ -244,16 +276,16 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
         public static ServerResponse<IList<ResponseTuringMachineTape>> GetTapes(string designID , DataContext db)
         {
             IQueryable<DbTuringMachineTape> dbTapes = db.Tapes.Where(tape => tape.DesignID.ToString() == designID);
-            
-            List<ResponseTuringMachineTape> responseTapes = new List<ResponseTuringMachineTape>();
-            foreach (DbTuringMachineTape dbTape in dbTapes)
-                responseTapes.Add(new ResponseTuringMachineTape
+
+            ResponseTuringMachineTape[] responseTapes = new ResponseTuringMachineTape[dbTapes.Count()];
+            foreach (DbTuringMachineTape tape in dbTapes)
+                responseTapes[tape.TapeIndex] = new ResponseTuringMachineTape
                 {
-                    Type     = dbTape.TapeType ,
-                    Values   = dbTape.TapeValues ,
-                    IsInput  = dbTape.IsInput ,
-                    IsOutput = dbTape.IsOutput ,
-                });
+                    Type     = tape.TapeType ,
+                    Values   = tape.TapeValues ,
+                    IsInput  = tape.IsInput ,
+                    IsOutput = tape.IsOutput ,
+                };
 
             return new ServerResponse<IList<ResponseTuringMachineTape>>(ResponseStatus.SUCCESS , responseTapes);
         }
@@ -308,20 +340,20 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
 
             response = await InsertTuringMachineHeadAsync(machine.Heads , machineID , db);
             if (response.Status is not ResponseStatus.SUCCESS)
-                return response;
+                return response.WithThisTraceInfo(nameof(InsertTuringMachineAsync) , ResponseStatus.BACKEND_ERROR);
 
             foreach (ResponseTransition transition in machine.Transitions)
             {
                 response = await InsertTransitionAsync(transition , machineID , db);
                 if (response.Status is not ResponseStatus.SUCCESS)
-                    return response;
+                    return response.WithThisTraceInfo(nameof(InsertTuringMachineAsync) , ResponseStatus.BACKEND_ERROR);
             }
 
             if (machine.Label is not null)
             {
                 response = await MachineLabelInteraction.InsertMachineLabelAsync(machine.Label , machineID , db);
                 if (response.Status is not ResponseStatus.SUCCESS)
-                    return response;
+                    return response.WithThisTraceInfo(nameof(InsertTuringMachineAsync) , ResponseStatus.BACKEND_ERROR);
             }
 
             await db.SaveChangesAsync();
@@ -330,7 +362,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
 
         /// <returns>
         ///     When successfully inserted a list of turing machine heads, return status "SUCCESS". <br/><br/>
-        ///     Status is either "SUCCESS" or "BACKEND_ERROR".
+        ///     Status will always be "SUCCESS". But still include status comparison in case implementation changes (with error arise).
         /// </returns>
         private static async Task<ServerResponse> InsertTuringMachineHeadAsync(IList<ResponseTuringMachineHead> head , string machineID , DataContext db)  // TODO: clear changes when failure, change BACKEND_ERROR to FAILURE when cleared.
         {
@@ -356,7 +388,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
 
         /// <returns>
         ///     When successfully inserted a transition, return status "SUCCESS". <br/><br/>
-        ///     Status will always be "SUCCESS". But still include status comparison in case implementation changes (with error arise).
+        ///     Status is either "SUCCESS" or "BACKEND_ERROR".
         /// </returns>
         private static async Task<ServerResponse> InsertTransitionAsync(ResponseTransition transition , string machineID , DataContext db)
         {
@@ -383,7 +415,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
 
             ServerResponse response = DbTransitionLinePathInteraction.InsertTransitionLinePath(dbTransition.TransitionID.ToString() , transition.TransitionLineSteps , db);
             if (response.Status is not ResponseStatus.SUCCESS)
-                return response;
+                return response.WithThisTraceInfo(nameof(InsertTransitionAsync) , ResponseStatus.BACKEND_ERROR);
 
             await db.SaveChangesAsync();
             return new ServerResponse(ResponseStatus.SUCCESS);
@@ -399,9 +431,9 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
         {
             using IEnumerator<DbTuringMachineDesign> machines = db.MachineDesigns.Where(design => design.DesignID.ToString() == designID).GetEnumerator();
             
-            if (!machines.MoveNext()) return new ServerResponse(ResponseStatus.NO_SUCH_ITEM);
+            if (!machines.MoveNext()) return ServerResponse.StartTracing(nameof(DeleteMachineTapesAsync) , ResponseStatus.NO_SUCH_ITEM);
             DbTuringMachineDesign dbDesign = machines.Current;
-            if (machines.MoveNext()) return new ServerResponse(ResponseStatus.DUPLICATED_ITEM);
+            if (machines.MoveNext()) return ServerResponse.StartTracing(nameof(DeleteMachineTapesAsync) , ResponseStatus.DUPLICATED_ITEM);
 
             db.Tapes.RemoveRange(db.Tapes.Where(tape => tape.DesignID == dbDesign.DesignID));
             
@@ -417,9 +449,9 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
         {
             using IEnumerator<DbTuringMachine> machines = db.Machines.Where(machine => machine.MachineID.ToString() == machineID).GetEnumerator();
             
-            if (!machines.MoveNext()) return new ServerResponse(ResponseStatus.DESIGN_NOT_FOUND);
+            if (!machines.MoveNext()) return ServerResponse.StartTracing(nameof(DeleteMachineTapesAsync) , ResponseStatus.DESIGN_NOT_FOUND);
             DbTuringMachine dbMachine = machines.Current;
-            if (machines.MoveNext()) return new ServerResponse(ResponseStatus.DUPLICATED_DESIGN);
+            if (machines.MoveNext()) return ServerResponse.StartTracing(nameof(DeleteMachineTapesAsync) , ResponseStatus.DUPLICATED_DESIGN);
             
             db.Heads.RemoveRange(db.Heads.Where(head => head.MachineID == dbMachine.MachineID));
             
@@ -429,17 +461,11 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
 
         /// <returns>
         ///     When successfully deleted a list of transitions associated to a Turing Machine design, return status "SUCCESS". <br/><br/>
-        ///     Status is either "SUCCESS", "DESIGN_NOT_FOUND", "DUPLICATED_DESIGN", "NO_SUCH_ITEM" or "DUPLICATED_ITEM".
+        ///     Status will always be "SUCCESS". But still include status comparison in case implementation changes (with error arise).
         /// </returns>
         public static async Task<ServerResponse> DeleteMachineTransitionsAsync(string machineID , DataContext db)
         {
-            using IEnumerator<DbTuringMachine> machines = db.Machines.Where(machine => machine.MachineID.ToString() == machineID).GetEnumerator();
-            
-            if (!machines.MoveNext()) return new ServerResponse(ResponseStatus.DESIGN_NOT_FOUND);
-            DbTuringMachine dbMachine = machines.Current;
-            if (machines.MoveNext()) return new ServerResponse(ResponseStatus.DUPLICATED_DESIGN);
-
-            foreach (DbTransition transition in db.Transition.Where(transition => transition.MachineID == dbMachine.MachineID))
+            foreach (DbTransition transition in db.Transition.Where(transition => transition.MachineID.ToString() == machineID))
             {
                 db.TransitionStatements.RemoveRange(db.TransitionStatements.Where(statement => statement.TransitionID == transition.TransitionID));
                 await DbTransitionLinePathInteraction.DeleteTransitionLinePathAsync(transition.TransitionID.ToString() , db);
@@ -452,15 +478,15 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
 
         /// <returns>
         ///     When successfully deleted a turing machine, return status "SUCCESS". <br/><br/>
-        ///     Status is either "SUCCESS", "DESIGN_NOT_FOUND" or "DUPLICATED_DESIGN".
+        ///     Status is either "SUCCESS", "NO_SUCH_ITEM" or "DUPLICATED_ITEM".
         /// </returns>
         public static async Task<ServerResponse> DeleteTuringMachineAsync(string machineID , DataContext db)
         {
             using IEnumerator<DbTuringMachine> machines = db.Machines.Where(machine => machine.MachineID.ToString() == machineID).GetEnumerator();
 
-            if (!machines.MoveNext()) return new ServerResponse(ResponseStatus.DESIGN_NOT_FOUND);
+            if (!machines.MoveNext()) return new ServerResponse(ResponseStatus.NO_SUCH_ITEM);
             DbTuringMachine dbMachine = machines.Current;
-            if (machines.MoveNext()) return new ServerResponse(ResponseStatus.DUPLICATED_DESIGN);
+            if (machines.MoveNext()) return new ServerResponse(ResponseStatus.DUPLICATED_ITEM);
 
             db.Machines.Remove(dbMachine);
             

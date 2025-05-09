@@ -30,81 +30,32 @@ namespace TuringMachine.Backend.Server.DbInteraction.UiLabels
         {
 // @formatter:off
             using IEnumerator<DbMachineLabel> machineLabels = db.MachineLabels.Where(label => label.MachineID.ToString() == machineID)
-                                                                              .Include(machineLabel => machineLabel.BoxLabels )
-                                                                              .Include(machineLabel => machineLabel.TextLabels)
-                                                                              .Include(machineLabel => machineLabel.NodeLabels)
                                                                               .GetEnumerator();
-            
-            if (!machineLabels.MoveNext()) return new ServerResponse<ResponseMachineLabel>(ResponseStatus.NO_SUCH_ITEM)   ;
-            DbMachineLabel dbMachineLabel = machineLabels.Current;
-            if ( machineLabels.MoveNext()) return new ServerResponse<ResponseMachineLabel>(ResponseStatus.DUPLICATED_ITEM);
 // @formatter:on
+            if (!machineLabels.MoveNext()) return new ServerResponse<ResponseMachineLabel>(ResponseStatus.NO_SUCH_ITEM);
+            DbMachineLabel dbMachineLabel = machineLabels.Current;
+            if (machineLabels.MoveNext()) return ServerResponse.StartTracing<ResponseMachineLabel>(nameof(GetMachineLabel) , ResponseStatus.DUPLICATED_ITEM);
 
-            ResponseMachineBoxLabel[] responseMachineBoxLabels = new ResponseMachineBoxLabel[dbMachineLabel.BoxLabels.Count];
-            foreach (DbMachineBoxLabel dbMachineBoxLabel in dbMachineLabel.BoxLabels)
-            {
-                int index = dbMachineBoxLabel.LabelIndex;
-                if (index >= dbMachineLabel.BoxLabels.Count)
-                    return new ServerResponse<ResponseMachineLabel>(ResponseStatus.BACKEND_ERROR);
+            ServerResponse<IList<ResponseMachineBoxLabel>> getBoxLabelsResponse = GetMachineBoxLabels(dbMachineLabel.MachineLabelID.ToString() , db);
+            if (getBoxLabelsResponse.Status is not ResponseStatus.SUCCESS)
+                return getBoxLabelsResponse.WithThisTraceInfo<ResponseMachineLabel>(nameof(GetMachineLabel) , ResponseStatus.BACKEND_ERROR);
 
-// ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
-                if (responseMachineBoxLabels[index] is not null)                                     // If the element is not initialised, it will be null.
-                    return new ServerResponse<ResponseMachineLabel>(ResponseStatus.DUPLICATED_ITEM); // if the element is assigned before, return "DUPLICATED_ITEM" to indicate error.
+            ServerResponse<IList<ResponseMachineTextLabel>> getTextLabelsResponse = GetMachineTextLabels(dbMachineLabel.MachineLabelID.ToString() , db);
+            if (getTextLabelsResponse.Status is not ResponseStatus.SUCCESS)
+                return getTextLabelsResponse.WithThisTraceInfo<ResponseMachineLabel>(nameof(GetMachineLabel) , ResponseStatus.BACKEND_ERROR);
 
-                responseMachineBoxLabels[index] = new ResponseMachineBoxLabel
-                {
-                    Start = new Vector2 { X = (float)dbMachineBoxLabel.StartX , Y = (float)dbMachineBoxLabel.StartY } ,
-                    Size  = new Vector2 { X = (float)dbMachineBoxLabel.Width , Y  = (float)dbMachineBoxLabel.Height } ,
-                    Color = dbMachineBoxLabel.Color ,
-                };
-            }
-
-            ResponseMachineTextLabel[] responseMachineTextLabels = new ResponseMachineTextLabel[dbMachineLabel.TextLabels.Count];
-            foreach (DbMachineTextLabel dbMachineTextLabel in dbMachineLabel.TextLabels)
-            {
-                int index = dbMachineTextLabel.LabelIndex;
-                if (index >= dbMachineLabel.TextLabels.Count)
-                    return new ServerResponse<ResponseMachineLabel>(ResponseStatus.BACKEND_ERROR);
-
-// ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
-                if (responseMachineTextLabels[index] is not null)                                    // If the element is not initialised, it will be null.
-                    return new ServerResponse<ResponseMachineLabel>(ResponseStatus.DUPLICATED_ITEM); // if the element is assigned before, return "DUPLICATED_ITEM" to indicate error.
-
-                responseMachineTextLabels[index] = new ResponseMachineTextLabel
-                {
-                    Position = new Vector2 { X = (float)dbMachineTextLabel.PosX , Y = (float)dbMachineTextLabel.PosY } ,
-                    Value    = dbMachineTextLabel.Value ,
-                };
-            }
-
-            ResponseMachineNodeLabel[] responseMachineNodeLabels = new ResponseMachineNodeLabel[dbMachineLabel.NodeLabels.Count];
-            foreach (DbMachineNodeLabel dbMachineNodeLabel in dbMachineLabel.NodeLabels)
-            {
-                int index = dbMachineNodeLabel.LabelIndex;
-                if (index >= dbMachineLabel.NodeLabels.Count)
-                    return new ServerResponse<ResponseMachineLabel>(ResponseStatus.BACKEND_ERROR);
-
-
-// ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
-                if (responseMachineNodeLabels[index] is not null)                                    // If the element is not initialised, it will be null.
-                    return new ServerResponse<ResponseMachineLabel>(ResponseStatus.DUPLICATED_ITEM); // if the element is assigned before, return "DUPLICATED_ITEM" to indicate error.
-
-                responseMachineNodeLabels[index] = new ResponseMachineNodeLabel
-                {
-                    Position = new Vector2 { X = (float)dbMachineNodeLabel.PosX , Y = (float)dbMachineNodeLabel.PosY } ,
-                    Label    = dbMachineNodeLabel.Label ,
-                    IsFinal  = dbMachineNodeLabel.IsFinal ,
-                };
-            }
+            ServerResponse<IList<ResponseMachineNodeLabel>> getNodeLabelsResponse = GetMachineNodeLabels(dbMachineLabel.MachineLabelID.ToString() , db);
+            if (getNodeLabelsResponse.Status is not ResponseStatus.SUCCESS)
+                return getNodeLabelsResponse.WithThisTraceInfo<ResponseMachineLabel>(nameof(GetMachineLabel) , ResponseStatus.BACKEND_ERROR);
 
             return new ServerResponse<ResponseMachineLabel>(
                 ResponseStatus.SUCCESS , new ResponseMachineLabel
                 {
                     Title = dbMachineLabel.Title ,
                     Color = dbMachineLabel.Color ,
-                    Boxes = responseMachineBoxLabels ,
-                    Texts = responseMachineTextLabels ,
-                    Nodes = responseMachineNodeLabels ,
+                    Boxes = getBoxLabelsResponse.Result! ,
+                    Texts = getTextLabelsResponse.Result! ,
+                    Nodes = getNodeLabelsResponse.Result! ,
                 }
             );
         }
@@ -125,49 +76,240 @@ namespace TuringMachine.Backend.Server.DbInteraction.UiLabels
             await db.MachineLabels.AddAsync(dbMachineLabel);
             string machineLabelID = dbMachineLabel.MachineLabelID.ToString();
 
-            dbMachineLabel.BoxLabels ??= new List<DbMachineBoxLabel>();
-            for (byte i = 0; i < machineLabel.Boxes.Count; i++)
-                dbMachineLabel.BoxLabels.Add(
-                    new DbMachineBoxLabel
-                    {
-                        MachineLabelID = Guid.Parse(machineLabelID) ,
-                        StartX         = machineLabel.Boxes[i].Start.X ,
-                        StartY         = machineLabel.Boxes[i].Start.Y ,
-                        Width          = machineLabel.Boxes[i].Size.X ,
-                        Height         = machineLabel.Boxes[i].Size.Y ,
-                        Color          = machineLabel.Boxes[i].Color ,
-                        LabelIndex     = i ,
-                    }
-                );
+            ServerResponse insertMachineBoxLabelsResponse = await InsertMachineBoxLabelsAsync(machineLabelID , machineLabel.Boxes , db);
+            if (insertMachineBoxLabelsResponse.Status is not ResponseStatus.SUCCESS)
+                return insertMachineBoxLabelsResponse.WithThisTraceInfo(nameof(InsertMachineLabelAsync) , ResponseStatus.BACKEND_ERROR);
 
-            dbMachineLabel.TextLabels ??= new List<DbMachineTextLabel>();
-            for (byte i = 0; i < machineLabel.Texts.Count; i++)
-                dbMachineLabel.TextLabels.Add(
-                    new DbMachineTextLabel
-                    {
-                        MachineLabelID = Guid.Parse(machineLabelID) ,
-                        PosX           = machineLabel.Texts[i].Position.X ,
-                        PosY           = machineLabel.Texts[i].Position.Y ,
-                        Value          = machineLabel.Texts[i].Value ,
-                        LabelIndex     = i ,
-                    }
-                );
+            ServerResponse insertMachineTextLabelsResponse = await InsertMachineTextLabelsAsync(machineLabelID , machineLabel.Texts , db);
+            if (insertMachineTextLabelsResponse.Status is not ResponseStatus.SUCCESS)
+                return insertMachineTextLabelsResponse.WithThisTraceInfo(nameof(InsertMachineLabelAsync) , ResponseStatus.BACKEND_ERROR);
 
-            dbMachineLabel.NodeLabels ??= new List<DbMachineNodeLabel>();
-            for (byte i = 0; i < machineLabel.Nodes.Count; i++)
-                dbMachineLabel.NodeLabels.Add(
-                    new DbMachineNodeLabel
-                    {
-                        PosX       = machineLabel.Nodes[i].Position.X ,
-                        PosY       = machineLabel.Nodes[i].Position.Y ,
-                        Label      = machineLabel.Nodes[i].Label ,
-                        IsFinal    = machineLabel.Nodes[i].IsFinal ,
-                        LabelIndex = i ,
-                    }
-                );
+            ServerResponse insertMachineNodeLabelsResponse = await InsertMachineNodeLabelsAsync(machineLabelID , machineLabel.Nodes , db);
+            if (insertMachineNodeLabelsResponse.Status is not ResponseStatus.SUCCESS)
+                return insertMachineNodeLabelsResponse.WithThisTraceInfo(nameof(InsertMachineLabelAsync) , ResponseStatus.BACKEND_ERROR);
 
             await db.SaveChangesAsync();
             return new ServerResponse(ResponseStatus.SUCCESS);
         }
+
+
+        #region Helper Functions
+        #region Get Machine Label Helper Functions
+        /// <returns>
+        ///     Return a complete set of box labels when "SUCCESS". <br/><br/>
+        ///     Status will always be "SUCCESS". But still include status comparison in case implementation changes (with error arise).
+        /// </returns>
+        private static ServerResponse<IList<ResponseMachineBoxLabel>> GetMachineBoxLabels(string machineLabelID , DataContext db)
+        {
+            IQueryable<DbMachineBoxLabel> dbMachineBoxLabels = db.MachineBoxLabels.Where(label => label.MachineLabelID.ToString() == machineLabelID);
+
+            if (!dbMachineBoxLabels.Any())
+                return new ServerResponse<IList<ResponseMachineBoxLabel>>(ResponseStatus.SUCCESS);
+
+            int maxSize = dbMachineBoxLabels.Max(label => label.LabelIndex) + 1;
+            ResponseMachineBoxLabel[] responseMachineBoxLabels = new ResponseMachineBoxLabel[maxSize];
+            foreach (DbMachineBoxLabel dbMachineBoxLabel in dbMachineBoxLabels)
+            {
+                responseMachineBoxLabels[dbMachineBoxLabel.LabelIndex] = new ResponseMachineBoxLabel();
+
+                if (dbMachineBoxLabel.Width is null && dbMachineBoxLabel.Height is null && dbMachineBoxLabel.StartX is null && dbMachineBoxLabel.StartY is null && dbMachineBoxLabel.Color is null)
+                    continue;
+
+                responseMachineBoxLabels[dbMachineBoxLabel.LabelIndex].Color = dbMachineBoxLabel.Color;
+
+                if (dbMachineBoxLabel.StartX is not null && dbMachineBoxLabel.StartY is not null)
+                    responseMachineBoxLabels[dbMachineBoxLabel.LabelIndex]!.Start = new Point { X = (float)dbMachineBoxLabel.StartX , Y = (float)dbMachineBoxLabel.StartY };
+
+                if (dbMachineBoxLabel.Width is not null && dbMachineBoxLabel.Height is not null)
+                    responseMachineBoxLabels[dbMachineBoxLabel.LabelIndex]!.Size = new Point { X = (float)dbMachineBoxLabel.Width , Y = (float)dbMachineBoxLabel.Height };
+            }
+
+            return new ServerResponse<IList<ResponseMachineBoxLabel>>(ResponseStatus.SUCCESS , responseMachineBoxLabels);
+        }
+
+        /// <returns>
+        ///     Return a complete set of text labels when "SUCCESS". <br/><br/>
+        ///     Status will always be "SUCCESS". But still include status comparison in case implementation changes (with error arise).
+        /// </returns>
+        private static ServerResponse<IList<ResponseMachineTextLabel>> GetMachineTextLabels(string machineLabelID , DataContext db)
+        {
+            IQueryable<DbMachineTextLabel> dbMachineTextLabels = db.TextLabels.Where(label => label.MachineLabelID.ToString() == machineLabelID);
+
+            if (!dbMachineTextLabels.Any())
+                return new ServerResponse<IList<ResponseMachineTextLabel>>(ResponseStatus.SUCCESS);
+
+            int maxSize = dbMachineTextLabels.Max(label => label.LabelIndex) + 1;
+            ResponseMachineTextLabel[] responseMachineTextLabels = new ResponseMachineTextLabel[maxSize];
+            foreach (DbMachineTextLabel dbMachineTextLabel in dbMachineTextLabels)
+            {
+                responseMachineTextLabels[dbMachineTextLabel.LabelIndex] = new ResponseMachineTextLabel();
+
+                if (dbMachineTextLabel.Value is null && dbMachineTextLabel.PosX is null && dbMachineTextLabel.PosY is null)
+                    continue;
+
+                responseMachineTextLabels[dbMachineTextLabel.LabelIndex].Value = dbMachineTextLabel.Value;
+
+                if (dbMachineTextLabel.PosX is not null && dbMachineTextLabel.PosY is not null)
+                    responseMachineTextLabels[dbMachineTextLabel.LabelIndex]!.Position = new Point { X = (float)dbMachineTextLabel.PosX , Y = (float)dbMachineTextLabel.PosY };
+            }
+
+            return new ServerResponse<IList<ResponseMachineTextLabel>>(ResponseStatus.SUCCESS , responseMachineTextLabels);
+        }
+
+        /// <returns>
+        ///     Return a complete set of node labels when "SUCCESS". <br/><br/>
+        ///     Status will always be "SUCCESS". But still include status comparison in case implementation changes (with error arise).
+        /// </returns>
+        private static ServerResponse<IList<ResponseMachineNodeLabel>> GetMachineNodeLabels(string machineLabelID , DataContext db)
+        {
+            IQueryable<DbMachineNodeLabel> dbMachineNodeLabels = db.NodeLabels.Where(label => label.MachineLabelID.ToString() == machineLabelID);
+
+            if (!dbMachineNodeLabels.Any())
+                return new ServerResponse<IList<ResponseMachineNodeLabel>>(ResponseStatus.SUCCESS);
+
+            int maxSize = dbMachineNodeLabels.Max(label => label.LabelIndex) + 1;
+            ResponseMachineNodeLabel[] responseMachineNodeLabels = new ResponseMachineNodeLabel[maxSize];
+            foreach (DbMachineNodeLabel dbMachineNodeLabel in dbMachineNodeLabels)
+            {
+                responseMachineNodeLabels[dbMachineNodeLabel.LabelIndex] = new ResponseMachineNodeLabel();
+
+                if (dbMachineNodeLabel.Label is null && dbMachineNodeLabel.PosX is null && dbMachineNodeLabel.Label is null && dbMachineNodeLabel.IsFinal is null)
+                    continue;
+
+                responseMachineNodeLabels[dbMachineNodeLabel.LabelIndex].Label = dbMachineNodeLabel.Label;
+                responseMachineNodeLabels[dbMachineNodeLabel.LabelIndex].IsFinal = dbMachineNodeLabel.IsFinal ?? false;
+
+                if (dbMachineNodeLabel.PosX is not null && dbMachineNodeLabel.PosY is not null)
+                    responseMachineNodeLabels[dbMachineNodeLabel.LabelIndex]!.Position = new Point { X = (float)dbMachineNodeLabel.PosX , Y = (float)dbMachineNodeLabel.PosY };
+            }
+
+            return new ServerResponse<IList<ResponseMachineNodeLabel>>(ResponseStatus.SUCCESS , responseMachineNodeLabels);
+        }
+        #endregion
+
+        #region Insert Machine Labels Helper Functions
+        /// <returns>
+        ///     When successfully inserted a set of box labels, return status "SUCCESS". <br/><br/>
+        ///     Status will always be "SUCCESS". But still include status comparison in case implementation changes (with error arise).
+        /// </returns>
+        private static async Task<ServerResponse> InsertMachineBoxLabelsAsync(string machineLabelID , IList<ResponseMachineBoxLabel?> labels , DataContext db)
+        {
+            Guid machineLabelGuid = Guid.Parse(machineLabelID);
+            for (byte i = 0; i < labels.Count; i++)
+            {
+                if (labels[i] is null)
+                    db.MachineBoxLabels.Add(
+                        new DbMachineBoxLabel
+                        {
+                            LabelIndex = i ,
+                            MachineLabelID = machineLabelGuid ,
+
+                            Color = null ,
+                            Height = null ,
+                            Width = null ,
+                            StartX = null ,
+                            StartY = null ,
+                        }
+                    );
+                else
+                    db.MachineBoxLabels.Add(
+                        new DbMachineBoxLabel
+                        {
+                            LabelIndex = i ,
+                            MachineLabelID = machineLabelGuid ,
+
+                            Color = labels[i]!.Color ,
+                            Height = labels[i]!.Size?.Y ,
+                            Width = labels[i]!.Size?.X ,
+                            StartX = labels[i]!.Start?.X ,
+                            StartY = labels[i]!.Start?.Y ,
+                        }
+                    );
+            }
+
+            await db.SaveChangesAsync();
+            return new ServerResponse(ResponseStatus.SUCCESS);
+        }
+
+        /// <returns>
+        ///     When successfully inserted a set of text labels, return status "SUCCESS". <br/><br/>
+        ///     Status will always be "SUCCESS". But still include status comparison in case implementation changes (with error arise).
+        /// </returns>
+        private static async Task<ServerResponse> InsertMachineTextLabelsAsync(string machineLabelId , IList<ResponseMachineTextLabel?> labels , DataContext db)
+        {
+            Guid machineLabelGuid = Guid.Parse(machineLabelId);
+            for (byte i = 0; i < labels.Count; i++)
+            {
+                if (labels[i] is null)
+                    db.TextLabels.Add(
+                        new DbMachineTextLabel
+                        {
+                            LabelIndex = i ,
+                            MachineLabelID = machineLabelGuid ,
+
+                            PosX = null ,
+                            PosY = null ,
+                            Value = null ,
+                        }
+                    );
+                else
+                    db.TextLabels.Add(
+                        new DbMachineTextLabel
+                        {
+                            LabelIndex = i ,
+                            MachineLabelID = machineLabelGuid ,
+
+                            PosX = labels[i]!.Position?.X ,
+                            PosY = labels[i]!.Position?.Y ,
+                            Value = labels[i]!.Value ,
+                        }
+                    );
+            }
+
+            await db.SaveChangesAsync();
+            return new ServerResponse(ResponseStatus.SUCCESS);
+        }
+
+        /// <returns>
+        ///     When successfully inserted a set of node labels, return status "SUCCESS". <br/><br/>
+        ///     Status will always be "SUCCESS". But still include status comparison in case implementation changes (with error arise).
+        /// </returns>
+        private static async Task<ServerResponse> InsertMachineNodeLabelsAsync(string machineLabelID , IList<ResponseMachineNodeLabel?> labels , DataContext db)
+        {
+            Guid machineLabelGuid = Guid.Parse(machineLabelID);
+            for (byte i = 0; i < labels.Count; i++)
+            {
+                if (labels[i] is null)
+                    db.NodeLabels.Add(
+                        new DbMachineNodeLabel
+                        {
+                            LabelIndex = i ,
+                            MachineLabelID = machineLabelGuid ,
+
+                            PosX = null ,
+                            PosY = null ,
+                            Label = null ,
+                            IsFinal = null ,
+                        }
+                    );
+                else
+                    db.NodeLabels.Add(
+                        new DbMachineNodeLabel
+                        {
+                            LabelIndex = i ,
+                            MachineLabelID = machineLabelGuid ,
+                            PosX = labels[i]!.Position?.X ,
+                            PosY = labels[i]!.Position?.Y ,
+                            Label = labels[i]!.Label ,
+                            IsFinal = labels[i]!.IsFinal ,
+                        }
+                    );
+            }
+
+            await db.SaveChangesAsync();
+            return new ServerResponse(ResponseStatus.SUCCESS);
+        }
+        #endregion
+        #endregion
     }
 }

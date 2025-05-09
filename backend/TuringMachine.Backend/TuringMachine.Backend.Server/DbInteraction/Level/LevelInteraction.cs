@@ -6,6 +6,7 @@ using TuringMachine.Backend.Server.DbInteraction.UserManagement;
 using TuringMachine.Backend.Server.Models.Misc;
 using TuringMachine.Backend.Server.ServerResponses.ResponseBody;
 using TuringMachine.Backend.Server.ServerResponses;
+using static TuringMachine.Backend.Server.Models.Misc.ResponseStatus;
 
 #region Type Alias
 // @formatter:off
@@ -19,6 +20,7 @@ using ResponseUser = TuringMachine.Backend.Server.Models.UserManagement.User;
 using ResponseTestCase = TuringMachine.Backend.Server.Models.Levels.TestCase;
 using ResponseMachineDesign = TuringMachine.Backend.Server.Models.Machines.TuringMachineDesign;
 using ResponseLevelConstraint = TuringMachine.Backend.Server.Models.Levels.Constraint;
+using System.Collections.Generic;
 // @formatter:on
 #endregion
 
@@ -28,16 +30,18 @@ namespace TuringMachine.Backend.Server.DbInteraction.Level
     {
         /// <returns>
         ///     Return level information with user progress when "SUCCESS". <br/><br/>
-        ///     Status is either "SUCCESS", TOKEN_EXPIRED", "USER_NOT_FOUND" or "DUPLICATED_USER".
+        ///     Status is either "SUCCESS", "NO_SUCH_ITEM", "DUPLICATED_ITEM" or "BACKEND_ERROR".
         /// </returns>
         public static async Task<ServerResponse<LevelResponseBody>> GetUserLevelInfoAsync(string uuid , byte levelID , DataContext db)
         {
             // check if user exists
-            (ResponseStatus status , ResponseUser? user) = (await AccessTokenInteraction.GetAndValidateUserAsync(uuid , db)).ToTuple();
-            if (status is not ResponseStatus.SUCCESS)
-                return new ServerResponse<LevelResponseBody>(status);
+            ServerResponse<ResponseUser> getUserResponse = await AccessTokenInteraction.GetAndValidateUserAsync(uuid , db);
+            if (getUserResponse.Status is not (SUCCESS or TOKEN_EXPIRED or USER_NOT_FOUND))
+                return getUserResponse.WithThisTraceInfo<LevelResponseBody>(nameof(GetUserLevelInfoAsync) , BACKEND_ERROR);
 
-// @formatter:off    get user's progress
+// @formatter:off
+            // get user's progress
+            ResponseUser user = getUserResponse.Result!;
             using IEnumerator<DbProgress> progresses = db.LevelProgresses.Where(progress => progress.UUID == user!.UUID && progress.LevelID == levelID)
                                                                          .Include(progress => progress.LevelInfo).ThenInclude(levelInfo => levelInfo.TestCases)
                                                                          .Include(progress => progress.LevelInfo).ThenInclude(levelInfo => levelInfo.ChildLevels)
@@ -46,18 +50,25 @@ namespace TuringMachine.Backend.Server.DbInteraction.Level
 // @formatter:on
 
             // confirms there is only one associated target progress in the database
-            if (!progresses.MoveNext()) 
-                return new ServerResponse<LevelResponseBody>(ResponseStatus.NO_SUCH_ITEM);
+            if (!progresses.MoveNext()) return new ServerResponse<LevelResponseBody>(NO_SUCH_ITEM);
             DbProgress progress = progresses.Current;
-            if (progresses.MoveNext()) 
-                return new ServerResponse<LevelResponseBody>(ResponseStatus.DUPLICATED_ITEM); 
+            if (progresses.MoveNext()) return ServerResponse.StartTracing<LevelResponseBody>(nameof(GetUserLevelInfoAsync) , DUPLICATED_ITEM);
 
             // get last submitted design if user had submitted last time
-            (status , ResponseMachineDesign? design) = (ResponseStatus.DESIGN_NOT_FOUND , null);
+            ServerResponse<ResponseMachineDesign>? machineDesignResponse = null;
             if (progress.Solution is not null)
-                (status , design) = MachineInteraction.GetTuringMachineDesign(progress.Solution.DesignID.ToString() , db).ToTuple();
-            if (status is not ResponseStatus.SUCCESS and ResponseStatus.DESIGN_NOT_FOUND)  // if status is neither SUCCESS nor DESIGN_NOT_FOUND, return error status to indicate a backend problem.
-                return new ServerResponse<LevelResponseBody>(status);
+            {
+                machineDesignResponse = MachineInteraction.GetTuringMachineDesign(progress.Solution.DesignID.ToString() , db);
+                if (machineDesignResponse.Status != SUCCESS)
+                {
+                    return machineDesignResponse.WithThisTraceInfo<LevelResponseBody>(
+                        nameof(GetUserLevelInfoAsync) ,
+                        machineDesignResponse.Status == NO_SUCH_ITEM
+                            ? NO_SUCH_ITEM
+                            : BACKEND_ERROR
+                    );
+                }
+            }
 
 // @formatter:off    concatenate allowed tape type into array
             List<TapeType> allowedTapeTypes = new List<TapeType>();
@@ -77,12 +88,14 @@ namespace TuringMachine.Backend.Server.DbInteraction.Level
 // @formatter:on
 
             // convert test cases
-            (status , ICollection<ResponseTestCase>? testCases)= GetTestCases(levelID , db).ToTuple();
-            if (status != ResponseStatus.SUCCESS)
-                return new ServerResponse<LevelResponseBody>(status);
+            ServerResponse<ICollection<ResponseTestCase>> getTestCasesResponse = GetTestCases(levelID , db);
+            if (getTestCasesResponse.Status is not SUCCESS)
+                return getUserResponse.WithThisTraceInfo<LevelResponseBody>(nameof(GetUserLevelInfoAsync) , BACKEND_ERROR);
 
             return new ServerResponse<LevelResponseBody>(
-                status , new LevelResponseBody
+                SUCCESS , 
+
+                new LevelResponseBody
                 {
                     LevelID     = progress.LevelID ,
                     Title       = progress.LevelInfo.Title ,
@@ -97,11 +110,11 @@ namespace TuringMachine.Backend.Server.DbInteraction.Level
                                       select childID
                                     ).ToArray() ,
 // @formatter:on
-                    TestCases   = testCases ,
+                    TestCases   = getTestCasesResponse.Result ,
                     Constraints = levelConstraints ,
 
                     IsSolved = progress.IsSolved ,
-                    Design   = design ,
+                    Design   = machineDesignResponse?.Result ,
                 }
             );
         }
@@ -127,7 +140,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.Level
                 }
             )
             .ToListAsync();
-            return new ServerResponse<ICollection<SimplifiedLevelResponseBody>>(ResponseStatus.SUCCESS , levelResponses);
+            return new ServerResponse<ICollection<SimplifiedLevelResponseBody>>(SUCCESS , levelResponses);
         }
 
 
@@ -147,7 +160,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.Level
                     Output = testCase.Output ,
                 };
 
-            return new ServerResponse<ICollection<ResponseTestCase>>(ResponseStatus.SUCCESS , responseTestCases);
+            return new ServerResponse<ICollection<ResponseTestCase>>(SUCCESS , responseTestCases);
         }
     }
 }

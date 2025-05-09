@@ -28,9 +28,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.UserManagement
         public static async Task<ServerResponse<string>> RegisterAsync(string username , string password , DataContext db)
         {
             using IEnumerator<DbUser> users = db.Users.Where(user => user.Username  == username).GetEnumerator();
-
-            if (users.MoveNext())
-                return new ServerResponse<string>(ResponseStatus.USER_EXISTED);
+            if (users.MoveNext()) return ServerResponse.StartTracing<string>(nameof(RegisterAsync) , ResponseStatus.USER_EXISTED);
 
             DbUser user = new DbUser
             {
@@ -38,18 +36,15 @@ namespace TuringMachine.Backend.Server.DbInteraction.UserManagement
                 Username = username ,
                 Password = Convert.ToHexString(SHA256.HashData(Encoding.ASCII.GetBytes(password))) ,
             };
-            await db.Users.AddAsync(user);
+            db.Users.Add(user);
+
+
+            ServerResponse generateAccessTokenResponse = await AccessTokenInteraction.GenerateUniqueAccessTokenAsync(username , db);
+            if (generateAccessTokenResponse.Status != ResponseStatus.SUCCESS)
+                return generateAccessTokenResponse.WithThisTraceInfo<string>(nameof(RegisterAsync) , ResponseStatus.BACKEND_ERROR);
+
             await db.SaveChangesAsync();
-
-            return (await AccessTokenInteraction.GenerateUniqueAccessTokenAsync(username , db)).Status switch
-            {
-                ResponseStatus.SUCCESS => new ServerResponse<string>(ResponseStatus.SUCCESS , user.AccessToken),
-
-                ResponseStatus.USER_NOT_FOUND  => new ServerResponse<string>(ResponseStatus.BACKEND_ERROR , null),
-                ResponseStatus.DUPLICATED_USER => new ServerResponse<string>(ResponseStatus.BACKEND_ERROR , null),
-
-                _ => throw new UnreachableException(),
-            };
+            return new ServerResponse<string>(ResponseStatus.SUCCESS , user.AccessToken);
         }
 
         /// <param name="username"> A string representing of the string. </param>
@@ -60,23 +55,24 @@ namespace TuringMachine.Backend.Server.DbInteraction.UserManagement
         /// </param>
         /// <returns>
         ///     Returns a string as access token when "SUCCESS". <br/><br/>
-        ///     Status is either "SUCCESS" or "INVALID_LICENSE".
+        ///     Status is either "SUCCESS", "INVALID_LICENSE" or "BACKEND_ERROR".
         /// </returns>
         public static async Task<ServerResponse<string>> RegisterAsync(string username , string password , string licenseKey , DataContext db)
         {
-            (ResponseStatus status , string? accessToken) = (await RegisterAsync(username , password , db)).ToTuple();
-            if (status != ResponseStatus.SUCCESS)
-                return new ServerResponse<string>(status);
+            ServerResponse<string> registerResponse = await RegisterAsync(username , password , db);
+            if (registerResponse.Status is not ResponseStatus.SUCCESS)
+                return registerResponse.WithThisTraceInfo<string>(nameof(RegisterAsync) , ResponseStatus.BACKEND_ERROR);
 
-            if ((await AddLicenseKeyAsync(accessToken! , licenseKey , db)).Status != ResponseStatus.SUCCESS)
-                return new ServerResponse<string>(ResponseStatus.INVALID_LICENSE);
+            // Try to add license key for the user.
+            ServerResponse addLicenseKeyResponse = await AddLicenseKeyAsync(registerResponse.Result! , licenseKey , db);
+            if (addLicenseKeyResponse.Status is not ResponseStatus.SUCCESS)
+                return addLicenseKeyResponse.Status is ResponseStatus.INVALID_LICENSE 
+                    ? new ServerResponse<string>(ResponseStatus.INVALID_LICENSE)   // If the license key is invalid, re-throw the error to clear stack trace.
+                    : addLicenseKeyResponse.WithThisTraceInfo<string>(nameof(RegisterAsync) , ResponseStatus.BACKEND_ERROR);
 
-            return new ServerResponse<string>(ResponseStatus.SUCCESS , accessToken);
+            return new ServerResponse<string>(ResponseStatus.SUCCESS , registerResponse.Result);
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
         /// <param name="licenseKey">
         ///     A GUID represented license key. <br/>
         ///     The license key only contains hex represented symbols with format like "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" (8-4-4-4-12) and will be validated with database.
@@ -114,7 +110,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.UserManagement
             if (getUserResponse.Status != ResponseStatus.SUCCESS)  // return error code if database does not have one and only one corresponding user
                 return new ServerResponse(getUserResponse.Status);
 
-            getUserResponse.Data!.Username = newUsername;
+            getUserResponse.Result!.Username = newUsername;
             await db.SaveChangesAsync();
             return new ServerResponse(ResponseStatus.SUCCESS);
         }
@@ -131,7 +127,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.UserManagement
             if (getUserResponse.Status != ResponseStatus.SUCCESS)  // return error code if database does not have one and only one corresponding user
                 return new ServerResponse(getUserResponse.Status);
 
-            getUserResponse.Data!.Password = newPassword;
+            getUserResponse.Result!.Password = newPassword;
             await db.SaveChangesAsync();
             return new ServerResponse(ResponseStatus.SUCCESS);
         }

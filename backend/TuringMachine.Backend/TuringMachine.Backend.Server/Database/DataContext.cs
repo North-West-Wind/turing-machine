@@ -32,8 +32,8 @@ namespace TuringMachine.Backend.Server.Database
         #region UI
         public DbSet<MachineBoxLabel>    MachineBoxLabels   { get; set; }
         public DbSet<MachineLabel>       MachineLabels      { get; set; }
-        public DbSet<NodeLabel>          NodeLabels         { get; set; }
-        public DbSet<TextLabel>          TextLabels         { get; set; }
+        public DbSet<NodeLabel>          NodeLabels  { get; set; }
+        public DbSet<TextLabel>          TextLabels  { get; set; }
         public DbSet<TransitionLinePath> TransitionLinePath { get; set; }
         #endregion
 

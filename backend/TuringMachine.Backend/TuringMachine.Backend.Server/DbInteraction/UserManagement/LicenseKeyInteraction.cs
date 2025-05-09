@@ -16,7 +16,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.UserManagement
         /// <summary> Create one license key. </summary>
         /// <returns>
         ///     Returns a license key. <br/><br/>
-        ///     Status will only be "SUCCESS".
+        ///     Status will always be "SUCCESS". But still include status comparison in case implementation changes (with error arise).
         /// </returns>
         public static async Task<ServerResponse<string>> CreateLicenseAsync(DataContext db)
         {
@@ -37,7 +37,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.UserManagement
         {
             string[] newLicenseKeys = new string[patchSize];
             for (int i = 0; i < patchSize; i++)
-                newLicenseKeys[i] = (await CreateLicenseAsync(db)).Data!;
+                newLicenseKeys[i] = (await CreateLicenseAsync(db)).Result!;
             return new ServerResponse<ICollection<string>>(ResponseStatus.SUCCESS , newLicenseKeys);
         }
 
@@ -51,9 +51,9 @@ namespace TuringMachine.Backend.Server.DbInteraction.UserManagement
         {
             using IEnumerator<DbLicenseKey> licenseKeys = db.LicenseKeys.Where(key => key.License.ToString() == licenseKey).GetEnumerator();
 
-            if (!licenseKeys.MoveNext()) return new ServerResponse(ResponseStatus.NO_SUCH_ITEM);
+            if (!licenseKeys.MoveNext()) return ServerResponse.StartTracing(nameof(DeleteLicenseAsync) , ResponseStatus.NO_SUCH_ITEM);
             DbLicenseKey key = licenseKeys.Current;
-            if (licenseKeys.MoveNext()) return new ServerResponse(ResponseStatus.DUPLICATED_ITEM);
+            if (licenseKeys.MoveNext()) return ServerResponse.StartTracing(nameof(DeleteLicenseAsync) , ResponseStatus.DUPLICATED_ITEM);
 
             db.LicenseKeys.Remove(key);
 
@@ -73,11 +73,10 @@ namespace TuringMachine.Backend.Server.DbInteraction.UserManagement
         {
             using IEnumerator<DbLicenseKey> licenseKeys = db.LicenseKeys.Where(key => key.License.ToString() == licenseKey).GetEnumerator();
 
-// @formatter:off
-            if (!licenseKeys.MoveNext()) return new ServerResponse(ResponseStatus.NO_SUCH_ITEM   );             
-            if ( licenseKeys.MoveNext()) return new ServerResponse(ResponseStatus.DUPLICATED_ITEM);                                            
-                                         return new ServerResponse(ResponseStatus.SUCCESS        );
-// @formatter:on
+            if (!licenseKeys.MoveNext()) return ServerResponse.StartTracing(nameof(DeleteLicenseAsync) , ResponseStatus.NO_SUCH_ITEM);
+            if (licenseKeys.MoveNext()) return ServerResponse.StartTracing(nameof(DeleteLicenseAsync) ,  ResponseStatus.DUPLICATED_ITEM);
+
+            return new ServerResponse(ResponseStatus.SUCCESS);
         }
         #endregion
     }

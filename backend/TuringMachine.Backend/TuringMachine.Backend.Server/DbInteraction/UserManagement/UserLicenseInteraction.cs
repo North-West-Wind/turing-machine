@@ -21,23 +21,23 @@ namespace TuringMachine.Backend.Server.DbInteraction.UserManagement
         /// </param>
         /// <returns>
         ///     No data is returned. <br/><br/>
-        ///     Status is either "SUCCESS", "USER_NOT_FOUND", "NO_SUCH_ITEM", "DUPLICATED_USER" or "DUPLICATED_ITEM".
+        ///     Status is either "SUCCESS", "USER_NOT_FOUND", "NO_SUCH_ITEM" or "DUPLICATED_USER".
         /// </returns>
         public static async Task<ServerResponse> AssociateLicenceAsync(string uuid , string licenseKey , DataContext db)
         {
             using IEnumerator<DbUser> users = db.Users.Where(user => user.UUID.ToString() == uuid).GetEnumerator();
-            if (!users.MoveNext()) return new ServerResponse(ResponseStatus.USER_NOT_FOUND);
+            if (!users.MoveNext()) return ServerResponse.StartTracing(nameof(AssociateLicenceAsync) , ResponseStatus.USER_NOT_FOUND);
             DbUser user = users.Current;
-            if (users.MoveNext()) return new ServerResponse(ResponseStatus.DUPLICATED_USER);
+            if (users.MoveNext()) return ServerResponse.StartTracing(nameof(AssociateLicenceAsync) , ResponseStatus.DUPLICATED_USER);
 
             using IEnumerator<DbLicenseKey> licenseKeys = db.LicenseKeys.Where(key => key.License.ToString() == licenseKey).GetEnumerator();
-            if (!licenseKeys.MoveNext()) return new ServerResponse(ResponseStatus.NO_SUCH_ITEM);
-            DbLicenseKey license = licenseKeys.Current;
-            if (licenseKeys.MoveNext()) return new ServerResponse(ResponseStatus.DUPLICATED_ITEM);
+            if (!licenseKeys.MoveNext()) return ServerResponse.StartTracing(nameof(AssociateLicenceAsync) , ResponseStatus.NO_SUCH_ITEM);
+            if (licenseKeys.MoveNext()) return ServerResponse.StartTracing(nameof(AssociateLicenceAsync) ,  ResponseStatus.NO_SUCH_ITEM);
 
             if (user.Licenses is null)
                 user.Licenses = new List<DbUserLicensePair>();
 
+            // If the user has the same license key, do nothing.
             using IEnumerator<DbUserLicensePair> userKeyPairs = user.Licenses.Where(pair => pair.LicenseKey.ToString() == licenseKey).GetEnumerator();
             if (userKeyPairs.MoveNext()) return new ServerResponse(ResponseStatus.SUCCESS);
 

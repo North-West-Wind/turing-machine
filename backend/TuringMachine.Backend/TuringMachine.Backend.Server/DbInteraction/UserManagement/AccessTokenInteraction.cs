@@ -18,19 +18,15 @@ namespace TuringMachine.Backend.Server.DbInteraction.UserManagement
     {
         #region Access Token Manipulation
         /// <returns>
-        ///     Nothing data will be returned. <br/><br/>
+        ///     Nothing will be returned. <br/><br/>
         ///     Status is either "SUCCESS", "USER_NOT_FOUND" or "DUPLICATED_USER".
         /// </returns>
         public static async Task<ServerResponse> GenerateUniqueAccessTokenAsync(string username , DataContext db)
         {
             using IEnumerator<DbUser> users = db.Users.Where(user => user.Username == username).GetEnumerator();
-
-            if (!users.MoveNext())
-                return new ServerResponse(ResponseStatus.USER_NOT_FOUND);
-
+            if (!users.MoveNext()) return ServerResponse.StartTracing(nameof(GenerateUniqueAccessTokenAsync) , ResponseStatus.USER_NOT_FOUND);
             DbUser user = users.Current;
-            if (users.MoveNext())
-                return new ServerResponse(ResponseStatus.DUPLICATED_USER);
+            if (users.MoveNext()) return ServerResponse.StartTracing(nameof(GenerateUniqueAccessTokenAsync) , ResponseStatus.DUPLICATED_USER);
 
             // generate unique access token
             byte[] token = new byte[24];
@@ -53,11 +49,13 @@ namespace TuringMachine.Backend.Server.DbInteraction.UserManagement
         public static async Task<ServerResponse> SetExpiredAsync(string accessToken , DataContext db)
         {
             using IEnumerator<DbUser> dbUsers = db.Users.Where(user => user.AccessToken == accessToken).GetEnumerator();
-            if (!dbUsers.MoveNext()) return new ServerResponse(ResponseStatus.USER_NOT_FOUND); 
+            if (!dbUsers.MoveNext()) return ServerResponse.StartTracing(nameof(GenerateUniqueAccessTokenAsync) , ResponseStatus.USER_NOT_FOUND); 
             DbUser user = dbUsers.Current;
-            if (dbUsers.MoveNext()) return new ServerResponse(ResponseStatus.DUPLICATED_USER); 
+            if (dbUsers.MoveNext()) return ServerResponse.StartTracing(nameof(SetExpiredAsync), ResponseStatus.DUPLICATED_USER);
+
             // set access token as expired
             user.TokenExpireTime = DateTime.Now.AddTicks(-1);
+
             await db.SaveChangesAsync();
             return new ServerResponse(ResponseStatus.SUCCESS);
         }
@@ -79,13 +77,10 @@ namespace TuringMachine.Backend.Server.DbInteraction.UserManagement
         public static async Task<ServerResponse<ResponseUser>> GetAndValidateUserAsync(string accessToken , DataContext db)
         {
             using IEnumerator<DbUser> users = db.Users.Where(user => string.Equals(user.AccessToken , accessToken)).GetEnumerator();
-
-            if (!users.MoveNext())
-                return new ServerResponse<ResponseUser>(ResponseStatus.USER_NOT_FOUND);
-
+            if (!users.MoveNext()) return ServerResponse.StartTracing<ResponseUser>(nameof(GetAndValidateUserAsync) , ResponseStatus.USER_NOT_FOUND);
             DbUser user = users.Current;
-            if (users.MoveNext())
-                return new ServerResponse<ResponseUser>(ResponseStatus.DUPLICATED_USER);
+            if (users.MoveNext()) return ServerResponse.StartTracing<ResponseUser>(nameof(GetAndValidateUserAsync) , ResponseStatus.DUPLICATED_USER);
+
 #if RELEASE
             if (user.TokenExpireTime < DateTime.Now) 
                 return new ServerResponse<ResponseUser>(ResponseStatus.TOKEN_EXPIRED);
@@ -116,12 +111,9 @@ namespace TuringMachine.Backend.Server.DbInteraction.UserManagement
         public static ServerResponse<ResponseUser> GetUser(string accessToken , DataContext db)
         {
             using IEnumerator<DbUser> users = db.Users.Where(user => user.AccessToken == accessToken).GetEnumerator();
-            if (!users.MoveNext())
-                return new ServerResponse<ResponseUser>(ResponseStatus.USER_NOT_FOUND);
-
+            if (!users.MoveNext()) return ServerResponse.StartTracing<ResponseUser>(nameof(GetUser) , ResponseStatus.USER_NOT_FOUND);
             DbUser user = users.Current;
-            if (users.MoveNext())
-                return new ServerResponse<ResponseUser>(ResponseStatus.DUPLICATED_USER);
+            if (users.MoveNext()) return ServerResponse.StartTracing<ResponseUser>(nameof(GetUser) , ResponseStatus.DUPLICATED_USER);
 
             return new ServerResponse<ResponseUser>(ResponseStatus.SUCCESS , new ResponseUser { UUID = user.UUID , Username = user.Username , Password = user.Password });
         }

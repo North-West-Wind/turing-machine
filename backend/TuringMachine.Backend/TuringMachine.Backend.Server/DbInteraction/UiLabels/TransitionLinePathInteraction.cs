@@ -16,38 +16,35 @@ namespace TuringMachine.Backend.Server.DbInteraction.UiLabels
         ///     Returns a list of steps, for drawing transition lines, when "SUCCESS". <br/><br/>
         ///     Status is either "SUCCESS", "NO_SUCH_ITEM", "DUPLICATED_ITEM" or "BACKEND_ERROR".
         /// </returns>
-        public static ServerResponse<IList<Vector2>> GetTransitionLinePath(string transitionID , DataContext db)
+        public static ServerResponse<IList<Point>> GetTransitionLinePath(string transitionID , DataContext db)
         {
             using IEnumerator<DbTransitionLinePath> rawPaths = db.TransitionLinePath.Where(path => path.TransitionID.ToString() == transitionID).GetEnumerator();
-
-            if (!rawPaths.MoveNext()) return new ServerResponse<IList<Vector2>>(ResponseStatus.NO_SUCH_ITEM);
+            if (!rawPaths.MoveNext()) return ServerResponse.StartTracing<IList<Point>>(nameof(GetTransitionLinePath) , ResponseStatus.NO_SUCH_ITEM);
             DbTransitionLinePath rawPath = rawPaths.Current;
-            if (rawPaths.MoveNext()) return new ServerResponse<IList<Vector2>>(ResponseStatus.DUPLICATED_ITEM);
+            if (rawPaths.MoveNext()) return ServerResponse.StartTracing<IList<Point>>(nameof(GetTransitionLinePath) , ResponseStatus.DUPLICATED_ITEM);
 
-            if (rawPath.PathX.Length != rawPath.PathY.Length)
-                return new ServerResponse<IList<Vector2>>(ResponseStatus.BACKEND_ERROR);
+            // check if the path has the valid format
+            if (rawPath.PathX.Length != rawPath.PathY.Length) return ServerResponse.StartTracing<IList<Point>>(nameof(GetTransitionLinePath) , ResponseStatus.BACKEND_ERROR);
+            (int pathSteps, int remainingBytes) = Math.DivRem(rawPath.PathX.Length , 4);
+            if (remainingBytes != 0) return ServerResponse.StartTracing<IList<Point>>(nameof(GetTransitionLinePath) , ResponseStatus.BACKEND_ERROR);
 
-            (int pathSteps , int remainingBytes) = Math.DivRem(rawPath.PathX.Length , 4);
-            if (remainingBytes != 0)
-                return new ServerResponse<IList<Vector2>>(ResponseStatus.BACKEND_ERROR);
-
-            // cast 2 float arrays to 1 Vector2 array
+            // cast 2 float arrays to Point (2D) array
             float[] pathX = new float[pathSteps];
             float[] pathY = new float[pathSteps];
             Buffer.BlockCopy(rawPath.PathX , 0 , pathX , 0 , rawPath.PathX.Length);  // batch type casting for converting byte array to float array
             Buffer.BlockCopy(rawPath.PathY , 0 , pathY , 0 , rawPath.PathY.Length);
-            Vector2[] offsetSteps = new Vector2[pathSteps];
+            Point[] offsetSteps = new Point[pathSteps];
             for (int i = 0; i < pathSteps; i++)
-                offsetSteps[i] = new Vector2(pathX[i] , pathY[i]);
+                offsetSteps[i] = new Point{ X = pathX[i] , Y = pathY[i]};
 
-            return new ServerResponse<IList<Vector2>>(ResponseStatus.SUCCESS , offsetSteps);
+            return new ServerResponse<IList<Point>>(ResponseStatus.SUCCESS , offsetSteps);
         }
 
         /// <returns>
         ///     When successfully inserted a path for drawing transition line, return status "SUCCESS". <br/><br/>
         ///     Status will always be "SUCCESS". But still include status comparison in case implementation changes (with error arise).
         /// </returns>
-        public static ServerResponse InsertTransitionLinePath(string transitionID , IList<Vector2>? paths , DataContext db)
+        public static ServerResponse InsertTransitionLinePath(string transitionID , IList<Point>? paths , DataContext db)
         {
             if (paths is null || paths.Count == 0)
                 return new ServerResponse(ResponseStatus.SUCCESS);
@@ -56,7 +53,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.UiLabels
             float[] pathX = new float[paths.Count];
             float[] pathY = new float[paths.Count];
             for (int i = 0; i < paths.Count; i++)
-                (pathX[i], pathY[i]) = (paths[i].X, paths[i].Y);
+                (pathX[i], pathY[i]) = ((float)paths[i].X!, (float)paths[i].Y!);
 
             // create a placeholder for the path
             DbTransitionLinePath dbTransitionLinePath = new DbTransitionLinePath
@@ -83,10 +80,9 @@ namespace TuringMachine.Backend.Server.DbInteraction.UiLabels
         public static async Task<ServerResponse> DeleteTransitionLinePathAsync(string transitionID , DataContext db)
         {
             using IEnumerator<DbTransitionLinePath> rawPaths = db.TransitionLinePath.Where(path => path.TransitionID.ToString() == transitionID).GetEnumerator();
-
-            if (!rawPaths.MoveNext()) return new ServerResponse(ResponseStatus.NO_SUCH_ITEM);
+            if (!rawPaths.MoveNext()) return ServerResponse.StartTracing(nameof(DeleteTransitionLinePathAsync) , ResponseStatus.NO_SUCH_ITEM);
             DbTransitionLinePath rawPath = rawPaths.Current;
-            if (rawPaths.MoveNext()) return new ServerResponse(ResponseStatus.DUPLICATED_ITEM);
+            if (rawPaths.MoveNext()) return ServerResponse.StartTracing(nameof(DeleteTransitionLinePathAsync) , ResponseStatus.DUPLICATED_ITEM);
 
             db.TransitionLinePath.Remove(rawPath);
 
