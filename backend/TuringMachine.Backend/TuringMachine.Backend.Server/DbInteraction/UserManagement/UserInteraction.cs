@@ -172,10 +172,10 @@ namespace TuringMachine.Backend.Server.DbInteraction.UserManagement
             if (users.MoveNext())
                 return new ServerResponse<string>(ResponseStatus.DUPLICATED_USER);
 #if RELEASE
-            byte[] hash = Rfc2898DeriveBytes.Pbkdf2(users[0].Password , Convert.FromHexString(salt) , 1 , HashAlgorithmName.SHA256 , 32);   // TODO: Testing with frontend
+            byte[] hash = Rfc2898DeriveBytes.Pbkdf2(user.Password , Convert.FromHexString(salt) , 1 , HashAlgorithmName.SHA256 , 32);   // TODO: Testing with frontend
             
             if (hash != Convert.FromHexString(hashedPassword)) 
-                return new ServerResponse<string>(Status.InvalidUserNameOrPassword);
+                return new ServerResponse<string>(ResponseStatus.INVALID_USERNAME_OR_PASSWORD);
 #else
             if (hashedPassword != user.Password)
                 return new ServerResponse<string>(ResponseStatus.INVALID_PASSWORD);

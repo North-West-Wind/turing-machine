@@ -66,10 +66,10 @@ namespace TuringMachine.Backend.Server
                         {
                             return (await AccessTokenInteraction.ValidateAccessTokenAsync(accessToken , db)).Status switch
                             {
-                                ResponseStatus.SUCCESS         => new ServerResponse<object?>(ResponseStatus.SUCCESS) ,
-                                ResponseStatus.TOKEN_EXPIRED   => new ServerResponse<object?>(ResponseStatus.TOKEN_EXPIRED) ,
-                                ResponseStatus.USER_NOT_FOUND  => new ServerResponse<object?>(ResponseStatus.INVALID_TOKEN) ,
-                                ResponseStatus.DUPLICATED_USER => new ServerResponse<object?>(ResponseStatus.DUPLICATED_USER) ,
+                                ResponseStatus.SUCCESS         => new ServerResponse(ResponseStatus.SUCCESS) ,
+                                ResponseStatus.TOKEN_EXPIRED   => new ServerResponse(ResponseStatus.TOKEN_EXPIRED) ,
+                                ResponseStatus.USER_NOT_FOUND  => new ServerResponse(ResponseStatus.INVALID_TOKEN) ,
+                                ResponseStatus.DUPLICATED_USER => new ServerResponse(ResponseStatus.DUPLICATED_USER) ,
                                 _                              => throw new UnreachableException("/api/validate") ,
                             };
                         }

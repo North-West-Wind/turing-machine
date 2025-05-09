@@ -1,4 +1,6 @@
-﻿using System.Text;
+﻿using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.Json.Serialization;
 using TuringMachine.Backend.Server.Models.Misc;
 
@@ -55,17 +57,23 @@ namespace TuringMachine.Backend.Server.ServerResponses
         }
         #endregion
 
-
         #region Stack Trace Related
         /// <summary> Start a new stack trace. </summary>
         /// <remarks> Only use this method during non-success situation. </remarks>
         /// <returns> Return self. </returns>
-        public static ServerResponse<T> StartTracing<T>(string methodName , ResponseStatus status) => (ServerResponse<T>)StartTracing(methodName , status);
-        
+        public static ServerResponse<T> StartTracing<T>(string methodName , ResponseStatus status) => StartTracing<T>(new ResponseInfo { MethodName = methodName , Status = status });
+
         /// <summary> Start a new stack trace. </summary>
         /// <remarks> Only use this method during non-success situation. </remarks>
         /// <returns> Return self. </returns>
-        public static ServerResponse<T> StartTracing<T>(ResponseInfo info) => (ServerResponse<T>)StartTracing(info);
+        public static ServerResponse<T> StartTracing<T>(ResponseInfo info)
+        {
+            return new ServerResponse<T>
+            {
+                Status               = info.Status ,
+                _responseStackTraces = new List<ResponseInfo> { info }
+            };
+        }
 
         /// <summary> Start a new stack trace. </summary>
         /// <remarks> Only use this method during non-success situation. </remarks>
@@ -89,12 +97,22 @@ namespace TuringMachine.Backend.Server.ServerResponses
         /// <summary> Append new info on the top of the stack trace. </summary>
         /// <remarks> Only use this method during non-success situation. </remarks>
         /// <returns> Return self. </returns>
-        public ServerResponse<T> WithThisTraceInfo<T>(string methodName , ResponseStatus status) => (ServerResponse<T>)WithThisTraceInfo(methodName , status);
+        public ServerResponse<T> WithThisTraceInfo<T>(string methodName , ResponseStatus status) => WithThisTraceInfo<T>(new ResponseInfo { MethodName = methodName , Status = status });
 
         /// <summary> Append new info on the top of the stack trace. </summary>
         /// <remarks> Only use this method during non-success situation. </remarks>
         /// <returns> Return self. </returns>
-        public ServerResponse<T> WithThisTraceInfo<T>(ResponseInfo info) => (ServerResponse<T>)WithThisTraceInfo(info);
+        public ServerResponse<T> WithThisTraceInfo<T>(ResponseInfo info)
+        {
+            WithThisTraceInfo(info);
+            List<ResponseInfo>? stackTrace = _responseStackTraces;
+            return new ServerResponse<T>
+            {
+                _responseStackTraces = stackTrace ,
+                Status               = Status ,
+                Description          = Description ,
+            };
+        }
 
         /// <summary> Append new info on the top of the stack trace. </summary>
         /// <remarks> Only use this method during non-success situation. </remarks>
