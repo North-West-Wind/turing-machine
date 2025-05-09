@@ -222,11 +222,13 @@ class RenderingTuringMachineSimulator extends EventTarget {
 	// Category: Simulation
 
 	// Import all configs stored within this class into the real simulator
-	build() {
+	build(overrideInput?: string) {
 		TuringMachineSimulator.Initialise();
 		let tapes = 0, tapeTypes = true;
-		this.tapes.forEach(tape => {
+		this.tapes.forEach((tape, ii) => {
 			if (!tape) return;
+			if (ii == this.inputTape && overrideInput !== undefined)
+				tape = { TapeContent: overrideInput, TapeLength: overrideInput.length, TapeType: tape.TapeType };
 			TuringMachineSimulator.AddTape(tape);
 			tapes++;
 			if (!constraints.validTapeType(tape.TapeType)) tapeTypes = false;
@@ -292,7 +294,8 @@ class RenderingTuringMachineSimulator extends EventTarget {
 	stop() {
 		this.running = false;
 		TuringMachineSimulator.StopSimulation();
-		this.dispatchEvent(new Event(TuringMachineEvent.STOP));
+		const output = this.state?.Tapes.find(tape => tape.ID == this.outputTape)?.Content.replace(/_/g, "");
+		this.dispatchEvent(new CustomEvent(TuringMachineEvent.STOP, { detail: output }));
 	}
 
 	pause() {
@@ -305,11 +308,35 @@ class RenderingTuringMachineSimulator extends EventTarget {
 	}
 
 	reset() {
+		if (this.running) TuringMachineSimulator.StopSimulation();
 		this.running = false;
 		this.paused = false;
 		this.state = undefined;
 		this.graphs.forEach(graph => graph?.setCurrentState(-1));
 		this.dispatchEvent(new Event(TuringMachineEvent.RESET));
+	}
+
+	async test() {
+		const level = getLevel();
+		if (!level) return false;
+		const MAX_STEPS = 1_000_000; // arbitary max step to avoid infinite loop
+		for (const { input, output } of level.tests) {
+			this.build(input);
+			TuringMachineSimulator.StartSimulation();
+			let halted = false, steps = 0;
+			let state: SystemState | undefined;
+			while (!halted && steps <= MAX_STEPS) {
+				steps++;
+				TuringMachineSimulator.Update();
+				state = TuringMachineSimulator.GetSystemState();
+				halted = state.Machines.every(machine => machine.IsHalted);
+			}
+			TuringMachineSimulator.StopSimulation();
+			if (!halted) return false;
+			const tapeOutput = state?.Tapes.find(tape => tape.ID == this.outputTape)?.Content.replace(/_/g, "");
+			if (tapeOutput != output) return false;
+		}
+		return true;
 	}
 
 	private scheduleNextTick() {

@@ -5,7 +5,7 @@ import JSEncrypt from "jsencrypt";
 
 // testing without server
 // in production, keep the /api part only
-const BASE_URL = "http://localhost:3100/api";
+const BASE_URL = "/api";
 
 type ServerResponse<S extends boolean, T> = {
 	success: S;
@@ -84,6 +84,14 @@ export async function download(id: string) {
 }
 
 export async function submitMachine(machine: SaveableTuringMachine, levelId: string) {
+	const tapes = machine.tapes.filter(tape => tape !== null).length;
+	let heads = 0, transitions = 0, nodes = 0;
+	machine.machines.forEach(machine => {
+		if (!machine) return;
+		heads += machine.heads.filter(head => head !== null).length;
+		transitions += machine.transitions.length;
+		nodes += machine.ui.nodes.filter(node => node !== null).length;
+	});
 	const res = await authFetch("/level/" + levelId, "POST", { machine });
 	const json = await res.json() as { success: boolean, data: { correct: boolean, rank?: number } };
 	if (!json.success) throw new Error("Unsuccessful server response");

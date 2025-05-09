@@ -4,7 +4,7 @@ import { getLevel, PersistenceKey, save } from "../../../helpers/persistence";
 import simulator from "../../../helpers/designer/simulator";
 import Loading from "../../common/loading";
 import { useState } from "react";
-import { saveToCloud, submitMachine } from "../../../helpers/network";
+import { saveToCloud } from "../../../helpers/network";
 
 export default function DesignerLevelDetails(props: { level: DetailedLevel, playable?: boolean }) {
 	const [loading, setLoading] = useState(false);
@@ -28,8 +28,8 @@ export default function DesignerLevelDetails(props: { level: DetailedLevel, play
 		const id = getLevel()?.id;
 		if (!id) return;
 		setLoading(true);
-		const result = await submitMachine(simulator.save(), id);
-		if (result.correct) {
+		const result = await simulator.test();
+		if (result) {
 			props.level.solved = true;
 			setSolved(true);
 			alert("Correct!");
@@ -43,7 +43,7 @@ export default function DesignerLevelDetails(props: { level: DetailedLevel, play
 			<h1>{props.level.title}</h1>
 			<h2>ID: {props.level.id}</h2>
 			<h2>You have {props.level.solved ? "" : "not "}solved this level.</h2>
-			{props.playable && <div className="designer-level-play" onClick={play}>Play</div>}
+			{props.playable && <div className="designer-level-button play" onClick={play}>Play</div>}
 			{!props.playable && <div className="designer-level-details-buttons">
 				<div className="designer-level-button upload" onClick={submit}>{solved ? "Re-submit" : "Submit"}</div>
 				<div className="designer-level-button play" onClick={back}>Return to Level Select</div>
