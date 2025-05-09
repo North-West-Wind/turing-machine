@@ -7,8 +7,8 @@ export enum CommonNumbers {
 export class Vec2 {
 	static readonly ZERO = new Vec2(0, 0);
 
-	static fromArray(arr: number[]) {
-		return new Vec2(arr[0], arr[1]);
+	static fromSaveable(saveable: Saveable2DVector) {
+		return new Vec2(saveable.x, saveable.y);
 	}
 
 	readonly x: number;
@@ -104,6 +104,6 @@ export class Vec2 {
 	}
 
 	toSaveable(): Saveable2DVector {
-		return [this.x, this.y];
+		return { x: this.x, y: this.y };
 	}
 }

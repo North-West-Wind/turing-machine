@@ -10,7 +10,6 @@ export default function DesignerSimulationTapes() {
 
 	useEffect(() => {
 		const onTmTapeLengthChange = () => {
-			console.log(simulator.getTapes());
 			setTapes(Array.from(simulator.getTapes()));
 		};
 

@@ -189,7 +189,8 @@ export class StateVertex implements IDrawable, IDrawableOverlay, IHoverable, ISa
 	toSaveable() {
 		return {
 			label: this.label,
-			position: this.position.toSaveable()
+			position: this.position.toSaveable(),
+			isFinal: this._final
 		};
 	}
 }
@@ -601,7 +602,7 @@ export class StateText implements IDrawable, IHoverable, ISaveable<SaveableUITex
 
 	toSaveable() {
 		return {
-			pos: this.position.toSaveable(),
+			position: this.position.toSaveable(),
 			value: this.value
 		};
 	}
@@ -870,9 +871,9 @@ export class StateGraph implements IDrawable, IDrawableOverlay, ISaveable<Omit<S
 
 	toSaveable() {
 		return {
-			boxes: this.rects.map(rect => rect?.toSaveable() || null),
-			texts: this.texts.map(text => text?.toSaveable() || null),
-			nodes: this.vertices.map(vert => vert?.toSaveable() || null)
+			boxes: this.rects.map(rect => rect?.toSaveable() || {}),
+			texts: this.texts.map(text => text?.toSaveable() || {}),
+			nodes: this.vertices.map(vert => vert?.toSaveable() || {})
 		}
 	}
 }

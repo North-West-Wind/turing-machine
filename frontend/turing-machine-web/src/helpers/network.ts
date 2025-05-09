@@ -90,7 +90,7 @@ export async function submitMachine(machine: SaveableTuringMachine, levelId: str
 		if (!machine) return;
 		heads += machine.heads.filter(head => head !== null).length;
 		transitions += machine.transitions.length;
-		nodes += machine.ui.nodes.filter(node => node !== null).length;
+		nodes += machine.label.nodes.filter(node => node !== null).length;
 	});
 	const res = await authFetch("/level/" + levelId, "POST", { machine });
 	const json = await res.json() as { success: boolean, data: { correct: boolean, rank?: number } };

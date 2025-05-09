@@ -60,6 +60,13 @@ export default function DesignerGraph(props: { width: number, height: number, st
 			}
 		};
 
+		const onTmDeleteMachine = (ev: CustomEventInit<number>) => {
+			if (ev.detail !== undefined && machineId == ev.detail) {
+				machineId = undefined;
+				graph = undefined;
+			}
+		};
+
 		const onTmStep = (ev: CustomEventInit<SystemState>) => {
 			if (!ev.detail) return;
 			const machine = ev.detail.Machines.find(machine => machine.ID == machineId);
@@ -68,9 +75,11 @@ export default function DesignerGraph(props: { width: number, height: number, st
 		};
 
 		simulator.addEventListener(TuringMachineEvent.CHANGE_MACHINE, onTmChangeMachine);
+		simulator.addEventListener(TuringMachineEvent.DELETE_MACHINE, onTmDeleteMachine);
 		simulator.addEventListener(TuringMachineEvent.STEP, onTmStep);
 		return () => {
 			simulator.removeEventListener(TuringMachineEvent.CHANGE_MACHINE, onTmChangeMachine);
+			simulator.removeEventListener(TuringMachineEvent.DELETE_MACHINE, onTmDeleteMachine);
 			simulator.removeEventListener(TuringMachineEvent.STEP, onTmStep);
 			bottomRightText = { text: "", time: 0 };
 		};
