@@ -3,7 +3,7 @@ Top is a list of all endpoints categorized by UI pages. Scroll further for detai
 Note: **For all endpoints listed, prepand `/api[/v1]` (version is optional)**
 
 #### Changes
-Current revision: 9
+Current revision: 10
 - rev1: Formatted every entry so it's easier to read all requests and responses
 - rev2: Added "title" to simple level and level data structures
 - rev3: Changed "parents" to "parent" for simple level and level data structures, and only allow singular parent
@@ -21,6 +21,9 @@ Current revision: 9
 - rev9:
 	- Changed TM structure to match server structure
 	- Changed primative data type in requests to be sent using parameters
+- rev10:
+	- Changed response of POST `/level` to return rank in percentage
+	- Added GET `/stat` to obtain the stat of user's last submission
 
 ### Landing
 - GET `/try-get-response` (or `/ping`)
@@ -34,13 +37,14 @@ Current revision: 9
 
 ### Level Select
 - GET `/levels`
-- GET `/level/:id`
+- GET `/level`
 
 ### Designer
-- POST `/level/:id`
+- POST `/level`
 - POST `/save`
 - POST `/upload`
-- GET `/import/:id`
+- GET `/import`
+- GET `/stat`
 
 ## Encryptions
 ### RSA
@@ -103,7 +107,7 @@ Salt is used for hashing the password during `/login`.
 }
 ```
 
-### Simple Level (Used in `/levels`)
+### Simple Level (Used in GET `/levels`)
 ```json
 {
 	"id": "level id",
@@ -113,7 +117,7 @@ Salt is used for hashing the password during `/login`.
 }
 ```
 
-### Level (Used in `/level/:id`)
+### Level (Used in GET `/level`)
 ```json
 {
 	"id": "level id",
@@ -145,7 +149,7 @@ Salt is used for hashing the password during `/login`.
 If a request requires authentication, the access token is passed as a parameter.
 `http://<host>:<port>/api/validate?accessToken=<rsa-encrypted-token>`
 
-If client needs to send data to the server, all primative data types are sent as parameters, while , data is sent using POST body as JSON.
+If client needs to send data to the server, all primative data types are sent as parameters, while nested objects are sent using POST body as JSON.
 
 **Response**  
 All server responses should be in JSON, with at least the field named `success`, indicating if the server processed the request successfully. `data` field is the returned data for a specific request. For example, a successful GET request of `/validate` will be:
@@ -276,14 +280,13 @@ Response data:
 }
 ```
 
-### GET `/level/:id`
+### GET `/level`
 - Access token: Required
-- Parameters:
-	- `id`: Level ID
 
 Get the details of a level by ID.
 
-No request body.
+Request parameter:
+- `levelID`
 
 Response data:
 ```json
@@ -292,14 +295,13 @@ Response data:
 }
 ```
 
-### POST `/level/:id`
+### POST `/level`
 - Access token: Required
-- Parameters:
-	- `id`: Level ID
 
 Submit a solution for a level.
 
 Request parameters:
+- `levelID`
 - `correct`: Whether client validation yields a correct result
 - `states`: Amount of states in the machine
 - `transitions`: Amount of transitions in the machine
@@ -307,12 +309,10 @@ Request parameters:
 - `operations`: Amount of operations for all the cases
 
 Response data:
-- `correct`: Whether the solution is correct or not
-- `rank`: Rank of this solution. 1-indexed
+- `rank`: A percentage. Rank of this solution.
 ```json
 {
-	"correct": true,
-	"rank": 1
+	"rank": 0.5 // Range: [0, 1]
 }
 ```
 
@@ -324,11 +324,8 @@ Save client's progress to the server.
 Request parameter:
 - `level`: Level ID, nullable. If null, means the user is in sandbox mode
 Request body:
-- `machine`: Turing Machine data structure, nullable. If null, means the user is in mode selection or reading the level
 ```json
-{
-	"machine": { /* Turing Machine data structure */ }
-}
+{ /* Turing Machine data structure */ }
 ```
 
 Response data:
@@ -369,5 +366,21 @@ Response data:
 ```json
 {
 	"machine": { /* Turing Machine data structure */ }
+}
+```
+
+### GET `/stat`
+- Access token: Required
+
+Returns the ranking of the user's last submitted machine of a level.
+
+Request parameter:
+- `levelID`
+
+Response data:
+- `rank`: Rank of the last submitted solution in percentage, or null if user have not solved this level.
+```json
+{
+	"rank": 0.5 // Range: [0, 1] or null
 }
 ```
