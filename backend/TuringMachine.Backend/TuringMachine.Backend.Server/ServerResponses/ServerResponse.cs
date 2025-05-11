@@ -26,7 +26,7 @@ namespace TuringMachine.Backend.Server.ServerResponses
                 if (_responseStackTraces is null)
                     return null;
 
-                StringBuilder builder = new StringBuilder("Stack trace (Oldest on top):");
+                StringBuilder builder = new StringBuilder("Stack trace (oldest on top):\n");
                 foreach (ResponseInfo info in _responseStackTraces!)
                     builder.AppendLine($"Method: {info.MethodName} | Status: {info.Status}");
                 return builder.ToString();
