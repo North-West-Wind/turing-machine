@@ -19,5 +19,7 @@ namespace TuringMachine.Backend.Server.Models.Levels
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public TuringMachineDesign? Design { get; set; }
+
+        public int Operations { get; set; }
     }
 }

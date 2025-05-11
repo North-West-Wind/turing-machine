@@ -115,6 +115,8 @@ namespace TuringMachine.Backend.Server.DbInteraction.Level
 
                     IsSolved = progress.IsSolved ,
                     Design   = machineDesignResponse?.Result ,
+
+                    Operations = progress.Operations ,
                 }
             );
         }

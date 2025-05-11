@@ -6,11 +6,12 @@ namespace TuringMachine.Backend.Server.Database.Entity.Progress
 {
     internal class LevelProgress
     {
-        public Guid     UUID          { get; set; }
-        public byte     LevelID       { get; set; }
-        public bool     IsSolved      { get; set; }
-        public Guid?    DesignID      { get; set; }
+        public Guid     UUID           { get; set; }
+        public byte     LevelID        { get; set; }
+        public bool     IsSolved       { get; set; }
+        public Guid?    DesignID       { get; set; }
         public DateTime SubmissionTime { get; set; }
+        public int      Operations     { get; set; }
 
 
         #region Relation

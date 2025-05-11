@@ -231,6 +231,23 @@ namespace TuringMachine.Backend.Server
                 )
                 .WithName("GetTuringMachine")
                 .WithOpenApi();
+
+            app.MapGet(
+                    "/api/stat" ,
+                    async (string accessToken , byte levelID , DataContext db) =>
+                        {
+                            return (await AccessTokenInteraction.GetAndValidateUserAsync(accessToken , db)).ToTuple() switch
+                            {
+                                (ResponseStatus.SUCCESS , { } user)  => await ProgressInteraction.GetRankingAsync(user.UUID.ToString() , levelID , db) ,
+                                (ResponseStatus.TOKEN_EXPIRED , _)   => new ServerResponse<RankingResponseBody>(ResponseStatus.TOKEN_EXPIRED) ,
+                                (ResponseStatus.USER_NOT_FOUND , _)  => new ServerResponse<RankingResponseBody>(ResponseStatus.INVALID_TOKEN) ,
+                                (ResponseStatus.DUPLICATED_USER , _) => new ServerResponse<RankingResponseBody>(ResponseStatus.DUPLICATED_USER) ,
+                                _                                    => throw new UnreachableException("/api/stat") ,
+                            };
+                        }
+                )
+                .WithName("GetStatistic")
+                .WithOpenApi();
             #endregion
 
             #region License Key
