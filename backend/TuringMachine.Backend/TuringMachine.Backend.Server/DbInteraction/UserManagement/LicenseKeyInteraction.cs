@@ -22,7 +22,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.UserManagement
         {
             Guid newLicense = Guid.NewGuid();
 
-            db.LicenseKeys.Add(new DbLicenseKey { License = Guid.NewGuid() , });
+            db.LicenseKeys.Add(new DbLicenseKey { License = newLicense , });
 
             await db.SaveChangesAsync();
             return new ServerResponse<string>(ResponseStatus.SUCCESS , newLicense.ToString());
