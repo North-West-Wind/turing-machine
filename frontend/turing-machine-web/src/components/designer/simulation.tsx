@@ -86,15 +86,17 @@ export default function DesignerSimulation(props: { onWidthChange: (factor: numb
 			</>;
 			break;
 		case Tabs.PROPERTIES:
-			if (!graph) break;
 			switch (editing?.type) {
 				case "vertex":
+					if (!graph) break;
 					innerSimulation = <DesignerPropertiesVertexCombo graph={graph} id={editing.id} />
 					break;
 				case "rect":
+					if (!graph) break;
 					innerSimulation = <DesignerPropertiesRectCombo graph={graph} id={editing.id} />
 					break;
 				case "text":
+					if (!graph) break;
 					innerSimulation = <DesignerPropertiesTextCombo graph={graph} id={editing.id} />
 					break;
 				case "machine":

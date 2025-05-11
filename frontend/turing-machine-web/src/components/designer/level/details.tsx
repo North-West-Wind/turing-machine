@@ -1,15 +1,24 @@
 import { useNavigate } from "react-router-dom";
 import { DetailedLevel } from "../../../helpers/designer/level";
-import { getLevel, PersistenceKey, save } from "../../../helpers/persistence";
+import { getRanks, PersistenceKey, save } from "../../../helpers/persistence";
 import simulator from "../../../helpers/designer/simulator";
 import Loading from "../../common/loading";
-import { useState } from "react";
-import { saveToCloud, submitMachine } from "../../../helpers/network";
+import { useEffect, useState } from "react";
+import { getLevelStat, saveToCloud, submitMachine } from "../../../helpers/network";
 
 export default function DesignerLevelDetails(props: { level: DetailedLevel, playable?: boolean }) {
 	const [loading, setLoading] = useState(false);
 	const [solved, setSolved] = useState(props.level.solved);
+	const [rank, setRank] = useState(-1);
 	const navigate = useNavigate();
+
+	useEffect(() => {
+		const ranks = getRanks();
+		if (ranks && ranks[props.level.id]) setRank(ranks[props.level.id]);
+		getLevelStat(props.level.id).then((percentage) => {
+			if (typeof percentage == "number") setRank(percentage);
+		}).catch(console.error); 
+	}, []);
 
 	const play = () => {
 		save(PersistenceKey.LEVEL, JSON.stringify(props.level));
@@ -25,11 +34,14 @@ export default function DesignerLevelDetails(props: { level: DetailedLevel, play
 	};
 
 	const submit = async () => {
-		const id = getLevel()?.id;
+		const id = props.level.id;
 		if (!id) return;
 		setLoading(true);
-		const result = await submitMachine(simulator.save(), id);
-		if (result.correct) {
+		const saveable = simulator.save();
+		const result = await simulator.test();
+		if (result >= 0) {
+			const rank = await submitMachine(saveable, result, id);
+			setRank(rank);
 			props.level.solved = true;
 			setSolved(true);
 			alert("Correct!");
@@ -43,7 +55,8 @@ export default function DesignerLevelDetails(props: { level: DetailedLevel, play
 			<h1>{props.level.title}</h1>
 			<h2>ID: {props.level.id}</h2>
 			<h2>You have {props.level.solved ? "" : "not "}solved this level.</h2>
-			{props.playable && <div className="designer-level-play" onClick={play}>Play</div>}
+			{rank >= 0 && <h2>Solution Performance: {(rank * 100).toFixed(2)}%</h2>}
+			{props.playable && <div className="designer-level-button play" onClick={play}>Play</div>}
 			{!props.playable && <div className="designer-level-details-buttons">
 				<div className="designer-level-button upload" onClick={submit}>{solved ? "Re-submit" : "Submit"}</div>
 				<div className="designer-level-button play" onClick={back}>Return to Level Select</div>

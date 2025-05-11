@@ -6,7 +6,6 @@ import DesignerSimulationMachineTape from "./machine/tape";
 import { SystemState } from "../../../logic/SystemState";
 import { SignalState } from "../../../logic/States/SignalStates";
 
-// each element of `tapes` is 7 char long, with index 3 being the middle
 export default function DesignerSimulationMachine(props: { name: string, color: string, tapes: number[], id: number, onClick: () => void, selected: boolean }) {
 	const machine = simulator.getMachineConfig(props.id);
 	if (!machine) return <></>;

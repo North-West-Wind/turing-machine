@@ -189,7 +189,8 @@ export class StateVertex implements IDrawable, IDrawableOverlay, IHoverable, ISa
 	toSaveable() {
 		return {
 			label: this.label,
-			position: this.position.toSaveable()
+			position: this.position.toSaveable(),
+			isFinal: this._final
 		};
 	}
 }
@@ -544,7 +545,7 @@ export class StateRect implements IDrawable, IHoverable, ISaveable<SaveableUIBox
 		return {
 			start: this.start.toSaveable(),
 			size: this.size.toSaveable(),
-			color: parseInt(this.color.slice(1), 16)
+			color: parseInt(this.color, 16)
 		};
 	}
 }
@@ -601,7 +602,7 @@ export class StateText implements IDrawable, IHoverable, ISaveable<SaveableUITex
 
 	toSaveable() {
 		return {
-			pos: this.position.toSaveable(),
+			position: this.position.toSaveable(),
 			value: this.value
 		};
 	}
@@ -737,6 +738,12 @@ export class StateGraph implements IDrawable, IDrawableOverlay, ISaveable<Omit<S
 		else this.rects.push(rect);
 	}
 
+	deleteRect(id: number) {
+		if (!this.rects[id]) return;
+		if (this.rects.length == id + 1) this.rects.pop();
+		else if (this.rects[id]) this.rects[id] = null;
+	}
+
 	getRect(id: number) {
 		return this.rects[id];
 	}
@@ -751,12 +758,17 @@ export class StateGraph implements IDrawable, IDrawableOverlay, ISaveable<Omit<S
 		else this.texts.push(text);
 	}
 
+	deleteText(id: number) {
+		if (!this.texts[id]) return;
+		if (this.texts.length == id + 1) this.texts.pop();
+		else if (this.texts[id]) this.texts[id] = null;
+	}
+
 	getText(id: number) {
 		return this.texts[id];
 	}
 
 	draw(ctx: CanvasRenderingContext2D) {
-		ctx.font = `${ctx.canvas.height / 20}px Courier New`;
 		// draw rectangles
 		this.rects.forEach(r => r?.draw(ctx));
 		// draw texts
@@ -770,6 +782,7 @@ export class StateGraph implements IDrawable, IDrawableOverlay, ISaveable<Omit<S
 		this.tmpEdge?.edge.draw(ctx);
 		topEdge?.draw(ctx);
 		// draw vertices
+		ctx.font = ` ${ctx.canvas.height / 30}px Courier New`;
 		this.vertices.forEach(v => v?.draw(ctx));
 	}
 
@@ -858,9 +871,9 @@ export class StateGraph implements IDrawable, IDrawableOverlay, ISaveable<Omit<S
 
 	toSaveable() {
 		return {
-			boxes: this.rects.map(rect => rect?.toSaveable() || null),
-			texts: this.texts.map(text => text?.toSaveable() || null),
-			nodes: this.vertices.map(vert => vert?.toSaveable() || null)
+			boxes: this.rects.map(rect => rect?.toSaveable() || {}),
+			texts: this.texts.map(text => text?.toSaveable() || {}),
+			nodes: this.vertices.map(vert => vert?.toSaveable() || {})
 		}
 	}
 }

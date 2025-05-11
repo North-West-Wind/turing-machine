@@ -1,20 +1,39 @@
 import { DetailedLevel, SimpleLevel } from "./designer/level";
 import { SaveableTuringMachine } from "./designer/machine";
+import { isEmpty } from "./objects";
 import { getAuth, getLevel as getPersistentLevel } from "./persistence";
 import JSEncrypt from "jsencrypt";
 
 // testing without server
 // in production, keep the /api part only
-const BASE_URL = "http://localhost:3100/api";
+const BASE_URL = "/api";
 
-type ServerResponse<S extends boolean, T> = {
-	success: S;
-	errcode: S extends false ? string : undefined;
-	errmsg: S extends false ? string : undefined;
-	data: S extends true ? T : undefined;
+type UnsuccessfulServerResponse = {
+	time: string;
+	status: "TOKEN_EXPIRED"
+				| "INVALID_TOKEN"
+				| "INVALID_USERNAME_OR_PASSWORD"
+				| "INVALID_PASSWORD"
+				| "NO_SUCH_ITEM"
+				| "USER_NOT_FOUND"
+				| "DESIGN_NOT_FOUND"
+				| "TOO_MANY_REQUEST"
+				| "BACKEND_ERROR"
+				| "USER_EXISTED"
+				| "INVALID_LICENSE"
+				| "DUPLICATED_USER"
+				| "DUPLICATED_DESIGN"
+				| "DUPLICATED_ITEM";
+	responseStackTraces: string;
 }
 
-type UndeterminedServerResponse<T> = ServerResponse<boolean, T>;
+type SuccessfulServerResponse<T> = {
+	time: string;
+	status: "SUCCESS";
+	result: T;
+}
+
+type ServerResponse<T> = UnsuccessfulServerResponse | SuccessfulServerResponse<T>;
 
 export type Auth = {
 	username: string;
@@ -28,64 +47,87 @@ export type CloudSaveResult = {
 
 const encrypt = new JSEncrypt();
 
-async function authFetch(url: string, method: "GET" | "POST" = "GET", data?: any) {
+async function authFetch<T>(url: string, queries: Record<string, string | number> = {}, method: "GET" | "POST" = "GET", data?: any) {
+	// Check if we have authorization info
 	const auth = getAuth();
 	if (!auth) throw new Error("Not authorized");
-	const res = await fetch(BASE_URL + "/pubkey");
-	const json = await res.json();
-	if (!json.success) throw new Error("Unsuccessful server response");
-	encrypt.setPublicKey(json.data.key);
-	const headers: HeadersInit = {
-		Authorization: `Bearer ${encrypt.encrypt(auth.accessToken)}`,
-	};
+
+	// Get public key for encrypting auth
+	let res = await fetch(BASE_URL + "/get-rsa-key");
+	if (!res.ok) throw new Error("Received HTTP status: " + res.status);
+	const json = await res.json() as ServerResponse<string>;
+	if (json.status != "SUCCESS") throw new Error("Unsuccessful server response");
+
+	// Do the encryption
+	encrypt.setPublicKey(json.result);
+	const accessToken = encrypt.encrypt(auth.accessToken);
+	if (!accessToken) throw new Error("Encryption failed");
+
+	// Prepare header and queries
+	const headers: HeadersInit = {};
 	if (data) headers["Content-Type"] = "application/json";
-	return await fetch(BASE_URL + url, {
+	queries["accessToken"] = accessToken;
+	const urlQueries: string[] = [];
+	for (const [key, value] of Object.entries(queries))
+		urlQueries.push(`${key}=${value}`);
+
+	// Make the request
+	res = await fetch(BASE_URL + url + `?${urlQueries.join("&")}`, {
 		method,
 		headers,
 		body: data ? JSON.stringify(data) : undefined
 	});
+	if (!res.ok) throw new Error("Received HTTP status: " + res.status);
+	return await res.json() as ServerResponse<T>;
 }
 
 export async function saveToCloud(saveable: SaveableTuringMachine): Promise<CloudSaveResult> {
 	const level = getPersistentLevel();
-	const res = await authFetch("/save", "POST", { level: level ? level.id : null, machine: saveable });
-	if (!res.ok) return { error: true, message: "Received HTTP status: " + res.status };
-	const json = await res.json() as UndeterminedServerResponse<undefined>;
-	if (!json.success) return { error: true, message: `${json.errcode}: ${json.errmsg}` };
+	const json = await authFetch("/save", {  }, "POST", { level: level ? level.id : null, machine: saveable });
+	if (json.status != "SUCCESS") return { error: true, message: json.responseStackTraces };
 	return { error: false };
 }
 
 export async function getLevels() {
-	const res = await authFetch("/levels");
-	const json = await res.json() as { success: boolean, data: SimpleLevel[] };
-	if (!json.success) throw new Error("Unsuccessful server response");
-	return json.data;
+	const json = await authFetch<SimpleLevel[]>("/levels");
+	if (json.status != "SUCCESS") throw new Error("Unsuccessful server response");
+	return json.result;
 }
 
-export async function getLevel(levelId: string) {
-	const res = await authFetch("/level/" + levelId);
-	const json = await res.json() as { success: boolean, data: DetailedLevel };
-	if (!json.success) throw new Error("Unsuccessful server response");
-	return json.data;
+export async function getLevel(levelID: string) {
+	const json = await authFetch<DetailedLevel>("/level", { levelID });
+	if (json.status != "SUCCESS") throw new Error("Unsuccessful server response");
+	return json.result;
 }
 
 export async function upload(machine: SaveableTuringMachine) {
-	const res = await authFetch("/upload", "POST", { machine });
-	const json = await res.json() as { success: boolean, data: { id: number } };
-	if (!json.success) throw new Error("Unsuccessful server response");
-	return json.data.id;
+	const json = await authFetch<string>("/upload", {}, "POST", machine);
+	if (json.status != "SUCCESS") throw new Error("Unsuccessful server response");
+	return json.result;
 }
 
 export async function download(id: string) {
-	const res = await authFetch("/import/" + id);
-	const json = await res.json() as { success: boolean, data: { machine: SaveableTuringMachine } };
-	if (!json.success) throw new Error("Unsuccessful server response");
-	return json.data.machine;
+	const json = await authFetch<SaveableTuringMachine>("/import", { designID: id });
+	if (json.status != "SUCCESS") throw new Error("Unsuccessful server response");
+	return json.result;
 }
 
-export async function submitMachine(machine: SaveableTuringMachine, levelId: string) {
-	const res = await authFetch("/level/" + levelId, "POST", { machine });
-	const json = await res.json() as { success: boolean, data: { correct: boolean, rank?: number } };
-	if (!json.success) throw new Error("Unsuccessful server response");
-	return json.data;
+export async function submitMachine(machine: SaveableTuringMachine, operations: number, levelID: string) {
+	const tapes = machine.tapes.length;
+	let heads = 0, transitions = 0, nodes = 0;
+	machine.machines.forEach(machine => {
+		heads += machine.heads.length;
+		transitions += machine.transitions.length;
+		nodes += machine.label.nodes.filter(node => !isEmpty(node)).length;
+	});
+	// This returns a percentage [0, 1]
+	const json = await authFetch<number>("/level", { levelID, tapes, heads, transitions, nodes, operations }, "POST", machine);
+	if (json.status != "SUCCESS") throw new Error("Unsuccessful server response");
+	return json.result;
+}
+
+export async function getLevelStat(levelID: string) {
+	const json = await authFetch<number | null>("/stat", { levelID });
+	if (json.status != "SUCCESS") throw new Error("Unsuccessful server response");
+	return json.result;
 }

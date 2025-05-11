@@ -7,13 +7,14 @@ export enum PersistenceKey {
 	MACHINE = "tm:machine",
 	TIME = "tm:save_time",
 	AUTH = "tm:auth",
+	RANK = "tm:rank"
 }
 
 // A wrapper of localStorage.setItem to store timestamp as well
-export function save(key: PersistenceKey, value?: string) {
+export function save(key: PersistenceKey, value?: string, save = true) {
 	if (value === undefined) window.localStorage.removeItem(key);
 	else window.localStorage.setItem(key, value);
-	window.localStorage.setItem(PersistenceKey.TIME, Date.now().toString());
+	if (save) window.localStorage.setItem(PersistenceKey.TIME, Date.now().toString());
 }
 
 function get<T>(key: PersistenceKey) {
@@ -37,4 +38,8 @@ export function getMachine() {
 
 export function getAuth() {
 	return get<Auth>(PersistenceKey.AUTH);
+}
+
+export function getRanks() {
+	return get<Record<string, number>>(PersistenceKey.RANK);
 }

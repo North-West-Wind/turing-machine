@@ -38,18 +38,26 @@ export default function DesginerSimulationTape(props: { tape: Tape, index: numbe
 			if (ev.detail === undefined) return;
 			setOutput(ev.detail);
 		};
+
+		const onTmDeleteTape = (ev: CustomEventInit<number>) => {
+			if (ev.detail !== undefined && props.index == ev.detail) {
+				setTape({ ...props.tape });
+			}
+		};
 		
 		simulator.addEventListener(TuringMachineEvent.STEP, onTmStep);
 		simulator.addEventListener(TuringMachineEvent.RESET, onTmReset);
 		simulator.addEventListener(TuringMachineEvent.CHANGE_TAPE, onTmTapeChange);
 		simulator.addEventListener(TuringMachineEvent.CHANGE_INPUT_TAPE, onTmInputTapeChange);
 		simulator.addEventListener(TuringMachineEvent.CHANGE_OUTPUT_TAPE, onTmOutputTapeChange);
+		simulator.addEventListener(TuringMachineEvent.DELETE_TAPE, onTmDeleteTape);
 		return () => {
 			simulator.removeEventListener(TuringMachineEvent.STEP, onTmStep);
 			simulator.removeEventListener(TuringMachineEvent.RESET, onTmReset);
 			simulator.removeEventListener(TuringMachineEvent.CHANGE_TAPE, onTmTapeChange);
 			simulator.removeEventListener(TuringMachineEvent.CHANGE_INPUT_TAPE, onTmInputTapeChange);
 			simulator.removeEventListener(TuringMachineEvent.CHANGE_OUTPUT_TAPE, onTmOutputTapeChange);
+			simulator.removeEventListener(TuringMachineEvent.DELETE_TAPE, onTmDeleteTape);
 		};
 	}, []);
 
@@ -84,7 +92,7 @@ export default function DesginerSimulationTape(props: { tape: Tape, index: numbe
 		</div>
 		<div className="designer-simulation-tape-type">
 			<div>Type:</div>
-			<select defaultValue={tape.type !== undefined ? simulator.tapeTypeToString(tape.type).toLowerCase() : undefined} onChange={changeType}>
+			<select value={tape.type !== undefined ? simulator.tapeTypeToString(tape.type).toLowerCase() : undefined} onChange={changeType}>
 				{constraints.availableTapeTypes().map((type, ii) => {
 					const name = simulator.tapeTypeToString(type);
 					return <option value={name.toLowerCase()} key={ii}>{name}</option>;

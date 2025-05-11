@@ -44,7 +44,10 @@ export default function DesignerConsole(props: { onHeightChange: (factor: number
 		};
 
 		const onTmStart = () => addLine("Simulation started");
-		const onTmStop = () => addLine("Simulation stopped");
+		const onTmStop = (ev: CustomEventInit<string>) => {
+			addLine("Simulation stopped");
+			if (ev.detail !== undefined) addLine("<< " + ev.detail, LineType.IO);
+		};
 		const onTmHalt = (ev: CustomEventInit<number>) => ev.detail !== undefined && addLine(`Machine ${ev.detail} halted`);
 		const onTmWarn = (ev: CustomEventInit<string>) => ev.detail !== undefined && addLine(ev.detail, LineType.WARNING);
 
