@@ -299,13 +299,13 @@ namespace TuringMachine.Backend.Server.DbInteraction.Progress
         ///     When successfully update a progress info, return status "SUCCESS". <br/><br/>
         ///     Status is either "SUCCESS", or "BACKEND_ERROR".
         /// </returns>
-        public static async Task<ServerResponse> UpdateProgress(string uuid , byte levelID , ResponseLevelProgress level , bool isSolved , DataContext db)
+        public static async Task<ServerResponse> UpdateProgressAsync(string uuid , byte levelID , ResponseLevelProgress level , bool isSolved , DataContext db)
         {
             await DeleteProgressAsync(uuid , levelID , true , db);
 
             ServerResponse response = await InsertProgressAsync(uuid , levelID , level.MachineDesign , level.Operations ,isSolved , db);
             if (response.Status != ResponseStatus.SUCCESS)
-                return response.WithThisTraceInfo(nameof(UpdateProgress) , ResponseStatus.BACKEND_ERROR);
+                return response.WithThisTraceInfo(nameof(UpdateProgressAsync) , ResponseStatus.BACKEND_ERROR);
 
             return new ServerResponse(ResponseStatus.SUCCESS);
         }
@@ -314,13 +314,13 @@ namespace TuringMachine.Backend.Server.DbInteraction.Progress
         ///     When successfully update a progress info, return status "SUCCESS". <br/><br/>
         ///     Status is either "SUCCESS" or "BACKEND_ERROR".
         /// </returns>
-        public static async Task<ServerResponse> UpdateProgress(string uuid , byte levelID , ResponseTuringMachineDesign design , bool isSolved , DataContext db)
+        public static async Task<ServerResponse> UpdateProgressAsync(string uuid , byte levelID , ResponseTuringMachineDesign? design , bool isSolved , DataContext db)
         {
             await DeleteProgressAsync(uuid , levelID , true ,db);
 
             ServerResponse response = await InsertProgressAsync(uuid , levelID , design , 0 , isSolved , db);
             if (response.Status != ResponseStatus.SUCCESS)
-                return response.WithThisTraceInfo(nameof(UpdateProgress) , ResponseStatus.BACKEND_ERROR);
+                return response.WithThisTraceInfo(nameof(UpdateProgressAsync) , ResponseStatus.BACKEND_ERROR);
 
             return new ServerResponse(ResponseStatus.SUCCESS);
         }

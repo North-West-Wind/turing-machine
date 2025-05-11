@@ -57,22 +57,16 @@ namespace TuringMachine.Backend.Server
 
             #region Register API
             #region Landing
-            app.MapGet("/api/try-get-response" , () => new ServerResponse<string>(ResponseStatus.SUCCESS , "Server Responded."))
+            app.MapGet(
+                    "/api/try-get-response" ,
+                    () => new ServerResponse<string>(ResponseStatus.SUCCESS , "Server Responded.")
+                )
                 .WithName("TryGetServerResponse")
                 .WithOpenApi();
 
             app.MapGet(
-                    "/api/validate" , async (string accessToken , DataContext db) =>
-                        {
-                            return (await AccessTokenInteraction.ValidateAccessTokenAsync(accessToken , db)).Status switch
-                            {
-                                ResponseStatus.SUCCESS         => new ServerResponse(ResponseStatus.SUCCESS) ,
-                                ResponseStatus.TOKEN_EXPIRED   => new ServerResponse(ResponseStatus.TOKEN_EXPIRED) ,
-                                ResponseStatus.USER_NOT_FOUND  => new ServerResponse(ResponseStatus.INVALID_TOKEN) ,
-                                ResponseStatus.DUPLICATED_USER => new ServerResponse(ResponseStatus.DUPLICATED_USER) ,
-                                _                              => throw new UnreachableException("/api/validate") ,
-                            };
-                        }
+                    "/api/validate" ,
+                    async (string accessToken , DataContext db) => await AccessTokenInteraction.ValidateAccessTokenAsync(accessToken , db)
                 )
                 .WithName("GetValidation")
                 .WithOpenApi();
@@ -80,11 +74,11 @@ namespace TuringMachine.Backend.Server
             app.MapGet(
                     "/api/progress" , async (string accessToken , DataContext db) =>
                         {
-                            (ResponseStatus status , User? user) = (await AccessTokenInteraction.GetAndValidateUserAsync(accessToken , db)).ToTuple();
-                            return status switch
+                            ServerResponse<User> getUserResponse = (await AccessTokenInteraction.GetAndValidateUserAsync(accessToken , db));
+                            return getUserResponse.Status switch
                             {
-                                ResponseStatus.SUCCESS => await ProgressInteraction.GetLatestProgressAsync(user!.UUID.ToString() , db) ,
-                                _                      => new ServerResponse<ProgressResponseBody>(status) ,
+                                ResponseStatus.SUCCESS => await ProgressInteraction.GetLatestProgressAsync(getUserResponse.Result!.UUID.ToString() , db) ,
+                                _                      => getUserResponse.WithThisTraceInfo("/api/progress" , ResponseStatus.BACKEND_ERROR),
                             };
                         }
                 )
@@ -93,23 +87,25 @@ namespace TuringMachine.Backend.Server
             #endregion
 
             #region Login
-            app.MapGet("/api/get-rsa-key" , () => new ServerResponse<string>(ResponseStatus.SUCCESS , rsa.ExportRSAPublicKeyPem()))
+            app.MapGet(
+                    "/api/get-rsa-key" ,
+                    () => new ServerResponse<string>(ResponseStatus.SUCCESS , rsa.ExportRSAPublicKeyPem())
+                )
                 .WithName("GetRsaKey")
                 .WithOpenApi();
 
             app.MapPost(
                     "/api/login" , async (string username , string hashedPassword , string salt , DataContext db) =>
                         {
-                            return (await UserInteraction.LoginAsync(username , hashedPassword , salt , db)).ToTuple() switch
-                            {
-// @formatter:off
-                                (ResponseStatus.SUCCESS                      , { } accessToken) => new ServerResponse<LoginResponseBody?>(ResponseStatus.SUCCESS , new LoginResponseBody { AccessToken = accessToken }) ,
-                                (ResponseStatus.USER_NOT_FOUND               ,  _             ) => new ServerResponse<LoginResponseBody?>(ResponseStatus.INVALID_USERNAME_OR_PASSWORD) ,
-                                (ResponseStatus.INVALID_USERNAME_OR_PASSWORD ,  _             ) => new ServerResponse<LoginResponseBody?>(ResponseStatus.INVALID_USERNAME_OR_PASSWORD) ,
-                                (ResponseStatus.DUPLICATED_USER              ,  _             ) => new ServerResponse<LoginResponseBody?>(ResponseStatus.DUPLICATED_USER) ,
-                                _                                                               => throw new UnreachableException("/api/login") ,
-// @formatter:on
-                            };
+                            ServerResponse<string> getLoginResponse = await UserInteraction.LoginAsync(username , hashedPassword , salt , db);
+
+                            if (getLoginResponse.Status is not ResponseStatus.SUCCESS)
+                                return getLoginResponse.WithThisTraceInfo<LoginResponseBody>("/api/login" , getLoginResponse.Status);
+
+                            return new ServerResponse<LoginResponseBody>(
+                                ResponseStatus.SUCCESS ,
+                                new LoginResponseBody { AccessToken = getLoginResponse.Result! , }
+                            );
                         }
                 )
                 .WithName("GetUserLogin")
@@ -134,14 +130,15 @@ namespace TuringMachine.Backend.Server
             app.MapGet(
                 "/api/levels" , async (string accessToken , DataContext db) =>
                     {
-                        return (await AccessTokenInteraction.ValidateAccessTokenAsync(accessToken , db)).Status switch
-                        {
-                            ResponseStatus.SUCCESS         => await LevelInteraction.GetSimplifiedLevelTemplateInfosAsync(db) ,
-                            ResponseStatus.TOKEN_EXPIRED   => new ServerResponse<ICollection<SimplifiedLevelResponseBody>>(ResponseStatus.TOKEN_EXPIRED) ,
-                            ResponseStatus.USER_NOT_FOUND  => new ServerResponse<ICollection<SimplifiedLevelResponseBody>>(ResponseStatus.INVALID_TOKEN) ,
-                            ResponseStatus.DUPLICATED_USER => new ServerResponse<ICollection<SimplifiedLevelResponseBody>>(ResponseStatus.DUPLICATED_USER) ,
-                            _                              => throw new UnreachableException("/api/level") ,
-                        };
+                        ServerResponse validateAccessTokenResponse = await AccessTokenInteraction.ValidateAccessTokenAsync(accessToken , db);
+                        if (validateAccessTokenResponse.Status is not ResponseStatus.SUCCESS)
+                            return validateAccessTokenResponse.WithThisTraceInfo<ICollection<SimplifiedLevelResponseBody>>("/api/levels" , ResponseStatus.BACKEND_ERROR);
+
+                        ServerResponse<ICollection<SimplifiedLevelResponseBody>> getSimplifiedLevelTemplateResponse = await LevelInteraction.GetSimplifiedLevelTemplateInfosAsync(db);
+                        if (getSimplifiedLevelTemplateResponse.Status is not ResponseStatus.SUCCESS)
+                            return getSimplifiedLevelTemplateResponse.WithThisTraceInfo<ICollection<SimplifiedLevelResponseBody>>("/api/levels" , ResponseStatus.BACKEND_ERROR);
+
+                        return getSimplifiedLevelTemplateResponse;
                     }
             );
 
@@ -150,9 +147,13 @@ namespace TuringMachine.Backend.Server
                         {
                             ServerResponse<User> getUserResponse = await AccessTokenInteraction.GetAndValidateUserAsync(accessToken , db);
                             if (getUserResponse.Status is not ResponseStatus.SUCCESS)
-                                return new ServerResponse<LevelResponseBody>(getUserResponse.Status);
+                                return getUserResponse.WithThisTraceInfo<LevelResponseBody>("/api/level" , ResponseStatus.BACKEND_ERROR);
 
-                            return await LevelInteraction.GetUserLevelInfoAsync(getUserResponse.Result!.UUID.ToString() , levelID , db);
+                            ServerResponse<LevelResponseBody> getUserLevelInfoResponse = await LevelInteraction.GetUserLevelInfoAsync(getUserResponse.Result!.UUID.ToString() , levelID , db);
+                            if (getUserLevelInfoResponse.Status is not ResponseStatus.SUCCESS)
+                                return getUserLevelInfoResponse.WithThisTraceInfo<LevelResponseBody>("/api/level" , ResponseStatus.BACKEND_ERROR);
+
+                            return getUserLevelInfoResponse;
                         }
                 )
                 .WithName("GetLevels")
@@ -163,16 +164,15 @@ namespace TuringMachine.Backend.Server
             app.MapPost(
                     "/api/level" , async (string accessToken , byte levelID , LevelResponseBody level , DataContext db) =>
                         {
-                            return (await AccessTokenInteraction.GetAndValidateUserAsync(accessToken , db)).ToTuple() switch
-                            {
-// @formatter:off
-                                (ResponseStatus.SUCCESS          , { } user) => await ProgressInteraction.UpdateProgress(user.UUID.ToString() , levelID , level.Design , level.IsSolved , db) ,
-                                (ResponseStatus.TOKEN_EXPIRED    ,  _      ) => new ServerResponse(ResponseStatus.TOKEN_EXPIRED) ,
-                                (ResponseStatus.USER_NOT_FOUND   ,  _      ) => new ServerResponse(ResponseStatus.USER_NOT_FOUND) ,
-                                (ResponseStatus.DUPLICATED_USER  ,  _      ) => new ServerResponse(ResponseStatus.DUPLICATED_USER) ,
-                                _ => throw new UnreachableException("/api/login"),
-// @formatter:on
-                            };
+                            ServerResponse<User> getUserResponse = await AccessTokenInteraction.GetAndValidateUserAsync(accessToken , db);
+                            if (getUserResponse.Status is not ResponseStatus.SUCCESS)
+                                return getUserResponse.WithThisTraceInfo<LevelResponseBody>("/api/level" , ResponseStatus.BACKEND_ERROR);
+
+                            ServerResponse updateProgressResponse = await ProgressInteraction.UpdateProgressAsync(getUserResponse.Result!.UUID.ToString() , levelID , level.Design , level.IsSolved , db);
+                            if (updateProgressResponse.Status is not ResponseStatus.SUCCESS)
+                                return updateProgressResponse.WithThisTraceInfo<LevelResponseBody>("/api/level" , ResponseStatus.BACKEND_ERROR);
+
+                            return updateProgressResponse;
                         }
                 )
                 .WithName("PostLevelProgress")
@@ -181,16 +181,15 @@ namespace TuringMachine.Backend.Server
             app.MapPost(
                     "/api/save" , async (string accessToken , byte levelID , TuringMachineDesign design , DataContext db) =>
                         {
-                            return (await AccessTokenInteraction.GetAndValidateUserAsync(accessToken , db)).ToTuple() switch
-                            {
-// @formatter:off
-                            (ResponseStatus.SUCCESS         , { } user) => await ProgressInteraction.UpdateProgress(user.UUID.ToString() , levelID , design , false , db) ,
-                            (ResponseStatus.TOKEN_EXPIRED   ,  _      ) => new ServerResponse(ResponseStatus.TOKEN_EXPIRED),
-                            (ResponseStatus.USER_NOT_FOUND  ,  _      ) => new ServerResponse(ResponseStatus.USER_NOT_FOUND),
-                            (ResponseStatus.DUPLICATED_USER ,  _      ) => new ServerResponse(ResponseStatus.DUPLICATED_USER),
-                            _ => throw new UnreachableException("/api/login"),
-// @formatter:on
-                            };
+                            ServerResponse<User> getUserResponse = await AccessTokenInteraction.GetAndValidateUserAsync(accessToken , db);
+                            if (getUserResponse.Status is not ResponseStatus.SUCCESS)
+                                return getUserResponse.WithThisTraceInfo<LevelResponseBody>("/api/save" , ResponseStatus.BACKEND_ERROR);
+
+                            ServerResponse updateProgressAsync = await ProgressInteraction.UpdateProgressAsync(getUserResponse.Result!.UUID.ToString() , levelID , design , false , db);
+                            if (updateProgressAsync.Status is not ResponseStatus.SUCCESS)
+                                return updateProgressAsync.WithThisTraceInfo<LevelResponseBody>("/api/save" , ResponseStatus.BACKEND_ERROR);
+
+                            return updateProgressAsync;
                         }
                 )
                 .WithName("PostLevelDesign")
@@ -199,14 +198,15 @@ namespace TuringMachine.Backend.Server
             app.MapPost(
                     "/api/upload" , async (string accessToken , TuringMachineDesign design , DataContext db) =>
                         {
-                            return (await AccessTokenInteraction.ValidateAccessTokenAsync(accessToken , db)).Status switch
-                            {
-                                ResponseStatus.SUCCESS         => await MachineInteraction.InsertTuringMachineDesignAsync(design , db) ,
-                                ResponseStatus.TOKEN_EXPIRED   => new ServerResponse<string>(ResponseStatus.TOKEN_EXPIRED) ,
-                                ResponseStatus.USER_NOT_FOUND  => new ServerResponse<string>(ResponseStatus.INVALID_TOKEN) ,
-                                ResponseStatus.DUPLICATED_USER => new ServerResponse<string>(ResponseStatus.DUPLICATED_USER) ,
-                                _                              => throw new UnreachableException("/api/upload") ,
-                            };
+                            ServerResponse validateAccessTokenResponse = await AccessTokenInteraction.ValidateAccessTokenAsync(accessToken , db);
+                            if (validateAccessTokenResponse.Status is not ResponseStatus.SUCCESS)
+                                return validateAccessTokenResponse.WithThisTraceInfo<string>("/api/upload" , ResponseStatus.BACKEND_ERROR);
+
+                            ServerResponse<string> insertTuringMachineDesignResponse = await MachineInteraction.InsertTuringMachineDesignAsync(design , db);
+                            if (insertTuringMachineDesignResponse.Status is not ResponseStatus.SUCCESS)
+                                return insertTuringMachineDesignResponse.WithThisTraceInfo<string>("/api/upload" , ResponseStatus.BACKEND_ERROR);
+
+                            return insertTuringMachineDesignResponse;
                         }
                 )
                 .WithName("PostDesign")
@@ -215,14 +215,15 @@ namespace TuringMachine.Backend.Server
             app.MapGet(
                     "/api/import" , async (string accessToken , string designID , DataContext db) =>
                         {
-                            return (await AccessTokenInteraction.ValidateAccessTokenAsync(accessToken , db)).Status switch
-                            {
-                                ResponseStatus.SUCCESS         => MachineInteraction.GetTuringMachineDesign(designID , db) ,
-                                ResponseStatus.TOKEN_EXPIRED   => new ServerResponse<TuringMachineDesign>(ResponseStatus.TOKEN_EXPIRED) ,
-                                ResponseStatus.USER_NOT_FOUND  => new ServerResponse<TuringMachineDesign>(ResponseStatus.INVALID_TOKEN) ,
-                                ResponseStatus.DUPLICATED_USER => new ServerResponse<TuringMachineDesign>(ResponseStatus.DUPLICATED_USER) ,
-                                _                              => throw new UnreachableException("/api/import") ,
-                            };
+                            ServerResponse validateAccessTokenResponse = await AccessTokenInteraction.ValidateAccessTokenAsync(accessToken , db);
+                            if (validateAccessTokenResponse.Status is not ResponseStatus.SUCCESS)
+                                return validateAccessTokenResponse.WithThisTraceInfo<TuringMachineDesign>("/api/import" , ResponseStatus.BACKEND_ERROR);
+
+                            ServerResponse<TuringMachineDesign> getTuringMachineDesignResponse = MachineInteraction.GetTuringMachineDesign(designID , db);
+                            if (getTuringMachineDesignResponse.Status is not ResponseStatus.SUCCESS)
+                                return getTuringMachineDesignResponse.WithThisTraceInfo<TuringMachineDesign>("/api/import" , ResponseStatus.BACKEND_ERROR);
+
+                            return getTuringMachineDesignResponse;
                         }
                 )
                 .WithName("GetTuringMachine")
@@ -232,14 +233,15 @@ namespace TuringMachine.Backend.Server
                     "/api/stat" ,
                     async (string accessToken , byte levelID , DataContext db) =>
                         {
-                            return (await AccessTokenInteraction.GetAndValidateUserAsync(accessToken , db)).ToTuple() switch
-                            {
-                                (ResponseStatus.SUCCESS , { } user)  => await ProgressInteraction.GetRankingAsync(user.UUID.ToString() , levelID , db) ,
-                                (ResponseStatus.TOKEN_EXPIRED , _)   => new ServerResponse<RankingResponseBody>(ResponseStatus.TOKEN_EXPIRED) ,
-                                (ResponseStatus.USER_NOT_FOUND , _)  => new ServerResponse<RankingResponseBody>(ResponseStatus.INVALID_TOKEN) ,
-                                (ResponseStatus.DUPLICATED_USER , _) => new ServerResponse<RankingResponseBody>(ResponseStatus.DUPLICATED_USER) ,
-                                _                                    => throw new UnreachableException("/api/stat") ,
-                            };
+                            var getUserResponse = await AccessTokenInteraction.GetAndValidateUserAsync(accessToken , db);
+                            if (getUserResponse.Status is not ResponseStatus.SUCCESS)
+                                return getUserResponse.WithThisTraceInfo<RankingResponseBody>("/api/stat" , ResponseStatus.BACKEND_ERROR);
+
+                            ServerResponse<RankingResponseBody> getRankingResponse = await ProgressInteraction.GetRankingAsync(getUserResponse.Result!.UUID.ToString() , levelID , db);
+                            if (getRankingResponse.Status is not ResponseStatus.SUCCESS)
+                                return getRankingResponse.WithThisTraceInfo<RankingResponseBody>("/api/stat" , ResponseStatus.BACKEND_ERROR);
+
+                            return getRankingResponse;
                         }
                 )
                 .WithName("GetStatistic")
@@ -250,14 +252,11 @@ namespace TuringMachine.Backend.Server
             app.MapPost(
                     "/api/gen-key" , async (DataContext db) =>
                         {
-                            return (await LicenseKeyInteraction.CreateLicenseAsync(db)).ToTuple() switch
-                            {
-// @formatter:off
-                                (ResponseStatus.SUCCESS          , { } key) => new ServerResponse<string>(ResponseStatus.SUCCESS , key) ,
-                                (ResponseStatus.TOO_MANY_REQUEST ,  _     ) => new ServerResponse<string>(ResponseStatus.TOO_MANY_REQUEST) ,
-                                _                                           => throw new UnreachableException("/api/gen-key") ,
-// @formatter:on
-                            };
+                            ServerResponse<string> createLicenseResponse = await LicenseKeyInteraction.CreateLicenseAsync(db);
+                            if (createLicenseResponse.Status is not ResponseStatus.SUCCESS)
+                                return createLicenseResponse.WithThisTraceInfo<string>("/api/gen-key" , ResponseStatus.BACKEND_ERROR);
+
+                            return createLicenseResponse;
                         }
                 )
                 .WithName("PostGenerateLicenseKey")
