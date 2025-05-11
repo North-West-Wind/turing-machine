@@ -152,22 +152,21 @@ If a request requires authentication, the access token is passed as a parameter.
 If client needs to send data to the server, all primative data types are sent as parameters, while nested objects are sent using POST body as JSON.
 
 **Response**  
-All server responses should be in JSON, with at least the field named `success`, indicating if the server processed the request successfully. `data` field is the returned data for a specific request. For example, a successful GET request of `/validate` will be:
+All server responses should be in JSON, with at least the field named `status`, indicating if the server processed the request successfully. `result` field is the returned data for a specific request. For example, a successful GET request of `/get-rsa-key` will be:
 ```json
 {
-	"success": true,
-	"data": {
-		"valid": true
-	}
+	"time": "2025-05-11T12:39:35.7173549+08:00",
+	"status": "SUCCESS",
+	"result": "-----BEGIN RSA PUBLIC KEY-----..."
 }
 ```
 
-If it fails, `success` is obviously `false`, and the server adds an error code `errcode` and error message `errmsg`.
+If it fails, `status` is the error code, and the server provides a stack trace in `responseStackTraces`.
 ```json
 {
-	"success": false,
-	"errcode": "TOO_MANY_REQUEST",
-	"errmsg": "Too many request."
+  "time": "2025-05-11T12:06:17.4154906+08:00",
+	"status": "DESIGN_NOT_FOUND",
+	"responseStackTraces": "Stack trace"
 }
 ```
 
@@ -189,11 +188,8 @@ Validates the client's access token. Most likely stored inside the browser's Loc
 
 No request body.
 
-Response data:
-- `valid`: Whether the access token is valid or not
-```json
-{ "valid": true }
-```
+Response data:  
+No extra response data. `status` will indicate whether it is valid.
 
 ### GET `/progress`
 - Access token: Required
@@ -222,12 +218,7 @@ Get the public key of the server for RSA encryption.
 No request body.
 
 Response data:
-- `key`: The RSA public key
-```json
-{
-	"key": "BEGIN_KEY ... END_KEY"
-}
-```
+- A string that is the RSA public key
 
 ### POST `/login`
 - Access token: Not required
