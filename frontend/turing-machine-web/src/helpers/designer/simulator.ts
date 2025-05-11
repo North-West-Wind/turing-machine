@@ -7,6 +7,7 @@ import { TapeSymbols } from "../../logic/Tapes/TapesUtilities/TapeSymbols";
 import { TapeTypes } from "../../logic/Tapes/TapeTypes";
 import { TuringMachineConfig } from "../../logic/TuringMachineConfig";
 import { TuringMachineSimulator } from "../../logic/TuringMachineSimulator";
+import { isEmpty } from "../objects";
 import { getLevel, getMachine, PersistenceKey, save } from "../persistence";
 import { StateGraph, StateRect, StateText, StateTransition, StateVertex } from "./graph";
 import constraints from "./level";
@@ -320,25 +321,27 @@ class RenderingTuringMachineSimulator extends EventTarget {
 
 	async test() {
 		const level = getLevel();
-		if (!level) return false;
+		if (!level) return -1;
 		const MAX_STEPS = 1_000_000; // arbitary max step to avoid infinite loop
+		let operations = 0;
 		for (const { input, output } of level.tests) {
 			this.build(input);
 			TuringMachineSimulator.StartSimulation();
 			let halted = false, steps = 0;
 			let state: SystemState | undefined;
 			while (!halted && steps <= MAX_STEPS) {
+				operations++;
 				steps++;
 				TuringMachineSimulator.Update();
 				state = TuringMachineSimulator.GetSystemState();
 				halted = state.Machines.every(machine => machine.IsHalted);
 			}
 			TuringMachineSimulator.StopSimulation();
-			if (!halted) return false;
+			if (!halted) return -1;
 			const tapeOutput = state?.Tapes.find(tape => tape.ID == this.outputTape)?.Content.replace(/_/g, "");
-			if (tapeOutput != output) return false;
+			if (tapeOutput != output) return -1;
 		}
-		return true;
+		return operations;
 	}
 
 	private scheduleNextTick() {
@@ -614,9 +617,9 @@ class RenderingTuringMachineSimulator extends EventTarget {
 				const client: ClientSaveableUI = {
 					title: machine.label.title,
 					color: machine.label.color,
-					boxes: machine.label.boxes.map(box => this.isEmpty(box) ? null : box as SaveableUIBox),
-					texts: machine.label.texts.map(tex => this.isEmpty(tex) ? null : tex as SaveableUIText),
-					nodes: machine.label.nodes.map(nod => this.isEmpty(nod) ? null : nod as SaveableUIVertex)
+					boxes: machine.label.boxes.map(box => isEmpty(box) ? null : box as SaveableUIBox),
+					texts: machine.label.texts.map(tex => isEmpty(tex) ? null : tex as SaveableUIText),
+					nodes: machine.label.nodes.map(nod => isEmpty(nod) ? null : nod as SaveableUIVertex)
 				};
 				this.uiData.push(client);
 				this.edgeData.push({});
@@ -644,7 +647,7 @@ class RenderingTuringMachineSimulator extends EventTarget {
 						transition.statements.map(statement => new HeadTransition(statement.read, statement.write, statement.move)));
 				});
 				machine.label.nodes.forEach((node, ii) => {
-					if (!this.isEmpty(node)) usedNodes.add(ii);
+					if (!isEmpty(node)) usedNodes.add(ii);
 				});
 				this.machines.push({ color: machine.label.color.toString(16).padStart(6, "0"), ...new TuringMachineConfig(
 					machine.heads.length,
@@ -661,15 +664,6 @@ class RenderingTuringMachineSimulator extends EventTarget {
 		} catch (err) {
 			console.error(err);
 		}
-	}
-
-	private isEmpty(obj: any) {
-		for (const prop in obj) {
-			if (Object.prototype.hasOwnProperty.call(obj, prop)) {
-				return false;
-			}
-		}
-		return true;
 	}
 }
 
