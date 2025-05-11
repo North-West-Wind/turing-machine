@@ -32,16 +32,16 @@ namespace TuringMachine.Backend.Server.DbInteraction.Level
         ///     Return level information with user progress when "SUCCESS". <br/><br/>
         ///     Status is either "SUCCESS", "NO_SUCH_ITEM", "DUPLICATED_ITEM" or "BACKEND_ERROR".
         /// </returns>
-        public static async Task<ServerResponse<LevelResponseBody>> GetUserLevelInfoAsync(string uuid , byte levelID , DataContext db)
+        public static ServerResponse<LevelResponseBody> GetUserLevelInfo(string uuid , byte levelID , DataContext db)
         {
             using IEnumerator<DbLevelInfo> levelInfos = db.LevelInfos.Where(level => level.LevelID == levelID).GetEnumerator();
-            if (!levelInfos.MoveNext()) return ServerResponse.StartTracing<LevelResponseBody>(nameof(GetUserLevelInfoAsync) , NO_SUCH_ITEM);
+            if (!levelInfos.MoveNext()) return ServerResponse.StartTracing<LevelResponseBody>(nameof(GetUserLevelInfo) , NO_SUCH_ITEM);
             DbLevelInfo levelInfo = levelInfos.Current;
-            if (levelInfos.MoveNext()) return ServerResponse.StartTracing<LevelResponseBody>(nameof(GetUserLevelInfoAsync) , DUPLICATED_ITEM);
+            if (levelInfos.MoveNext()) return ServerResponse.StartTracing<LevelResponseBody>(nameof(GetUserLevelInfo) , DUPLICATED_ITEM);
 
             ServerResponse<ProgressResponseBody> getProgressResponse = ProgressInteraction.GetProgress(uuid , levelID , db);
             if (getProgressResponse.Status is not (SUCCESS or NO_SUCH_ITEM))
-                return getProgressResponse.WithThisTraceInfo<LevelResponseBody>(nameof(GetUserLevelInfoAsync) , BACKEND_ERROR);
+                return getProgressResponse.WithThisTraceInfo<LevelResponseBody>(nameof(GetUserLevelInfo) , BACKEND_ERROR);
 
             // @formatter:off    concatenate allowed tape type into array
             List<TapeType> allowedTapeTypes = new List<TapeType>();
@@ -62,7 +62,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.Level
             // convert test cases
             ServerResponse<ICollection<ResponseTestCase>> getTestCasesResponse = GetTestCases(levelID , db);
             if (getTestCasesResponse.Status is not SUCCESS)
-                return getTestCasesResponse.WithThisTraceInfo<LevelResponseBody>(nameof(GetUserLevelInfoAsync) , BACKEND_ERROR);
+                return getTestCasesResponse.WithThisTraceInfo<LevelResponseBody>(nameof(GetUserLevelInfo) , BACKEND_ERROR);
 
             LevelResponseBody levelProgressResult = new LevelResponseBody
             {
@@ -74,7 +74,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.Level
                                 where info.LevelID == levelID
                                 let relationship = info.ParentLevels
                                     from parentLevel in relationship
-                                select parentLevel.ParentLevel
+                                    select parentLevel.ParentLevel
                     ).ToArray() ,
                 Children = (    from info in db.LevelInfos  // using joint table (ChildLevels) to find child levels
                                 where info.LevelID == levelID

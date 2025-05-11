@@ -7,12 +7,16 @@ namespace TuringMachine.Backend.Server.Models.Machines
 {
     internal class TuringMachine
     {
-        public ICollection<Transition> Transitions { get; set; }
-        public IList<Head>       Heads       { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public ICollection<Transition>? Transitions { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public IList<Head>? Heads { get; set; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public MachineLabel? Label { get; set; }
 
-        public short StartNode { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public short? StartNode { get; set; }
     }
 }

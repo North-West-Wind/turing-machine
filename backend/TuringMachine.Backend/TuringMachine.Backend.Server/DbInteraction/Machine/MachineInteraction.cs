@@ -119,16 +119,21 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
             string designID = dbDesign.DesignID.ToString();
             db.MachineDesigns.Add(dbDesign);
 
-            ServerResponse response = await InsertTuringMachineTapesAsync(design.Tapes , designID , db);
-            if (response.Status is not ResponseStatus.SUCCESS)
-                return response.WithThisTraceInfo<string>(nameof(InsertTuringMachineDesignAsync) , ResponseStatus.BACKEND_ERROR);
-
-            foreach (ResponseTuringMachine machine in design.Machines)
+            if (design.Machines is not null)
             {
-                response = await InsertTuringMachineAsync(machine , designID , db);
-                if (response.Status is not ResponseStatus.SUCCESS)
-                    return response.WithThisTraceInfo<string>(nameof(InsertTuringMachineDesignAsync) , ResponseStatus.BACKEND_ERROR);
+                ServerResponse insertTuringMachineTapesResponse = await InsertTuringMachineTapesAsync(design.Tapes , designID , db);
+                if (insertTuringMachineTapesResponse.Status is not ResponseStatus.SUCCESS)
+                    return insertTuringMachineTapesResponse.WithThisTraceInfo<string>(nameof(InsertTuringMachineDesignAsync) , ResponseStatus.BACKEND_ERROR);
             }
+
+
+            if (design.Machines is not null)
+                foreach (ResponseTuringMachine machine in design.Machines)
+                {
+                    ServerResponse insertTuringMachineResponse = await InsertTuringMachineAsync(machine , designID , db);
+                    if (insertTuringMachineResponse.Status is not ResponseStatus.SUCCESS)
+                        return insertTuringMachineResponse.WithThisTraceInfo<string>(nameof(InsertTuringMachineDesignAsync) , ResponseStatus.BACKEND_ERROR);
+                }
 
             await db.SaveChangesAsync();
             return new ServerResponse<string>(ResponseStatus.SUCCESS , designID);
@@ -327,33 +332,35 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
         /// </returns>
         private static async Task<ServerResponse> InsertTuringMachineAsync(ResponseTuringMachine machine , string designID , DataContext db)  // TODO: clear changes when failure, change BACKEND_ERROR to FAILURE when cleared.
         {
-            ServerResponse response;
-
             DbTuringMachine dbMachine = new DbTuringMachine
             {
                 MachineID = Guid.NewGuid() ,
-                DesignID = Guid.Parse(designID) ,
+                DesignID  = Guid.Parse(designID) ,
                 StartNode = machine.StartNode ,
             };
             string machineID = dbMachine.MachineID.ToString();
             db.Machines.Add(dbMachine);
 
-            response = await InsertTuringMachineHeadAsync(machine.Heads , machineID , db);
-            if (response.Status is not ResponseStatus.SUCCESS)
-                return response.WithThisTraceInfo(nameof(InsertTuringMachineAsync) , ResponseStatus.BACKEND_ERROR);
-
-            foreach (ResponseTransition transition in machine.Transitions)
+            if (machine.Heads is not null)
             {
-                response = await InsertTransitionAsync(transition , machineID , db);
-                if (response.Status is not ResponseStatus.SUCCESS)
-                    return response.WithThisTraceInfo(nameof(InsertTuringMachineAsync) , ResponseStatus.BACKEND_ERROR);
+                ServerResponse insertTuringMachineResponse = await InsertTuringMachineHeadAsync(machine.Heads , machineID , db);
+                if (insertTuringMachineResponse.Status is not ResponseStatus.SUCCESS)
+                    return insertTuringMachineResponse.WithThisTraceInfo(nameof(InsertTuringMachineAsync) , ResponseStatus.BACKEND_ERROR);
             }
+
+            if (machine.Transitions is not null)
+                foreach (ResponseTransition transition in machine.Transitions)
+                {
+                    ServerResponse insertTransitionResponse = await InsertTransitionAsync(transition , machineID , db);
+                    if (insertTransitionResponse.Status is not ResponseStatus.SUCCESS)
+                        return insertTransitionResponse.WithThisTraceInfo(nameof(InsertTuringMachineAsync) , ResponseStatus.BACKEND_ERROR);
+                }
 
             if (machine.Label is not null)
             {
-                response = await MachineLabelInteraction.InsertMachineLabelAsync(machine.Label , machineID , db);
-                if (response.Status is not ResponseStatus.SUCCESS)
-                    return response.WithThisTraceInfo(nameof(InsertTuringMachineAsync) , ResponseStatus.BACKEND_ERROR);
+                ServerResponse insertMachineLabelResponse = await MachineLabelInteraction.InsertMachineLabelAsync(machine.Label , machineID , db);
+                if (insertMachineLabelResponse.Status is not ResponseStatus.SUCCESS)
+                    return insertMachineLabelResponse.WithThisTraceInfo(nameof(InsertTuringMachineAsync) , ResponseStatus.BACKEND_ERROR);
             }
 
             await db.SaveChangesAsync();
@@ -401,21 +408,25 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
             };
             db.Transition.Add(dbTransition);
 
-            for (byte i = 0; i < transition.Statements.Count; i++)
-                db.TransitionStatements.Add(
-                    new DbTransitionStatement
-                    {
-                        TransitionID   = dbTransition.TransitionID ,
-                        StatementIndex = i ,
-                        Read           = transition.Statements[i].Read ,
-                        Write          = transition.Statements[i].Write ,
-                        Move           = transition.Statements[i].Move ,
-                    }
-                );
+            if (transition.Statements is not null)
+                for (byte i = 0; i < transition.Statements.Count; i++)
+                    db.TransitionStatements.Add(
+                        new DbTransitionStatement
+                        {
+                            TransitionID   = dbTransition.TransitionID ,
+                            StatementIndex = i ,
+                            Read           = transition.Statements[i].Read ,
+                            Write          = transition.Statements[i].Write ,
+                            Move           = transition.Statements[i].Move ,
+                        }
+                    );
 
-            ServerResponse response = DbTransitionLinePathInteraction.InsertTransitionLinePath(dbTransition.TransitionID.ToString() , transition.TransitionLineSteps , db);
-            if (response.Status is not ResponseStatus.SUCCESS)
-                return response.WithThisTraceInfo(nameof(InsertTransitionAsync) , ResponseStatus.BACKEND_ERROR);
+            if (transition.TransitionLineSteps is not null)
+            {
+                ServerResponse insertTransitionLinePathResponse = DbTransitionLinePathInteraction.InsertTransitionLinePath(dbTransition.TransitionID.ToString() , transition.TransitionLineSteps , db);
+                if (insertTransitionLinePathResponse.Status is not ResponseStatus.SUCCESS)
+                    return insertTransitionLinePathResponse.WithThisTraceInfo(nameof(InsertTransitionAsync) , ResponseStatus.BACKEND_ERROR);
+            }
 
             await db.SaveChangesAsync();
             return new ServerResponse(ResponseStatus.SUCCESS);

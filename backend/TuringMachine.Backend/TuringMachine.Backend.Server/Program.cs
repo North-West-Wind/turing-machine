@@ -149,7 +149,7 @@ namespace TuringMachine.Backend.Server
                             if (getUserResponse.Status is not ResponseStatus.SUCCESS)
                                 return getUserResponse.WithThisTraceInfo<LevelResponseBody>("/api/level" , ResponseStatus.BACKEND_ERROR);
 
-                            ServerResponse<LevelResponseBody> getUserLevelInfoResponse = await LevelInteraction.GetUserLevelInfoAsync(getUserResponse.Result!.UUID.ToString() , levelID , db);
+                            ServerResponse<LevelResponseBody> getUserLevelInfoResponse = LevelInteraction.GetUserLevelInfo(getUserResponse.Result!.UUID.ToString() , levelID , db);
                             if (getUserLevelInfoResponse.Status is not ResponseStatus.SUCCESS)
                                 return getUserLevelInfoResponse.WithThisTraceInfo<LevelResponseBody>("/api/level" , ResponseStatus.BACKEND_ERROR);
 

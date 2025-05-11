@@ -4,9 +4,9 @@ namespace TuringMachine.Backend.Server.Database.Entity.Machine
 {
     internal class Machine
     {
-        public Guid  MachineID { get; set; }
-        public Guid  DesignID  { get; set; }
-        public short StartNode { get; set; }
+        public Guid   MachineID { get; set; }
+        public Guid   DesignID  { get; set; }
+        public short? StartNode { get; set; }
 
 
         #region Relation

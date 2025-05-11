@@ -10,8 +10,10 @@ namespace TuringMachine.Backend.Server.Models.Machines.Transitions
         public byte Source { get; set; }
         public byte Target { get; set; }
 
-        public IList<TransitionStatement> Statements { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public IList<TransitionStatement>? Statements { get; set; }
 
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public IList<Point>? TransitionLineSteps { get; set; }
     }
 }

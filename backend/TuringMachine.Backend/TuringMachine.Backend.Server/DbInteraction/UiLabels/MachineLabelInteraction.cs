@@ -76,17 +76,26 @@ namespace TuringMachine.Backend.Server.DbInteraction.UiLabels
             await db.MachineLabels.AddAsync(dbMachineLabel);
             string machineLabelID = dbMachineLabel.MachineLabelID.ToString();
 
-            ServerResponse insertMachineBoxLabelsResponse = await InsertMachineBoxLabelsAsync(machineLabelID , machineLabel.Boxes , db);
-            if (insertMachineBoxLabelsResponse.Status is not ResponseStatus.SUCCESS)
-                return insertMachineBoxLabelsResponse.WithThisTraceInfo(nameof(InsertMachineLabelAsync) , ResponseStatus.BACKEND_ERROR);
+            if (machineLabel.Boxes is not null)
+            {
+                ServerResponse insertMachineBoxLabelsResponse = await InsertMachineBoxLabelsAsync(machineLabelID , machineLabel.Boxes , db);
+                if (insertMachineBoxLabelsResponse.Status is not ResponseStatus.SUCCESS)
+                    return insertMachineBoxLabelsResponse.WithThisTraceInfo(nameof(InsertMachineLabelAsync) , ResponseStatus.BACKEND_ERROR);
+            }
 
-            ServerResponse insertMachineTextLabelsResponse = await InsertMachineTextLabelsAsync(machineLabelID , machineLabel.Texts , db);
-            if (insertMachineTextLabelsResponse.Status is not ResponseStatus.SUCCESS)
-                return insertMachineTextLabelsResponse.WithThisTraceInfo(nameof(InsertMachineLabelAsync) , ResponseStatus.BACKEND_ERROR);
+            if (machineLabel.Texts is not null)
+            {
+                ServerResponse insertMachineTextLabelsResponse = await InsertMachineTextLabelsAsync(machineLabelID , machineLabel.Texts , db);
+                if (insertMachineTextLabelsResponse.Status is not ResponseStatus.SUCCESS)
+                    return insertMachineTextLabelsResponse.WithThisTraceInfo(nameof(InsertMachineLabelAsync) , ResponseStatus.BACKEND_ERROR);
+            }
 
-            ServerResponse insertMachineNodeLabelsResponse = await InsertMachineNodeLabelsAsync(machineLabelID , machineLabel.Nodes , db);
-            if (insertMachineNodeLabelsResponse.Status is not ResponseStatus.SUCCESS)
-                return insertMachineNodeLabelsResponse.WithThisTraceInfo(nameof(InsertMachineLabelAsync) , ResponseStatus.BACKEND_ERROR);
+            if (machineLabel.Nodes is not null)
+            {
+                ServerResponse insertMachineNodeLabelsResponse = await InsertMachineNodeLabelsAsync(machineLabelID , machineLabel.Nodes , db);
+                if (insertMachineNodeLabelsResponse.Status is not ResponseStatus.SUCCESS)
+                    return insertMachineNodeLabelsResponse.WithThisTraceInfo(nameof(InsertMachineLabelAsync) , ResponseStatus.BACKEND_ERROR);
+            }
 
             await db.SaveChangesAsync();
             return new ServerResponse(ResponseStatus.SUCCESS);

@@ -84,7 +84,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.Progress
 
         public static async Task<ServerResponse<RankingResponseBody>> GetRankingAsync(string uuid , byte levelID , DataContext db)
         {
-            ServerResponse<LevelResponseBody> getUserLevelInfoResponse = await LevelInteraction.GetUserLevelInfoAsync(uuid , levelID , db);
+            ServerResponse<LevelResponseBody> getUserLevelInfoResponse = LevelInteraction.GetUserLevelInfo(uuid , levelID , db);
             if (getUserLevelInfoResponse.Status is not SUCCESS)
                 return getUserLevelInfoResponse.WithThisTraceInfo<RankingResponseBody>(nameof(GetRankingAsync) , ResponseStatus.BACKEND_ERROR);
 
