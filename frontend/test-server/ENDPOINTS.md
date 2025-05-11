@@ -3,7 +3,7 @@ Top is a list of all endpoints categorized by UI pages. Scroll further for detai
 Note: **For all endpoints listed, prepand `/api[/v1]` (version is optional)**
 
 #### Changes
-Current revision: 10
+Current revision: 11
 - rev1: Formatted every entry so it's easier to read all requests and responses
 - rev2: Added "title" to simple level and level data structures
 - rev3: Changed "parents" to "parent" for simple level and level data structures, and only allow singular parent
@@ -24,6 +24,7 @@ Current revision: 10
 - rev10:
 	- Changed response of POST `/level` to return rank in percentage
 	- Added GET `/stat` to obtain the stat of user's last submission
+- rev11: Changed response formats to match backend design
 
 ### Landing
 - GET `/try-get-response` (or `/ping`)
