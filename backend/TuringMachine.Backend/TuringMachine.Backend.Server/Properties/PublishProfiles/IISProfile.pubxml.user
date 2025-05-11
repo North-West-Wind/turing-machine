@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- https://go.microsoft.com/fwlink/?LinkID=208121. -->
+<Project>
+  <PropertyGroup>
+    <TimeStampOfAssociatedLegacyPublishXmlFile />
+    <History>True|2025-05-11T11:07:15.0207482Z||;True|2025-05-11T18:44:42.7677822+08:00||;True|2025-05-11T17:00:13.2496562+08:00||;True|2025-05-11T16:34:17.4005089+08:00||;</History>
+    <LastFailureDetails />
+  </PropertyGroup>
+  <ItemGroup>
+    <DestinationConnectionStrings Include="DatabaseConnection">
+      <Value>Data Source=turingmachine.server.legendsofsky.com%3bInitial Catalog=TuringMachineGame%3bPersist Security Info=True%3bUser ID=TuringMachineDev%3bPassword=CSCI3100%3bEncrypt=False%3bTrust Server Certificate=True%3bMultipleActiveResultSets=True</Value>
+    </DestinationConnectionStrings>
+  </ItemGroup>
+  <ItemGroup>
+    <EFMigrations Include="TuringMachine.Backend.Server.Database.DataContext">
+      <Value>Data Source=turingmachine.server.legendsofsky.com%3bInitial Catalog=TuringMachineGame%3bPersist Security Info=True%3bUser ID=TuringMachineDev%3bPassword=CSCI3100%3bEncrypt=False%3bTrust Server Certificate=True%3bMultipleActiveResultSets=True</Value>
+    </EFMigrations>
+  </ItemGroup>
+</Project>

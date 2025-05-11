@@ -41,8 +41,9 @@ namespace TuringMachine.Backend.Server.DbInteraction.Progress
 
             ResponseLevelProgress responseLevelProcess = new ResponseLevelProgress
             {
-                Level = dbLevelProgress.LevelID ,
-                Time  = dbLevelProgress.SubmissionTime ,
+                IsSolved = dbLevelProgress.IsSolved ,
+                Level    = dbLevelProgress.LevelID ,
+                Time     = dbLevelProgress.SubmissionTime ,
             };
 
             if (dbLevelProgress.DesignID is null)

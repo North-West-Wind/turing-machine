@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore.Query;
 using TuringMachine.Backend.Server.Database;
 using TuringMachine.Backend.Server.DbInteraction.Machine;
+using TuringMachine.Backend.Server.DbInteraction.Progress;
 using TuringMachine.Backend.Server.DbInteraction.UserManagement;
 using TuringMachine.Backend.Server.Models.Misc;
 using TuringMachine.Backend.Server.ServerResponses.ResponseBody;
@@ -20,7 +21,6 @@ using ResponseUser = TuringMachine.Backend.Server.Models.UserManagement.User;
 using ResponseTestCase = TuringMachine.Backend.Server.Models.Levels.TestCase;
 using ResponseMachineDesign = TuringMachine.Backend.Server.Models.Machines.TuringMachineDesign;
 using ResponseLevelConstraint = TuringMachine.Backend.Server.Models.Levels.Constraint;
-using System.Collections.Generic;
 // @formatter:on
 #endregion
 
@@ -34,91 +34,69 @@ namespace TuringMachine.Backend.Server.DbInteraction.Level
         /// </returns>
         public static async Task<ServerResponse<LevelResponseBody>> GetUserLevelInfoAsync(string uuid , byte levelID , DataContext db)
         {
-            // check if user exists
-            ServerResponse<ResponseUser> getUserResponse = await AccessTokenInteraction.GetAndValidateUserAsync(uuid , db);
-            if (getUserResponse.Status is not (SUCCESS or TOKEN_EXPIRED or USER_NOT_FOUND))
-                return getUserResponse.WithThisTraceInfo<LevelResponseBody>(nameof(GetUserLevelInfoAsync) , BACKEND_ERROR);
+            using IEnumerator<DbLevelInfo> levelInfos = db.LevelInfos.Where(level => level.LevelID == levelID).GetEnumerator();
+            if (!levelInfos.MoveNext()) return ServerResponse.StartTracing<LevelResponseBody>(nameof(GetUserLevelInfoAsync) , NO_SUCH_ITEM);
+            DbLevelInfo levelInfo = levelInfos.Current;
+            if (levelInfos.MoveNext()) return ServerResponse.StartTracing<LevelResponseBody>(nameof(GetUserLevelInfoAsync) , DUPLICATED_ITEM);
 
-// @formatter:off
-            // get user's progress
-            ResponseUser user = getUserResponse.Result!;
-            using IEnumerator<DbProgress> progresses = db.LevelProgresses.Where(progress => progress.UUID == user!.UUID && progress.LevelID == levelID)
-                                                                         .Include(progress => progress.LevelInfo).ThenInclude(levelInfo => levelInfo.TestCases)
-                                                                         .Include(progress => progress.LevelInfo).ThenInclude(levelInfo => levelInfo.ChildLevels)
-                                                                         .Include(progress => progress.LevelInfo).ThenInclude(levelInfo => levelInfo.ParentLevels)
-                                                                         .GetEnumerator();
-// @formatter:on
+            ServerResponse<ProgressResponseBody> getProgressResponse = ProgressInteraction.GetProgress(uuid , levelID , db);
+            if (getProgressResponse.Status is not (SUCCESS or NO_SUCH_ITEM))
+                return getProgressResponse.WithThisTraceInfo<LevelResponseBody>(nameof(GetUserLevelInfoAsync) , BACKEND_ERROR);
 
-            // confirms there is only one associated target progress in the database
-            if (!progresses.MoveNext()) return new ServerResponse<LevelResponseBody>(NO_SUCH_ITEM);
-            DbProgress progress = progresses.Current;
-            if (progresses.MoveNext()) return ServerResponse.StartTracing<LevelResponseBody>(nameof(GetUserLevelInfoAsync) , DUPLICATED_ITEM);
-
-            // get last submitted design if user had submitted last time
-            ServerResponse<ResponseMachineDesign>? machineDesignResponse = null;
-            if (progress.Solution is not null)
-            {
-                machineDesignResponse = MachineInteraction.GetTuringMachineDesign(progress.Solution.DesignID.ToString() , db);
-                if (machineDesignResponse.Status != SUCCESS)
-                {
-                    return machineDesignResponse.WithThisTraceInfo<LevelResponseBody>(
-                        nameof(GetUserLevelInfoAsync) ,
-                        machineDesignResponse.Status == NO_SUCH_ITEM
-                            ? NO_SUCH_ITEM
-                            : BACKEND_ERROR
-                    );
-                }
-            }
-
-// @formatter:off    concatenate allowed tape type into array
+            // @formatter:off    concatenate allowed tape type into array
             List<TapeType> allowedTapeTypes = new List<TapeType>();
-            if (progress.LevelInfo.AllowInfiniteTape        ) allowedTapeTypes.Add(TapeType.Infinite        );
-            if (progress.LevelInfo.AllowLeftLimitedTape     ) allowedTapeTypes.Add(TapeType.LeftLimited     );
-            if (progress.LevelInfo.AllowRightLimitedTape    ) allowedTapeTypes.Add(TapeType.RightLimited    );
-            if (progress.LevelInfo.AllowLeftRightLimitedTape) allowedTapeTypes.Add(TapeType.LeftRightLimited);
-            if (progress.LevelInfo.AllowCircularTape        ) allowedTapeTypes.Add(TapeType.Circular        );
+            if (levelInfo.AllowInfiniteTape        ) allowedTapeTypes.Add(TapeType.Infinite        );
+            if (levelInfo.AllowLeftLimitedTape     ) allowedTapeTypes.Add(TapeType.LeftLimited     );
+            if (levelInfo.AllowRightLimitedTape    ) allowedTapeTypes.Add(TapeType.RightLimited    );
+            if (levelInfo.AllowLeftRightLimitedTape) allowedTapeTypes.Add(TapeType.LeftRightLimited);
+            if (levelInfo.AllowCircularTape        ) allowedTapeTypes.Add(TapeType.Circular        );
             ResponseLevelConstraint levelConstraints = new ResponseLevelConstraint
             {
-                States      = progress.LevelInfo.HasStateLimit      ? new ConstraintRange { Max = progress.LevelInfo.MaxState      , Min = progress.LevelInfo.MinState      } : null ,
-                Transitions = progress.LevelInfo.HasTransitionLimit ? new ConstraintRange { Max = progress.LevelInfo.MaxTransition , Min = progress.LevelInfo.MinTransition } : null ,
-                Tapes       = progress.LevelInfo.HasTapeLimit       ? new ConstraintRange { Max = progress.LevelInfo.MaxTape       , Min = progress.LevelInfo.MinTape       } : null ,
-                Heads       = progress.LevelInfo.HasHeadLimit       ? new ConstraintRange { Max = progress.LevelInfo.MaxHead       , Min = progress.LevelInfo.MinHead       } : null ,
+                States      = levelInfo.HasStateLimit      ? new ConstraintRange { Max = levelInfo.MaxState      , Min = levelInfo.MinState      } : null ,
+                Transitions = levelInfo.HasTransitionLimit ? new ConstraintRange { Max = levelInfo.MaxTransition , Min = levelInfo.MinTransition } : null ,
+                Tapes       = levelInfo.HasTapeLimit       ? new ConstraintRange { Max = levelInfo.MaxTape       , Min = levelInfo.MinTape       } : null ,
+                Heads       = levelInfo.HasHeadLimit       ? new ConstraintRange { Max = levelInfo.MaxHead       , Min = levelInfo.MinHead       } : null ,
                 TapeTypes   = allowedTapeTypes ,
             };
-// @formatter:on
 
             // convert test cases
             ServerResponse<ICollection<ResponseTestCase>> getTestCasesResponse = GetTestCases(levelID , db);
             if (getTestCasesResponse.Status is not SUCCESS)
-                return getUserResponse.WithThisTraceInfo<LevelResponseBody>(nameof(GetUserLevelInfoAsync) , BACKEND_ERROR);
+                return getTestCasesResponse.WithThisTraceInfo<LevelResponseBody>(nameof(GetUserLevelInfoAsync) , BACKEND_ERROR);
 
-            return new ServerResponse<LevelResponseBody>(
-                SUCCESS , 
+            LevelResponseBody levelProgressResult = new LevelResponseBody
+            {
+                LevelID     = levelID ,
+                Title       = levelInfo.Title ,
+                Description = levelInfo.Description ,
 
-                new LevelResponseBody
-                {
-                    LevelID     = progress.LevelID ,
-                    Title       = progress.LevelInfo.Title ,
-                    Description = progress.LevelInfo.Description ,
-// @formatter:off
-                    Parents     = (   from relationship in progress.LevelInfo.ParentLevels  // using joint table (ParentLevels) to find parent levels
-                                      let parentID = relationship.ParentLevel
-                                      select parentID
-                                    ).ToArray() ,
-                    Children    = (   from relationship in progress.LevelInfo.ChildLevels  // using joint table (ChildLevels) to find child levels
-                                      let childID = relationship.ChildLevel
-                                      select childID
-                                    ).ToArray() ,
-// @formatter:on
-                    TestCases   = getTestCasesResponse.Result ,
-                    Constraints = levelConstraints ,
+                Parents = (     from info in db.LevelInfos  // using joint table (ChildLevels) to find parent levels
+                                where info.LevelID == levelID
+                                let relationship = info.ParentLevels
+                                    from parentLevel in relationship
+                                select parentLevel.ParentLevel
+                    ).ToArray() ,
+                Children = (    from info in db.LevelInfos  // using joint table (ChildLevels) to find child levels
+                                where info.LevelID == levelID
+                                let relationship = info.ChildLevels
+                                    from childLevel in relationship
+                                    select childLevel.ParentLevel
+                    ).ToArray() ,
 
-                    IsSolved = progress.IsSolved ,
-                    Design   = machineDesignResponse?.Result ,
+                TestCases   = getTestCasesResponse.Result ,
+                Constraints = levelConstraints ,
+            };
 
-                    Operations = progress.Operations ,
-                }
-            );
+            if (getProgressResponse.Status is SUCCESS)
+            {
+                ProgressResponseBody progress = getProgressResponse.Result!;
+
+                levelProgressResult.IsSolved = progress.IsSolved;
+                levelProgressResult.Design = progress.MachineDesign;
+                levelProgressResult.Operations = progress.Operations;
+            }
+
+            return new ServerResponse<LevelResponseBody>(SUCCESS , levelProgressResult);
         }
 
         /// <returns>

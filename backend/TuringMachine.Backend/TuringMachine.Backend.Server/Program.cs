@@ -103,12 +103,11 @@ namespace TuringMachine.Backend.Server
                             return (await UserInteraction.LoginAsync(username , hashedPassword , salt , db)).ToTuple() switch
                             {
 // @formatter:off
-                                (ResponseStatus.SUCCESS          , { } accessToken) => new ServerResponse<LoginResponseBody?>(ResponseStatus.SUCCESS , new LoginResponseBody { AccessToken = accessToken }) ,
-                                (ResponseStatus.USER_NOT_FOUND   ,  _             ) => new ServerResponse<LoginResponseBody?>(ResponseStatus.INVALID_USERNAME_OR_PASSWORD) ,
-                                (ResponseStatus.INVALID_PASSWORD ,  _             ) => new ServerResponse<LoginResponseBody?>(ResponseStatus.INVALID_USERNAME_OR_PASSWORD) ,
-                                (ResponseStatus.DUPLICATED_USER  ,  _             ) => new ServerResponse<LoginResponseBody?>(ResponseStatus.DUPLICATED_USER) ,
-                                (ResponseStatus.BACKEND_ERROR    ,  _             ) => new ServerResponse<LoginResponseBody?>(ResponseStatus.BACKEND_ERROR) ,
-                                _                                                   => throw new UnreachableException("/api/login") ,
+                                (ResponseStatus.SUCCESS                      , { } accessToken) => new ServerResponse<LoginResponseBody?>(ResponseStatus.SUCCESS , new LoginResponseBody { AccessToken = accessToken }) ,
+                                (ResponseStatus.USER_NOT_FOUND               ,  _             ) => new ServerResponse<LoginResponseBody?>(ResponseStatus.INVALID_USERNAME_OR_PASSWORD) ,
+                                (ResponseStatus.INVALID_USERNAME_OR_PASSWORD ,  _             ) => new ServerResponse<LoginResponseBody?>(ResponseStatus.INVALID_USERNAME_OR_PASSWORD) ,
+                                (ResponseStatus.DUPLICATED_USER              ,  _             ) => new ServerResponse<LoginResponseBody?>(ResponseStatus.DUPLICATED_USER) ,
+                                _                                                               => throw new UnreachableException("/api/login") ,
 // @formatter:on
                             };
                         }
@@ -149,14 +148,11 @@ namespace TuringMachine.Backend.Server
             app.MapGet(
                     "/api/level" , async (string accessToken , byte levelID , DataContext db) =>
                         {
-                            return (await AccessTokenInteraction.ValidateAccessTokenAsync(accessToken , db)).Status switch
-                            {
-                                ResponseStatus.SUCCESS         => await LevelInteraction.GetUserLevelInfoAsync(accessToken , levelID , db) ,
-                                ResponseStatus.TOKEN_EXPIRED   => new ServerResponse<LevelResponseBody>(ResponseStatus.TOKEN_EXPIRED) ,
-                                ResponseStatus.USER_NOT_FOUND  => new ServerResponse<LevelResponseBody>(ResponseStatus.INVALID_TOKEN) ,
-                                ResponseStatus.DUPLICATED_USER => new ServerResponse<LevelResponseBody>(ResponseStatus.DUPLICATED_USER) ,
-                                _                              => throw new UnreachableException("/api/level") ,
-                            };
+                            ServerResponse<User> getUserResponse = await AccessTokenInteraction.GetAndValidateUserAsync(accessToken , db);
+                            if (getUserResponse.Status is not ResponseStatus.SUCCESS)
+                                return new ServerResponse<LevelResponseBody>(getUserResponse.Status);
+
+                            return await LevelInteraction.GetUserLevelInfoAsync(getUserResponse.Result!.UUID.ToString() , levelID , db);
                         }
                 )
                 .WithName("GetLevels")

@@ -11,5 +11,7 @@ namespace TuringMachine.Backend.Server.ServerResponses.ResponseBody
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public int Operations { get; set; } = 0;
+
+        public bool IsSolved { get; set; } = false;
     }
 }

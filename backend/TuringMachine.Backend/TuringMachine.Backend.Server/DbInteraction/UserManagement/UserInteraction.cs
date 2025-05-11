@@ -37,13 +37,12 @@ namespace TuringMachine.Backend.Server.DbInteraction.UserManagement
                 Password = Convert.ToHexString(SHA256.HashData(Encoding.ASCII.GetBytes(password))) ,
             };
             db.Users.Add(user);
-
+            await db.SaveChangesAsync();
 
             ServerResponse generateAccessTokenResponse = await AccessTokenInteraction.GenerateUniqueAccessTokenAsync(username , db);
             if (generateAccessTokenResponse.Status != ResponseStatus.SUCCESS)
                 return generateAccessTokenResponse.WithThisTraceInfo<string>(nameof(RegisterAsync) , ResponseStatus.BACKEND_ERROR);
 
-            await db.SaveChangesAsync();
             return new ServerResponse<string>(ResponseStatus.SUCCESS , user.AccessToken);
         }
 
@@ -159,7 +158,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.UserManagement
         /// <param name="salt"> A hexed value representing the salt. </param>
         /// <returns>
         ///     Returns a string as access token when "SUCCESS". <br/><br/>
-        ///     Status is either "SUCCESS", "INVALID_PASSWORD", "USER_NOT_FOUND" or "DUPLICATED_USER".
+        ///     Status is either "SUCCESS", "INVALID_USERNAME_OR_PASSWORD", "USER_NOT_FOUND" or "DUPLICATED_USER".
         /// </returns>
         public static async Task<ServerResponse<string>> LoginAsync(string username , string hashedPassword , string salt , DataContext db)
         {
@@ -172,9 +171,9 @@ namespace TuringMachine.Backend.Server.DbInteraction.UserManagement
             if (users.MoveNext())
                 return new ServerResponse<string>(ResponseStatus.DUPLICATED_USER);
 #if RELEASE
-            byte[] hash = Rfc2898DeriveBytes.Pbkdf2(user.Password , Convert.FromHexString(salt) , 1 , HashAlgorithmName.SHA256 , 32);   // TODO: Testing with frontend
-            
-            if (hash != Convert.FromHexString(hashedPassword)) 
+            byte[] hash = SHA256.HashData(Encoding.ASCII.GetBytes(Convert.FromHexString(user.Password) + salt));
+
+            if (hash.SequenceEqual(Encoding.ASCII.GetBytes(hashedPassword))) 
                 return new ServerResponse<string>(ResponseStatus.INVALID_USERNAME_OR_PASSWORD);
 #else
             if (hashedPassword != user.Password)

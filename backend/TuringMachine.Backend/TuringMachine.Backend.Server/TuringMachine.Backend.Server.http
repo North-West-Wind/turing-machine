@@ -288,3 +288,6 @@ Content-Type: application/json
 @designID = d3eb906e-3657-4ba5-a88a-9a4915b96c51
 GET {{TuringMachine.Backend.Server_HostAddress}}/api/import?accessToken={{access_token}}&designID={{designID}}
 Accept: application/json
+###
+
+POST  {{TuringMachine.Backend.Server_HostAddress}}/api/register?username=frontend-test-1&rsaEncryptedPassword=D0iq4lxFM7CFa7u0aZMeqAxdhh3qdkOxo0Ndk6LopSZ%2F%2F7gUr%2B5tJCfy%2FBrw8%2FxnIIod3zm38OI1HZqaF9Sj9rNn6g6x2R2lraIY6ZVbkqHQniZrl6Lxkb5q49VE2%2Fisi1zYHRXxwg2z%2BxbPAf57gl%2F2AffqmJuLea7OfuKtEMA8vgSJOoek9%2BIx%2F0w7DuaYVavlHCliPh%2BzhVAO3loDwERbN5LZZw2puKnI2Gzivb4ofQuu%2FB6xpg1tmkTUtPmQP%2BS9e0Cte7wJyFL7wELvDI3oN2PpPkU4RTta6Eqg7uoFKA36xrRINWu2k91HGCaRKjgg5AACGm%2FHtfDzFdFcTQ%3D%3D&licenseKey=eb5e6b80-4a5b-4c95-9a28-265fac159181
