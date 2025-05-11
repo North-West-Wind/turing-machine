@@ -3,6 +3,7 @@ Top is a list of all endpoints categorized by UI pages. Scroll further for detai
 Note: **For all endpoints listed, prepand `/api[/v1]` (version is optional)**
 
 #### Changes
+Current revision: 11
 - rev1: Formatted every entry so it's easier to read all requests and responses
 - rev2: Added "title" to simple level and level data structures
 - rev3: Changed "parents" to "parent" for simple level and level data structures, and only allow singular parent
@@ -17,26 +18,34 @@ Note: **For all endpoints listed, prepand `/api[/v1]` (version is optional)**
 	- Added "machines[].start" number, indicating starting node of the machine
 	- Added "statements[].lines" array of vectors, defining the look of the edge arrow (UI)
 	- Added "machines[].ui.color" number, defining the color of the machine
+- rev9:
+	- Changed TM structure to match server structure
+	- Changed primative data type in requests to be sent using parameters
+- rev10:
+	- Changed response of POST `/level` to return rank in percentage
+	- Added GET `/stat` to obtain the stat of user's last submission
+- rev11: Changed response formats to match backend design
 
 ### Landing
-- GET `/getserverresponse` (or `/ping`)
+- GET `/try-get-response` (or `/ping`)
 - GET `/validate`
 - GET `/progress`
 
 ### Login
-- GET `/pubkey`
+- GET `/get-rsa-key`
 - POST `/login`
 - POST `/register`
 
 ### Level Select
 - GET `/levels`
-- GET `/level/:id`
+- GET `/level`
 
 ### Designer
-- POST `/level/:id`
+- POST `/level`
 - POST `/save`
 - POST `/upload`
-- GET `/import/:id`
+- GET `/import`
+- GET `/stat`
 
 ## Encryptions
 ### RSA
@@ -54,11 +63,11 @@ Salt is used for hashing the password during `/login`.
 ```json
 {
   "tapes": [
-    { "type": "infinite", "input": true }, // input
-    { "type": "infinite", "output": true }, // output
+    { "type": "infinite", "isInput": true }, // input
+    { "type": "infinite", "isOutput": true }, // output
     { // storage tapes (can have more)
       "type": "left_limited",
-      "value": "a" // initial value of storage tape
+      "values": "a" // initial value of storage tape
     }
   ],
   "machines": [
@@ -71,27 +80,35 @@ Salt is used for hashing the password during `/login`.
 						{ "read": "a", "write": "b", "move": 2 } // read a, write b, move to right by 2
 						{ "read": "_", "write": "b", "move": -1 } // read blank, write b, move to left by 1
 					],
-					"lines": [[50, 0], [0, 50]] // (UI) intermediate lines of the edge
+					"transitionLineSteps": [{ "x": 50, "y": 0 }, { "x": 0, "y": 50 }] // (UI) intermediate lines of the edge
 				}
       ],
       "heads": [ // heads, with their type and tape ref
         { "type": "r", "tape": 0, "position": 2 }, // type can be r, w or rw. tape is the index of top-level `tapes`. position is the initial position of the head
         { "type": "rw", "tape": 0, "position": -1 }
       ],
-			"start": 0,
-			"ui": {
-				"title": "title of the machine",
+			"startNode": 0,
+			"label": {
+				"title": "title of the machine", // nullable
 				"color": 16777215, // color of the machine in RGB
-				"boxes": [{ "start": [0, 0], "size": [20, 50], "color": 16777216 }], // rectangles for grouping states
-				"texts": [{ "pos": [10, 20], "value": "textbox string" }], // text boxes for labelling
-				"nodes": [{ "label": "q0", "position": [100, 200] }, { "label": "q1", "position": [150, 250], "final": true }] // labels of vertices
+				"boxes": [ // rectangles for grouping states
+					{ "start": { "x": 0, "y": 0 }, "size": { "x": 20, "y": 50 }, "color": 16777216 }
+				],
+				"texts": [ // text boxes for labelling
+					{ "position": { "x": 10, "y": 20 }, "value": "textbox string" }
+				],
+				"nodes": [ // labels of vertices
+					{ "label": "q0", "position": { "x": 100, "y": 200 } },
+					null, // this node is deleted
+					{ "position": { "x": 150, "y": 250 }, "final": true }
+				]
 			}
     }
   ]
 }
 ```
 
-### Simple Level (Used in `/levels`)
+### Simple Level (Used in GET `/levels`)
 ```json
 {
 	"id": "level id",
@@ -101,7 +118,7 @@ Salt is used for hashing the password during `/login`.
 }
 ```
 
-### Level (Used in `/level/:id`)
+### Level (Used in GET `/level`)
 ```json
 {
 	"id": "level id",
@@ -130,36 +147,33 @@ Salt is used for hashing the password during `/login`.
 ## Detailed Descriptions
 ### Common
 **Request**  
-If a request requires authentication, the access token is passed using the request header.
-```
-Authorization: Bearer <RSA encrypted token>
-```
+If a request requires authentication, the access token is passed as a parameter.
+`http://<host>:<port>/api/validate?accessToken=<rsa-encrypted-token>`
 
-If client needs to send data to the server, data is sent using POST body as JSON.
+If client needs to send data to the server, all primative data types are sent as parameters, while nested objects are sent using POST body as JSON.
 
 **Response**  
-All server responses should be in JSON, with at least the field named `success`, indicating if the server processed the request successfully. `data` field is the returned data for a specific request. For example, a successful GET request of `/validate` will be:
+All server responses should be in JSON, with at least the field named `status`, indicating if the server processed the request successfully. `result` field is the returned data for a specific request. For example, a successful GET request of `/get-rsa-key` will be:
 ```json
 {
-	"success": true,
-	"data": {
-		"valid": true
-	}
+	"time": "2025-05-11T12:39:35.7173549+08:00",
+	"status": "SUCCESS",
+	"result": "-----BEGIN RSA PUBLIC KEY-----..."
 }
 ```
 
-If it fails, `success` is obviously `false`, and the server adds an error code `errcode` and error message `errmsg`.
+If it fails, `status` is the error code, and the server provides a stack trace in `responseStackTraces`.
 ```json
 {
-	"success": false,
-	"errcode": "TOO_MANY_REQUEST",
-	"errmsg": "Too many request."
+  "time": "2025-05-11T12:06:17.4154906+08:00",
+	"status": "DESIGN_NOT_FOUND",
+	"responseStackTraces": "Stack trace"
 }
 ```
 
 Returned objects specified after this point is the extra data wanted by the client.
 
-### GET `/getserverresponse`
+### GET `/try-get-response`
 - Access token: Not required
 
 Ping the server.
@@ -175,11 +189,8 @@ Validates the client's access token. Most likely stored inside the browser's Loc
 
 No request body.
 
-Response data:
-- `valid`: Whether the access token is valid or not
-```json
-{ "valid": true }
-```
+Response data:  
+No extra response data. `status` will indicate whether it is valid.
 
 ### GET `/progress`
 - Access token: Required
@@ -200,7 +211,7 @@ Response data:
 }
 ```
 
-### GET `/pubkey`
+### GET `/get-rsa-key`
 - Access token: Not required
 
 Get the public key of the server for RSA encryption.
@@ -208,26 +219,17 @@ Get the public key of the server for RSA encryption.
 No request body.
 
 Response data:
-- `key`: The RSA public key
-```json
-{
-	"key": "BEGIN_KEY ... END_KEY"
-}
-```
+- A string that is the RSA public key
 
 ### POST `/login`
 - Access token: Not required
 
 Login and generate an access token.
 
-Request body:
-```json
-{
-	"username": "example",
-	"password": "salt-hashed password",
-	"salt": "salt for hash"
-}
-```
+Request parameters:
+- `username`
+- `hashedPassword`: A salt-hashed password
+- `salt`: Salt used for hashing
 
 Response data:
 - `access_token`: Access token for client to make further authorized requests
@@ -241,16 +243,12 @@ Response data:
 - Access token: Not required
 
 Register a user with a username, a password and a license.  
-Password is RSA-encrypted using server public key obtained from `/pubkey`.
+Password is RSA-encrypted using server public key obtained from `/get-rsa-key`.
 
-Request body:
-```json
-{
-	"username": "example",
-	"password": "rsa-encrypted password",
-	"licenseKey": "license key"
-}
-```
+Request parameters:
+- `username`
+- `rsaEncryptedPassword`: RSA-encrypted password
+- `licenseKey`: License key for registration
 
 Response data:
 - `access_token`: Access token for client to make further authorized requests
@@ -274,14 +272,13 @@ Response data:
 }
 ```
 
-### GET `/level/:id`
+### GET `/level`
 - Access token: Required
-- Parameters:
-	- `id`: Level ID
 
 Get the details of a level by ID.
 
-No request body.
+Request parameter:
+- `levelID`
 
 Response data:
 ```json
@@ -290,27 +287,24 @@ Response data:
 }
 ```
 
-### POST `/level/:id`
+### POST `/level`
 - Access token: Required
-- Parameters:
-	- `id`: Level ID
 
 Submit a solution for a level.
 
-Request body:
-```json
-{
-	"machine": { /* Turing Machine data structure */ }
-}
-```
+Request parameters:
+- `levelID`
+- `correct`: Whether client validation yields a correct result
+- `states`: Amount of states in the machine
+- `transitions`: Amount of transitions in the machine
+- `tapes`: Amount of tapes used
+- `operations`: Amount of operations for all the cases
 
 Response data:
-- `correct`: Whether the solution is correct or not
-- `rank`: Rank of this solution. 1-indexed
+- `rank`: A percentage. Rank of this solution.
 ```json
 {
-	"correct": true,
-	"rank": 1
+	"rank": 0.5 // Range: [0, 1]
 }
 ```
 
@@ -319,14 +313,11 @@ Response data:
 
 Save client's progress to the server.
 
-Request body:
+Request parameter:
 - `level`: Level ID, nullable. If null, means the user is in sandbox mode
-- `machine`: Turing Machine data structure, nullable. If null, means the user is in mode selection or reading the level
+Request body:
 ```json
-{
-	"level": "level id",
-	"machine": { /* Turing Machine data structure */ }
-}
+{ /* Turing Machine data structure */ }
 ```
 
 Response data:
@@ -344,9 +335,7 @@ Only usable in sandbox mode (client-side duty). This uploads a Turing Machine to
 
 Request body:
 ```json
-{
-	"machine": { /* Turing Machine data structure */ }
-}
+{ /* Turing Machine data structure */ }
 ```
 
 Response data:
@@ -357,18 +346,33 @@ Response data:
 }
 ```
 
-### GET `/import/:id`
+### GET `/import`
 - Access token: Required
-- Parameters:
-	- `id`: Turing Machine ID
 
 Only usable in sandbox mode (client-side duty). Imports a Turing Machine uploaded by `/upload` using an ID.
 
-No request body.
+Request parameter:
+- `id`: Turing Machine ID
 
 Response data:
 ```json
 {
 	"machine": { /* Turing Machine data structure */ }
+}
+```
+
+### GET `/stat`
+- Access token: Required
+
+Returns the ranking of the user's last submitted machine of a level.
+
+Request parameter:
+- `levelID`
+
+Response data:
+- `rank`: Rank of the last submitted solution in percentage, or null if user have not solved this level.
+```json
+{
+	"rank": 0.5 // Range: [0, 1] or null
 }
 ```
