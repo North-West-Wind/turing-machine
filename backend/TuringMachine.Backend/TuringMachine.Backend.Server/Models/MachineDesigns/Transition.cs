@@ -1,4 +1,4 @@
-namespace TuringMachine.Backend.Server.Models.Machines.Transitions
+namespace TuringMachine.Backend.Server.Models.MachineDesigns
 {
     internal class Transition
     {

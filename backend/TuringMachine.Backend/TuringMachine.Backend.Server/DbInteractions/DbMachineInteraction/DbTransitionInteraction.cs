@@ -7,8 +7,8 @@ using static TuringMachine.Backend.Server.Models.Misc.ResponseStatus;
 using DbTransition = TuringMachine.Backend.Server.Database.Entity.MachineStorage.Transition;
 using DbTransitionStatement = TuringMachine.Backend.Server.Database.Entity.MachineStorage.TransitionStatement;
 
-using ResponseTransition = TuringMachine.Backend.Server.Models.Machines.Transitions.Transition;
-using ResponseTransitionStatement = TuringMachine.Backend.Server.Models.Machines.Transitions.TransitionStatement;
+using ResponseTransition = TuringMachine.Backend.Server.Models.MachineDesigns.Transition;
+using ResponseTransitionStatement = TuringMachine.Backend.Server.Models.MachineDesigns.TransitionStatement;
 #endregion
 
 

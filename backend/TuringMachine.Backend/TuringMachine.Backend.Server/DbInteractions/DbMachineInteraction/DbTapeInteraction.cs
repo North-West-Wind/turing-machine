@@ -5,7 +5,7 @@ using static TuringMachine.Backend.Server.Models.Misc.ResponseStatus;
 #region Type Alias
 using DbTape = TuringMachine.Backend.Server.Database.Entity.MachineStorage.TapeInfo;
 
-using ResponseTape = TuringMachine.Backend.Server.Models.Machines.Tapes.Tape;
+using ResponseTape = TuringMachine.Backend.Server.Models.MachineDesigns.Tape;
 #endregion
 
 namespace TuringMachine.Backend.Server.DbInteractions.DbMachineInteraction

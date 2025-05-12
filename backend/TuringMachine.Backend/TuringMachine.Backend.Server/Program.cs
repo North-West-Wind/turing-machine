@@ -201,7 +201,7 @@ namespace TuringMachine.Backend.Server
             app
                 .MapPost(
                     "/API/MachineDesign/CreateTransition" ,
-                    async (string machineID , IList<TuringMachine.Backend.Server.Models.Machines.Transitions.Transition> transition , DataContext db) =>
+                    async (string machineID , IList<TuringMachine.Backend.Server.Models.MachineDesigns.Transition> transition , DataContext db) =>
                     {
                         var response = DbTransitionInteraction.InsertTransition(machineID , transition , db);
                         await db.SaveChangesAsync();
