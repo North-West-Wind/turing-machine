@@ -40,5 +40,48 @@ namespace TuringMachine.Backend.Server.DbInteractions.UserInteractions
 
             return createAndSaveAccessTokenResponse;
         }
+
+        /// <returns>
+        ///     Return an access token for a particular user when login "SUCCESS". <br/><br/>
+        ///     Status is either "SUCCESS", "USER_EXISTED" or "BACKEND_ERROR".
+        /// </returns>
+        public static async Task<ServerResponse<string>> RegisterUserAsync(string username , string password , string licenseKey , DataContext db)
+        {
+            using IEnumerator<DbUser> users = db.Users.Where(user => user.Username == username).GetEnumerator();
+            if (users.MoveNext()) return ServerResponse.StartTracing<string>(nameof(RegisterUserAsync) , USER_EXISTED);
+
+            DbUser user = new DbUser
+            {
+                UUID     = Guid.NewGuid() ,
+                Username = username ,
+                Password = Convert.ToHexString(SHA256.HashData(Encoding.ASCII.GetBytes(password))) ,
+            };
+            db.Users.Add(user);
+
+            ServerResponse validateLicenceKeyResponse = DbLicenseKeyInteraction.ValidateLicenseKey(licenseKey , db);
+            if (validateLicenceKeyResponse.Status is not SUCCESS)
+                return validateLicenceKeyResponse.WithThisTraceInfo<string>(nameof(RegisterUserAsync) , BACKEND_ERROR);
+
+            ServerResponse generateAccessTokenResponse = await DbAccessTokenInteraction.CreateAccessTokenAsync(username , db);
+            if (generateAccessTokenResponse.Status is not SUCCESS)
+                return generateAccessTokenResponse.WithThisTraceInfo<string>(nameof(RegisterUserAsync) , BACKEND_ERROR);
+
+            return new ServerResponse<string>(SUCCESS , user.AccessToken);
+        }
+
+        /// <returns>
+        ///     Return an access token for a particular user when login "SUCCESS". <br/><br/>
+        ///     Status is either "SUCCESS" or "BACKEND_ERROR".
+        /// </returns>
+        /// <remarks> This method will make changes to database once completed. </remarks>
+        public static async Task<ServerResponse<string>> RegisterAndSaveUserAsync(string username , string password , string licenseKey , DataContext db)
+        {
+            ServerResponse<string> registerUserResponse = await RegisterUserAsync(username , password , licenseKey , db);
+            if (registerUserResponse.Status is not SUCCESS)
+                return registerUserResponse.WithThisTraceInfo<string>(nameof(RegisterAndSaveUserAsync) , BACKEND_ERROR);
+
+            await db.SaveChangesAsync();
+            return registerUserResponse;
+        }
     }
 }

@@ -91,8 +91,18 @@ namespace TuringMachine.Backend.Server
 
             #region User
             app
-                .MapPost("/API/User/Register" , (_) => throw new NotImplementedException())
-                .WithName("RegisterUser")
+                .MapPost(
+                    "/API/User/Register" ,  // TODO: test with frontend
+                    async (string username , string password , string licenseKey , DataContext db) =>
+                    {
+                        ServerResponse<string> registerAndSaveUserResponse = await DbUserInteraction.RegisterAndSaveUserAsync(username , password , licenseKey , db);
+                        if (registerAndSaveUserResponse.Status is not SUCCESS)
+                            registerAndSaveUserResponse.WithThisTraceInfo<string>("/API/User/Register" , BACKEND_ERROR);
+
+                        return registerAndSaveUserResponse;
+                    }
+                )
+                .WithName("RegisterUserAsync")
                 .WithOpenApi();
 
             app

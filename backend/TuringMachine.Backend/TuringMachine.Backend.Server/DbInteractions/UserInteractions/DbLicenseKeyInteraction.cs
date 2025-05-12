@@ -66,5 +66,19 @@ namespace TuringMachine.Backend.Server.DbInteractions.UserInteractions
             await db.SaveChangesAsync();
             return response;
         }
+
+        /// <returns>
+        ///     Return "SUCCESS" when the license key is valid. <br/><br/>
+        ///     Status is either "SUCCESS", "NO_SUCH_ITEM" or "DUPLICATED_ITEM".
+        /// </returns>
+        public static ServerResponse ValidateLicenseKey(string licenseKey , DataContext db)
+        {
+            using IEnumerator<Database.Entity.UserManagement.LicenseKey> licenseKeys = db.LicenseKeys.Where(key => key.License == Guid.Parse(licenseKey)).GetEnumerator();
+            if (!licenseKeys.MoveNext()) return ServerResponse.StartTracing(nameof(ValidateLicenseKey) , NO_SUCH_ITEM);
+            Database.Entity.UserManagement.LicenseKey dbLicenseKey = licenseKeys.Current;
+            if (licenseKeys.MoveNext()) return ServerResponse.StartTracing(nameof(ValidateLicenseKey) , DUPLICATED_ITEM);
+
+            return new ServerResponse(SUCCESS);
+        }
     }
 }
