@@ -15,6 +15,10 @@ namespace TuringMachine.Backend.Server.DbInteraction
 {
     internal static class DbLevelInfosInteraction
     {
+        /// <returns>
+        ///     Return a template for a particular level when "SUCCESS". <br/><br/>
+        ///     Status is either "SUCCESS", "NO_SUCH_ITEM" or "DUPLICATED_ITEM".
+        /// </returns>
         public static ServerResponse<ResponseLevelTemplate> GetLevelTemplate(byte levelID , DataContext db)  // TODO: add data verification
         {
             using IEnumerator<DbLevelTemplate> levelTemplates = db.LevelTemplates.Where(template => template.LevelID == levelID).GetEnumerator();
