@@ -1,6 +1,5 @@
 ﻿// ReSharper disable InconsistentNaming
 using System.Text.Json.Serialization;
-using TuringMachine.Backend.Server.Models.Machines.Tapes;
 
 namespace TuringMachine.Backend.Server.Models.Misc
 {

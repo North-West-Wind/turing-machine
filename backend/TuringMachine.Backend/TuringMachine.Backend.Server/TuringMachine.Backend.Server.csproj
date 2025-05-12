@@ -23,4 +23,11 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Database\Entity\" />
+    <Folder Include="Model\" />
+    <Folder Include="DbInteraction\" />
+    <Folder Include="ServerResponses\ResponseBody\" />
+  </ItemGroup>
+
 </Project>
