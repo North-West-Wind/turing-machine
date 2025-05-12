@@ -112,7 +112,7 @@ namespace TuringMachine.Backend.Server
                     {
                         ServerResponse<string> loginUserResponse = await DbUserInteraction.LoginUserAsync(username , hashedPassword , salt , db);
                         if (loginUserResponse.Status is not SUCCESS)
-                            loginUserResponse.WithThisTraceInfo<string>(nameof(DbUserInteraction.LoginUserAsync) , BACKEND_ERROR);
+                            loginUserResponse.WithThisTraceInfo<string>("/API/User/Login" , BACKEND_ERROR);
 
                         return loginUserResponse;
                     }
