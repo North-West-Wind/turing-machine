@@ -152,7 +152,7 @@ namespace TuringMachine.Backend.Server
                 .WithOpenApi();
 
             app
-                .MapGet("/API/LevelTemplate/GetAll" , (_) => throw new NotImplementedException())
+                .MapGet("/API/LevelTemplate/GetAll" , (DataContext db) => DbLevelInfosInteraction.GetAllLevelTemplates(db))
                 .WithName("GetAllLevelTemplates")
                 .WithOpenApi();
             #endregion

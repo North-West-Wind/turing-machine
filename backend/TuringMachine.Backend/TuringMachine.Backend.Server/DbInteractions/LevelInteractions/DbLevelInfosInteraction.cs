@@ -15,6 +15,25 @@ namespace TuringMachine.Backend.Server.DbInteractions.LevelInteractions
 {
     internal static class DbLevelInfosInteraction
     {
+        public static ServerResponse<ICollection<ResponseLevelTemplate?>> GetAllLevelTemplates(DataContext db)
+        {
+            ResponseLevelTemplate?[] responseLevelTemplates = new ResponseLevelTemplate?[db.LevelTemplates.Count()];
+            foreach (DbLevelTemplate dbLevelTemplate in db.LevelTemplates)
+            {
+                byte levelID = dbLevelTemplate.LevelID;
+                if (responseLevelTemplates[levelID] is not null)
+                    return ServerResponse.StartTracing<ICollection<ResponseLevelTemplate?>>(nameof(GetAllLevelTemplates) , DUPLICATED_ITEM);
+
+                ServerResponse<ResponseLevelTemplate> getLevelTemplateResponse = GetLevelTemplate(levelID , db);
+                if (getLevelTemplateResponse.Status is not SUCCESS)
+                    return getLevelTemplateResponse.WithThisTraceInfo<ICollection<ResponseLevelTemplate?>>(nameof(GetAllLevelTemplates) , BACKEND_ERROR);
+
+                responseLevelTemplates[levelID] = getLevelTemplateResponse.Result;
+            }
+            return new ServerResponse<ICollection<ResponseLevelTemplate?>>(SUCCESS , responseLevelTemplates);
+        }
+
+
         /// <returns>
         ///     Return a template for a particular level when "SUCCESS". <br/><br/>
         ///     Status is either "SUCCESS", "NO_SUCH_ITEM" or "DUPLICATED_ITEM".
@@ -28,7 +47,7 @@ namespace TuringMachine.Backend.Server.DbInteractions.LevelInteractions
 
             ServerResponse<ICollection<ResponseTestCase>> getTestCasesResponse = GetTestCase(levelID , db);
             if (getTestCasesResponse.Status is not (SUCCESS or NO_SUCH_ITEM))
-                return ServerResponse.StartTracing<ResponseLevelTemplate>(nameof(GetLevelTemplate) , getTestCasesResponse.Status);
+                return ServerResponse.StartTracing<ResponseLevelTemplate>(nameof(GetLevelTemplate) , BACKEND_ERROR);
 
             ResponseConstraint constraint = new ResponseConstraint
             {
