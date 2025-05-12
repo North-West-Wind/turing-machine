@@ -24,7 +24,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="DbInteraction\" />
     <Folder Include="ServerResponses\ResponseBody\" />
   </ItemGroup>
 

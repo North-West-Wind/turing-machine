@@ -1,4 +1,4 @@
-namespace TuringMachine.Backend.Server.Models.Machine.Transitions
+namespace TuringMachine.Backend.Server.Models.Machines.Transitions
 {
     internal class TransitionStatement
     {

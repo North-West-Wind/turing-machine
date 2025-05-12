@@ -1,6 +1,6 @@
 using TuringMachine.Backend.Server.Models.UserInterface;
 
-namespace TuringMachine.Backend.Server.Models.Machine
+namespace TuringMachine.Backend.Server.Models.Machines
 {
     internal class Machine
     {

@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
-using TuringMachine.Backend.Server.Models.Machine.Tapes;
-using TuringMachine.Backend.Server.Models.Machine.Transitions;
+using TuringMachine.Backend.Server.Models.Machines.Tapes;
+using TuringMachine.Backend.Server.Models.Machines.Transitions;
 
 namespace TuringMachine.Backend.Server.Models.MachineDesigns
 {

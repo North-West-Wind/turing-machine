@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using TuringMachine.Backend.Server.Database;
+using TuringMachine.Backend.Server.DbInteraction;
 using TuringMachine.Backend.Server.Models.Misc;
 using TuringMachine.Backend.Server.ServerResponses;
 
@@ -68,7 +69,7 @@ namespace TuringMachine.Backend.Server
                 .WithOpenApi();
 
             app
-                .MapGet("/API/Progress/Get" , (_) => throw new NotImplementedException())
+                .MapGet("/API/Progress/Get" , (string uuid, byte levelID, DataContext db) => DbLevelProgressInteraction.GetProgress(uuid, levelID, db))
                 .WithName("GetProgress")
                 .WithOpenApi();
 

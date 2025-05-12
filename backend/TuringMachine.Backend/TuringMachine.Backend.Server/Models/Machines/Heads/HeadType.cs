@@ -1,4 +1,4 @@
-namespace TuringMachine.Backend.Server.Models.Machine.Heads
+namespace TuringMachine.Backend.Server.Models.Machines.Heads
 {
     internal enum HeadType
     {

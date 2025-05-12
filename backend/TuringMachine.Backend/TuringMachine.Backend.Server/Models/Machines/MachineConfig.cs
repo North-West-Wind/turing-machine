@@ -1,7 +1,7 @@
-using TuringMachine.Backend.Server.Models.Machine.Transitions;
-using TuringMachine.Backend.Server.Models.Machine.Heads;
+using TuringMachine.Backend.Server.Models.Machines.Transitions;
+using TuringMachine.Backend.Server.Models.Machines.Heads;
 
-namespace TuringMachine.Backend.Server.Models.Machine
+namespace TuringMachine.Backend.Server.Models.Machines
 {
     internal class MachineConfig
     {
