@@ -1,6 +1,5 @@
 using System.Data;
 using System.Text.Json.Serialization;
-using TuringMachine.Backend.Server.Models.LevelTemplates.TestCases;
 
 namespace TuringMachine.Backend.Server.Models.LevelTemplates
 {
@@ -13,12 +12,13 @@ namespace TuringMachine.Backend.Server.Models.LevelTemplates
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public byte? ParentID { get; set; }
+
         public ICollection<byte> ChildrenID { get; set; }
 
 
         public ICollection<TestCase> TestCases { get; set; }
 
-        public ICollection<Constraint> Constraints { get; set; }
+        public Constraint Constraints { get; set; }
 
 
         #region Statistic

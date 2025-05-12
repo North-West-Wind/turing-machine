@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using TuringMachine.Backend.Server.Database;
+using TuringMachine.Backend.Server.DbInteraction;
 using TuringMachine.Backend.Server.Models.Misc;
 using TuringMachine.Backend.Server.ServerResponses;
 
@@ -107,7 +108,7 @@ namespace TuringMachine.Backend.Server
 
             #region Level Template
             app
-                .MapGet("/API/LevelTemplate/Get" , (_) => throw new NotImplementedException())
+                .MapGet("/API/LevelTemplate/Get" , (byte levelID , DataContext db) => DbLevelInfosInteraction.GetLevelTemplate(levelID , db))
                 .WithName("GetLevelTemplate")
                 .WithOpenApi();
 
