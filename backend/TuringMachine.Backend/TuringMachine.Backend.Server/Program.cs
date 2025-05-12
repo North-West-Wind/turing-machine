@@ -74,7 +74,15 @@ namespace TuringMachine.Backend.Server
                 .WithOpenApi();
 
             app
-                .MapGet("/API/Progress/Get" , (string uuid , byte levelID , DataContext db) => DbLevelProgressInteraction.GetProgress(uuid , levelID , db))
+                .MapGet("/API/Progress/Get" ,
+                        async (string accessToken , byte levelID , DataContext db) =>
+                        {
+                            ServerResponse<string> validateAndSaveTokenAndGetUUIDResponse = await DbAccessTokenInteraction.ValidateAndSaveTokenAndGetUUIDAsync(accessToken , db);
+                            if (validateAndSaveTokenAndGetUUIDResponse.Status is not SUCCESS)
+                                return validateAndSaveTokenAndGetUUIDResponse.WithThisTraceInfo("/API/Progress/Get" , BACKEND_ERROR);
+
+                            return DbLevelProgressInteraction.GetProgress(validateAndSaveTokenAndGetUUIDResponse.Result! , levelID , db);
+                        })
                 .WithName("GetProgress")
                 .WithOpenApi();
 
