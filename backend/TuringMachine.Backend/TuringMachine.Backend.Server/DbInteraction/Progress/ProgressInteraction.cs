@@ -35,9 +35,9 @@ namespace TuringMachine.Backend.Server.DbInteraction.Progress
                                                                               .GetEnumerator();
 // @formatter:on
 
-            if (!progresses.MoveNext()) return ServerResponse.StartTracing<ResponseLevelProgress>(nameof(GetProgress) , ResponseStatus.NO_SUCH_ITEM);
+            if (!progresses.MoveNext()) return ServerResponse.StartTracing<ResponseLevelProgress>(nameof(GetProgress) , NO_SUCH_ITEM);
             DbLevelProgress dbLevelProgress = progresses.Current;
-            if (progresses.MoveNext()) return ServerResponse.StartTracing<ResponseLevelProgress>(nameof(GetProgress) , ResponseStatus.DUPLICATED_ITEM);
+            if (progresses.MoveNext()) return ServerResponse.StartTracing<ResponseLevelProgress>(nameof(GetProgress) , DUPLICATED_ITEM);
 
             ResponseLevelProgress responseLevelProcess = new ResponseLevelProgress
             {
@@ -47,7 +47,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.Progress
             };
 
             if (dbLevelProgress.DesignID is null)
-                return new ServerResponse<ResponseLevelProgress>(ResponseStatus.SUCCESS , responseLevelProcess);
+                return new ServerResponse<ResponseLevelProgress>(SUCCESS , responseLevelProcess);
 
             // obtain last user saved the turing machine design
             ServerResponse<ResponseTuringMachineDesign> getDesignResponse = MachineInteraction.GetTuringMachineDesign(dbLevelProgress.DesignID.ToString()! , db);
@@ -55,8 +55,8 @@ namespace TuringMachine.Backend.Server.DbInteraction.Progress
             responseLevelProcess.MachineDesign = getDesignResponse.Result;
             return getDesignResponse.Status switch
             {
-                ResponseStatus.SUCCESS => new ServerResponse<ResponseLevelProgress>(ResponseStatus.SUCCESS , responseLevelProcess) ,
-                _                      => getDesignResponse.WithThisTraceInfo<ResponseLevelProgress>(nameof(GetProgress) , ResponseStatus.BACKEND_ERROR) ,
+                SUCCESS => new ServerResponse<ResponseLevelProgress>(SUCCESS , responseLevelProcess) ,
+                _       => getDesignResponse.WithThisTraceInfo<ResponseLevelProgress>(nameof(GetProgress) , BACKEND_ERROR) ,
             };
         }
 
@@ -68,7 +68,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.Progress
         {
             IQueryable<DbLevelProgress> progresses = db.LevelProgresses.Where(progress => progress.UUID.ToString() == uuid);
             if (progresses.IsNullOrEmpty())
-                return ServerResponse.StartTracing<ResponseLevelProgress>(nameof(GetLatestProgressAsync) , ResponseStatus.NO_SUCH_ITEM);
+                return ServerResponse.StartTracing<ResponseLevelProgress>(nameof(GetLatestProgressAsync) , NO_SUCH_ITEM);
 
 // @formatter:off
             DbLevelProgress? latestProgress = await (   
@@ -77,7 +77,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.Progress
                     select progress
                 ).FirstAsync();
             
-            return latestProgress is null ? new ServerResponse<ResponseLevelProgress>(ResponseStatus.NO_SUCH_ITEM) 
+            return latestProgress is null ? new ServerResponse<ResponseLevelProgress>(NO_SUCH_ITEM) 
                                           : GetProgress(uuid , latestProgress.LevelID , db);
 // @formatter:on
         }
@@ -86,7 +86,7 @@ namespace TuringMachine.Backend.Server.DbInteraction.Progress
         {
             ServerResponse<LevelResponseBody> getUserLevelInfoResponse = LevelInteraction.GetUserLevelInfo(uuid , levelID , db);
             if (getUserLevelInfoResponse.Status is not SUCCESS)
-                return getUserLevelInfoResponse.WithThisTraceInfo<RankingResponseBody>(nameof(GetRankingAsync) , ResponseStatus.BACKEND_ERROR);
+                return getUserLevelInfoResponse.WithThisTraceInfo<RankingResponseBody>(nameof(GetRankingAsync) , BACKEND_ERROR);
 
             ResponseTuringMachineDesign? design = getUserLevelInfoResponse.Result!.Design;
             if (design is null)
@@ -271,13 +271,13 @@ namespace TuringMachine.Backend.Server.DbInteraction.Progress
         /// </returns>
         public static async Task<ServerResponse> InsertProgressAsync(string uuid , byte levelID , ResponseTuringMachineDesign? design , int operations , bool isSolved , DataContext db)
         {
-            string? designID = null;
+            ServerResponse<string>? insertDesignResponse = null;
 
             if (design is not null)
             {
-                ServerResponse<string> insertDesignResponse = await MachineInteraction.InsertTuringMachineDesignAsync(design , db);
-                if (insertDesignResponse.Status != ResponseStatus.SUCCESS)
-                    return insertDesignResponse.WithThisTraceInfo(nameof(InsertProgressAsync) , ResponseStatus.BACKEND_ERROR);
+                insertDesignResponse = await MachineInteraction.InsertTuringMachineDesignAsync(design , db);
+                if (insertDesignResponse.Status != SUCCESS)
+                    return insertDesignResponse.WithThisTraceInfo(nameof(InsertProgressAsync) , BACKEND_ERROR);
             }
 
             DbLevelProgress dbLevelProgress = new DbLevelProgress
@@ -285,14 +285,14 @@ namespace TuringMachine.Backend.Server.DbInteraction.Progress
                 UUID           = Guid.Parse(uuid) ,
                 LevelID        = levelID ,
                 IsSolved       = isSolved ,
-                DesignID       = designID is null ? null : Guid.NewGuid() ,
+                DesignID       = insertDesignResponse is null ? null : Guid.Parse(insertDesignResponse.Result!) ,
                 SubmissionTime = DateTime.Now ,
                 Operations     = operations ,
             };
             db.LevelProgresses.Add(dbLevelProgress);
 
             await db.SaveChangesAsync();
-            return new ServerResponse(ResponseStatus.SUCCESS);
+            return new ServerResponse(SUCCESS);
         }
 
         /// <returns>
@@ -301,13 +301,15 @@ namespace TuringMachine.Backend.Server.DbInteraction.Progress
         /// </returns>
         public static async Task<ServerResponse> UpdateProgressAsync(string uuid , byte levelID , ResponseLevelProgress level , bool isSolved , DataContext db)
         {
-            await DeleteProgressAsync(uuid , levelID , true , db);
+            ServerResponse deleteProgressResponse = await DeleteProgressAsync(uuid , levelID , true , db);
+            if (deleteProgressResponse.Status is not (SUCCESS or NO_SUCH_ITEM))
+                return deleteProgressResponse.WithThisTraceInfo(nameof(UpdateProgressAsync) , BACKEND_ERROR);
 
             ServerResponse response = await InsertProgressAsync(uuid , levelID , level.MachineDesign , level.Operations ,isSolved , db);
-            if (response.Status != ResponseStatus.SUCCESS)
-                return response.WithThisTraceInfo(nameof(UpdateProgressAsync) , ResponseStatus.BACKEND_ERROR);
+            if (response.Status is not SUCCESS)
+                return response.WithThisTraceInfo(nameof(UpdateProgressAsync) , BACKEND_ERROR);
 
-            return new ServerResponse(ResponseStatus.SUCCESS);
+            return new ServerResponse(SUCCESS);
         }
 
         /// <returns>
@@ -316,13 +318,15 @@ namespace TuringMachine.Backend.Server.DbInteraction.Progress
         /// </returns>
         public static async Task<ServerResponse> UpdateProgressAsync(string uuid , byte levelID , ResponseTuringMachineDesign? design , bool isSolved , DataContext db)
         {
-            await DeleteProgressAsync(uuid , levelID , true ,db);
+            ServerResponse deleteProgressResponse = await DeleteProgressAsync(uuid , levelID , true ,db);
+            if (deleteProgressResponse.Status is not (SUCCESS or NO_SUCH_ITEM))
+                return deleteProgressResponse.WithThisTraceInfo(nameof(UpdateProgressAsync) , BACKEND_ERROR);
 
             ServerResponse response = await InsertProgressAsync(uuid , levelID , design , 0 , isSolved , db);
-            if (response.Status != ResponseStatus.SUCCESS)
-                return response.WithThisTraceInfo(nameof(UpdateProgressAsync) , ResponseStatus.BACKEND_ERROR);
+            if (response.Status is not SUCCESS)
+                return response.WithThisTraceInfo(nameof(UpdateProgressAsync) , BACKEND_ERROR);
 
-            return new ServerResponse(ResponseStatus.SUCCESS);
+            return new ServerResponse(SUCCESS);
         }
 
         /// <returns>
@@ -331,26 +335,23 @@ namespace TuringMachine.Backend.Server.DbInteraction.Progress
         /// </returns>
         public static async Task<ServerResponse> DeleteProgressAsync(string uuid , byte levelID , bool isDesignRemovable, DataContext db)
         {
-// @formatter:off
-            using IEnumerator<DbLevelProgress> progresses = db.LevelProgresses.Where(progress => progress.UUID.ToString() == uuid && progress.LevelID == levelID)
-                                                                              .Include(progress => progress.Solution)
-                                                                              .GetEnumerator();
-// @formatter:on
-            if (!progresses.MoveNext()) return ServerResponse.StartTracing(nameof(DeleteProgressAsync) , ResponseStatus.NO_SUCH_ITEM);
+            using IEnumerator<DbLevelProgress> progresses = db.LevelProgresses.Where(progress => progress.UUID.ToString() == uuid && progress.LevelID == levelID).GetEnumerator();
+
+            if (!progresses.MoveNext()) return ServerResponse.StartTracing(nameof(DeleteProgressAsync) , NO_SUCH_ITEM);
             DbLevelProgress dbLevelProgress = progresses.Current;
-            if (progresses.MoveNext()) return ServerResponse.StartTracing(nameof(DeleteProgressAsync) , ResponseStatus.DUPLICATED_ITEM);
+            if (progresses.MoveNext()) return ServerResponse.StartTracing(nameof(DeleteProgressAsync) , DUPLICATED_ITEM);
 
             if (isDesignRemovable && dbLevelProgress.DesignID is not null)
             {
-                ServerResponse response = await MachineInteraction.DeleteTuringMachineDesignAsync(dbLevelProgress.DesignID.ToString()! , db);
-                if (response.Status != ResponseStatus.SUCCESS)
-                    return response.WithThisTraceInfo(nameof(DeleteProgressAsync) , ResponseStatus.BACKEND_ERROR);
+                ServerResponse deleteTuringMachineDesignAsync = await MachineInteraction.DeleteTuringMachineDesignAsync(dbLevelProgress.DesignID.ToString()! , db);
+                if (deleteTuringMachineDesignAsync.Status != SUCCESS)
+                    return deleteTuringMachineDesignAsync.WithThisTraceInfo(nameof(DeleteProgressAsync) , BACKEND_ERROR);
             }
 
             db.LevelProgresses.Remove(dbLevelProgress);
 
             await db.SaveChangesAsync();
-            return new ServerResponse(ResponseStatus.SUCCESS);
+            return new ServerResponse(SUCCESS);
         }
     }
 }
