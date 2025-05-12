@@ -5,7 +5,6 @@ import { Auth } from "./network";
 export enum PersistenceKey {
 	LEVEL = "tm:level",
 	LEVEL_MACHINE = "tm:level_machine",
-	PROGRESS = "tm:level_progress",
 	MACHINE = "tm:machine",
 	TIME = "tm:save_time",
 	AUTH = "tm:auth",

@@ -59,7 +59,7 @@ const encrypt = new JSEncrypt();
 
 async function encryptWithPubkey(data: string) {
 	// Get public key for encrypting auth
-	let res = await fetch(BASE_URL + "/GetPublicKey");
+	let res = await fetch(BASE_URL + "/Server/GetPublicKey");
 	if (!res.ok) throw new Error("Received HTTP status: " + res.status);
 	const json = await res.json() as ServerResponse<string>;
 	if (json.Status != "SUCCESS") throw new Error("Unsuccessful server response");
@@ -122,7 +122,7 @@ export async function login(username: string, password: string) {
 	const hashedPassword = await sha256(twice + salt); // Server computes hash( db + salt )
 
 	// Make login request
-	const json = await normFetch<string>("/login", { username, hashedPassword, salt }, "POST");
+	const json = await normFetch<string>("/User/Login", { username, hashedPassword, salt }, "POST");
 	if (json.Status != "SUCCESS") throw new Error("Unsuccessful server response");
 	return json.Result;
 }
@@ -133,7 +133,7 @@ export async function register(username: string, password: string, licenseKey: s
 	const rsaEncryptedPassword = await encryptWithPubkey(hash);
 
 	// Make register request
-	const json = await normFetch<string>("/register", { username, rsaEncryptedPassword, licenseKey }, "POST");
+	const json = await normFetch<string>("/User/Register", { username, rsaEncryptedPassword, licenseKey }, "POST");
 	if (json.Status != "SUCCESS") throw new Error("Unsuccessful server response");
 	return json.Result;
 }

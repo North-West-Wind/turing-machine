@@ -92,7 +92,7 @@ export type SaveableTuringMachine = {
 }
 
 export class ClientSaveableUI implements ISaveable<SaveableUI> {
-	private static readonly MIN_ERROR = 0.0001;
+	private static readonly MIN_ERROR = 10;
 
 	color: number;
 	nodes: Map<number, SaveableUINode>;

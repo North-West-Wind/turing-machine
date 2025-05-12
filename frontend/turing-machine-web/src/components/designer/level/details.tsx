@@ -4,7 +4,7 @@ import { PersistenceKey, save } from "../../../helpers/persistence";
 import simulator from "../../../helpers/designer/simulator";
 import Loading from "../../common/loading";
 import { useEffect, useState } from "react";
-import { getLevelProgress, saveMachine, submitMachine } from "../../../helpers/network";
+import { createProgress, getLevelProgress, saveMachine, submitMachine } from "../../../helpers/network";
 
 export default function DesignerLevelDetails(props: { level: Level, playable?: boolean }) {
 	const [loading, setLoading] = useState(false);
@@ -26,6 +26,7 @@ export default function DesignerLevelDetails(props: { level: Level, playable?: b
 
 	const play = () => {
 		save(PersistenceKey.LEVEL, JSON.stringify(props.level));
+		createProgress(props.level.LevelID).catch(console.error);
 		navigate("/designer");
 	};
 

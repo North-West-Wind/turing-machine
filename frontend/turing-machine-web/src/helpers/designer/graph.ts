@@ -4,7 +4,7 @@ import { TapeSymbols } from "../../logic/Tapes/TapesUtilities/TapeSymbols";
 import { TuringMachineConfig } from "../../logic/TuringMachineConfig";
 import { PairMap } from "../structure/pair-map";
 import { IDrawable, IDrawableOverlay, IHoverable, ISaveable } from "./canvas";
-import { SaveableUI, SaveableUIBox, SaveableUIText, SaveableUINode } from "./machine";
+import { SaveableUI, SaveableUIBox, SaveableUIText, SaveableUINode, SaveableUILine } from "./machine";
 import { CommonNumbers, Vec2 } from "./math";
 import { Editable } from "./simulator";
 
@@ -13,7 +13,7 @@ const EDGE_HITBOX = 9;
 const RECT_CORNER_HITBOX = 10;
 
 export class StateTransition {
-	readonly destination: number;
+	destination: number;
 	readonly read: string[];
 	readonly write: string[];
 	readonly move: number[];
@@ -35,7 +35,7 @@ export class StateTransition {
 export class StateVertex implements IDrawable, IDrawableOverlay, IHoverable, ISaveable<SaveableUINode> {
 	static readonly colors = ["#"]
 
-	readonly id: number;
+	id: number;
 	private position: Vec2;
 	transitions: StateTransition[] = [];
 	graph?: StateGraph;
@@ -196,7 +196,7 @@ export class StateVertex implements IDrawable, IDrawableOverlay, IHoverable, ISa
 	}
 }
 
-export class StateEdge implements IDrawable, IHoverable {
+export class StateEdge implements IDrawable, IHoverable, ISaveable<SaveableUILine> {
 	private start: Vec2;
 	private end: Vec2;
 	private lines: Vec2[]; // lines MUST be alternating between horizontal and vertical (whatever starts)
@@ -407,6 +407,13 @@ export class StateEdge implements IDrawable, IHoverable {
 		let start = this.start;
 		this.lines.forEach(line => start = start.addVec(line));
 		this.end = start;
+	}
+
+	toSaveable() {
+		return {
+			Source: { X: this.start.x, Y: this.start.y },
+			Steps: this.lines.map(line => ({ StepX: line.x, StepY: line.y }))
+		};
 	}
 }
 
@@ -632,12 +639,19 @@ export class StateGraph implements IDrawable, IDrawableOverlay, ISaveable<Omit<S
 	deleteVertex(id: number) {
 		if (!this.vertices[id]) return;
 		this.edges.deleteA(id);
+		this.edges.deleteB(id);
 		for (let ii = id + 1; ii < this.vertices.length; ii++) {
 			// All vertex ref will be moved down 1 index
 			this.edges.getA(ii)?.forEach((edge, dest) => {
-				this.edges.set(ii - 1, dest, edge);
+				this.edges.set(ii - 1, dest > id ? dest - 1 : dest, edge);
 			});
 			this.edges.deleteA(ii);
+			this.vertices[ii].id = ii - 1;
+			this.vertices[ii].transitions = this.vertices[ii].transitions.map(transition => {
+				if (transition.destination > id)
+					transition.destination--;
+				return transition;
+			});
 		}
 		this.vertices.splice(id, 1);
 	}
@@ -856,10 +870,10 @@ export class StateGraph implements IDrawable, IDrawableOverlay, ISaveable<Omit<S
 
 	toSaveable() {
 		return {
-			TransitionLines: [],
+			TransitionLines: this.edges.entries().map(([_a, _b, edge]) => edge.toSaveable()),
 			HighlightBoxes: this.rects.map(rect => rect.toSaveable()),
 			TextLabels: this.texts.map(text => text.toSaveable()),
-			Nodes: this.vertices.map(vert => vert?.toSaveable()),
+			Nodes: this.vertices.map(vert => vert.toSaveable()),
 		}
 	}
 }

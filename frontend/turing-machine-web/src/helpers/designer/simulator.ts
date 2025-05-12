@@ -564,7 +564,7 @@ class RenderingTuringMachineSimulator extends EventTarget {
 			};
 			if (this.graphs[ii])
 				ui = Object.assign(this.graphs[ii].toSaveable(), { Color: ui.Color });
-			else (this.uiData[ii])
+			else
 				ui = this.uiData[ii].toSaveable();
 			machines.push({
 				UI: ui,
