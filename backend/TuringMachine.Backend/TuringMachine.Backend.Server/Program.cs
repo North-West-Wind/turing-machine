@@ -1,16 +1,20 @@
 using System.Data.Common;
 using System.Diagnostics;
+using System.Net.NetworkInformation;
 using System.Reflection.Metadata.Ecma335;
 using System.Security.Cryptography;
 using System.Text;
 using Azure;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using TuringMachine.Backend.Server.Database;
+using TuringMachine.Backend.Server.DbInteraction;
 using TuringMachine.Backend.Server.DbInteractions.LevelInteractions;
-using TuringMachine.Backend.Server.Models.Misc;
+using TuringMachine.Backend.Server.DbInteractions.UserInteractions;
 using TuringMachine.Backend.Server.ServerResponses;
+using static TuringMachine.Backend.Server.Models.Misc.ResponseStatus;
 
 namespace TuringMachine.Backend.Server
 {
@@ -52,12 +56,12 @@ namespace TuringMachine.Backend.Server
             #region Register API
             #region Server
             app
-                .MapGet("/API/Server/GetPublicKey" , () => new ServerResponse<string>(ResponseStatus.SUCCESS , rsa.ExportRSAPublicKeyPem()))
+                .MapGet("/API/Server/GetPublicKey" , () => new ServerResponse<string>(SUCCESS , rsa.ExportRSAPublicKeyPem()))
                 .WithName("GetPublicKey")
                 .WithOpenApi();
 
             app
-                .MapGet("/API/Server/GetResponse" , () => new ServerResponse(ResponseStatus.SUCCESS))
+                .MapGet("/API/Server/GetResponse" , () => new ServerResponse(SUCCESS))
                 .WithName("GetResponse")
                 .WithOpenApi();
             #endregion
@@ -91,8 +95,16 @@ namespace TuringMachine.Backend.Server
                 .WithOpenApi();
 
             app
-                .MapPost("/API/User/Login" , (_) => throw new NotImplementedException())
-                .WithName("LoginUser")
+                .MapPost("/API/User/Login" ,
+                         async (string username , string hashedPassword , string salt , DataContext db) =>
+                         {
+                             ServerResponse<string> loginUserResponse = await DbUserInteraction.LoginUserAsync(username , hashedPassword , salt , db);
+                             if (loginUserResponse.Status is not SUCCESS)
+                                 loginUserResponse.WithThisTraceInfo<string>(nameof(DbUserInteraction.LoginUserAsync) , BACKEND_ERROR);
+
+                             return loginUserResponse;
+                         })
+                .WithName("LoginUserAsync")
                 .WithOpenApi();
 
             app
