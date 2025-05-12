@@ -211,23 +211,23 @@ namespace TuringMachine.Backend.Server.Database
                 .Entity<Transition>()
                 .HasMany(transition => transition.TransitionStatements)
                 .WithOne(statement => statement.BelongedTransition)
-                .HasForeignKey(statement => statement.BelongedTransition);
+                .HasForeignKey(statement => statement.TransitionID);
 
             modelBuilder
                 .Entity<UIInfo>()
                 .HasMany(ui => ui.TransitionLines)
                 .WithOne(line => line.BelongedUI)
-                .HasForeignKey(line => line.BelongedUI);
+                .HasForeignKey(line => line.UILabelID);
             modelBuilder
                 .Entity<UIInfo>()
                 .HasMany(ui => ui.HighlighBoxes)
                 .WithOne(box => box.BelongedUI)
-                .HasForeignKey(box => box.BelongedUI);
+                .HasForeignKey(box => box.UILabelID);
             modelBuilder
                 .Entity<UIInfo>()
                 .HasMany(ui => ui.Nodes)
                 .WithOne(node => node.BelongedUI)
-                .HasForeignKey(node => node.BelongedUI);
+                .HasForeignKey(node => node.UILabelID);
             #endregion
             #endregion
         }
