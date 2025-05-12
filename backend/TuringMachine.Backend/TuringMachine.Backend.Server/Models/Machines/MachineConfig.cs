@@ -8,5 +8,7 @@ namespace TuringMachine.Backend.Server.Models.Machines
         public ICollection<Transition> Transitions { get; set; }
 
         public ICollection<Head> Heads { get; set; }
+
+        public short StartNode { get; set; }
     }
 }
