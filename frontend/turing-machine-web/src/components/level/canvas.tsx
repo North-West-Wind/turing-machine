@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react"
 import { SimpleLevel } from "../../helpers/designer/level"
 import { LevelTree } from "../../helpers/structure/level-tree"
 import { Vec2 } from "../../helpers/designer/math";
+import { useNavigate } from "react-router-dom";
 
 const LEFT_CLICK = 0;
 const RIGHT_CLICK = 2;
@@ -17,10 +18,11 @@ let position = Vec2.ZERO;
 let cursorPosition = Vec2.ZERO;
 let hovered: LevelTree | undefined;
 
-export default function LevelTreeCanvas(props: { levels: SimpleLevel[], open: (levelId?: string) => void }) {
+export default function LevelTreeCanvas(props: { levels: SimpleLevel[], open: (levelId?: number) => void }) {
 	const [tree, setTree] = useState(LevelTree.build(props.levels));
 	const [cursor, setCursor] = useState("");
 	const ref = useRef<HTMLCanvasElement>(null);
+	const navigate = useNavigate();
 
 	useEffect(() => {
 		setTree(LevelTree.build(props.levels));
@@ -108,7 +110,7 @@ export default function LevelTreeCanvas(props: { levels: SimpleLevel[], open: (l
 				window.removeEventListener("mousemove", onMouseMove);
 			}, { once: true });
 		} else if (ev.button == LEFT_CLICK && hovered) {
-			props.open(hovered.getDetail()?.id);
+			props.open(hovered.getDetail()?.levelID);
 		}
 	};
 
@@ -116,11 +118,25 @@ export default function LevelTreeCanvas(props: { levels: SimpleLevel[], open: (l
 		cursorPosition = new Vec2(ev.clientX, ev.clientY).subVec(position);
 	};
 
-	return <canvas
-		ref={ref}
-		onMouseDown={onMouseDown}
-		onMouseMove={onMouseMove}
-		onContextMenu={(e) => e.preventDefault()}
-		style={{ cursor }}
-	/>
+	const home = () => {
+		navigate("/mode");
+	};
+
+	const reset = () => {
+		position = Vec2.ZERO;
+	};
+
+	return <>
+		<div className="level-graph-buttons">
+			<div onClick={home}><img src="/ui/home.svg" /></div>
+			<div onClick={reset}><img src="/graph/reset.svg" /></div>
+		</div>
+		<canvas
+			ref={ref}
+			onMouseDown={onMouseDown}
+			onMouseMove={onMouseMove}
+			onContextMenu={(e) => e.preventDefault()}
+			style={{ cursor }}
+		/>
+	</>;
 }

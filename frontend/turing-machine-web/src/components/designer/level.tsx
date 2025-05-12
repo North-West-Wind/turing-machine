@@ -14,7 +14,7 @@ export default function DesignerLevel(props: { visible: boolean, close: () => vo
 	const [visible, setVisible] = useState(props.visible);
 	const [none, setNone] = useState(!props.visible);
 	const [noAnim, setNoAnim] = useState(false);
-	const [timeoutRef, setTimeoutRef] = useState<number>();
+	const [timeoutRef, setTimeoutRef] = useState<ReturnType<typeof setTimeout>>();
 
 	useEffect(() => {
 		const onKeyDown = (ev: KeyboardEvent) => {
@@ -34,7 +34,7 @@ export default function DesignerLevel(props: { visible: boolean, close: () => vo
 			const storedLevel = window.localStorage.getItem("tm:level");
 			if (storedLevel) {
 				try {
-					return JSON.parse(storedLevel);
+					return JSON.parse(storedLevel) as DetailedLevel;
 				} catch (err) {
 					console.error(err);
 				}
@@ -86,7 +86,7 @@ export default function DesignerLevel(props: { visible: boolean, close: () => vo
 				<DesignerLevelConstraints constraints={level.constraints} />
 			</div>
 			<div className="designer-level-right">
-				<DesignerLevelExamples tests={level.tests} />
+				<DesignerLevelExamples tests={level.testCases} />
 			</div>
 		</div>
 	</div>;

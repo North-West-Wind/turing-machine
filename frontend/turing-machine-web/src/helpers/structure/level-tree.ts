@@ -9,28 +9,30 @@ export class LevelTree {
 	private children: LevelTree[] = [];
 	private branches?: number[]; // angle (radian) for branches, 0 is vertical
 	private hovered = false;
+	private descriptionLines?: string[];
 
 	static build(levels: SimpleLevel[]) {
-		const map = new Map<string, LevelTree>();
-		let rootId: string | undefined;
+		const map = new Map<number, LevelTree>();
+		let rootId: number | undefined;
 		for (const level of levels) {
+			if (level.levelID == 255) continue; // 255 is NULL level
 			let tree: LevelTree;
-			if (map.has(level.id)) {
-				tree = map.get(level.id)!;
+			if (map.has(level.levelID)) {
+				tree = map.get(level.levelID)!;
 				tree.level = level;
 			} else {
 				tree = new LevelTree(level);
-				map.set(level.id, tree);
+				map.set(level.levelID, tree);
 			}
 
-			if (level.parent) {
+			if (level.parent !== undefined) {
 				let parentTree: LevelTree;
 				if (!map.has(level.parent)) {
 					parentTree = new LevelTree();
 					map.set(level.parent, parentTree);
 				} else parentTree = map.get(level.parent)!;
 				parentTree.children.push(tree);
-			} else rootId = level.id;
+			} else rootId = level.levelID;
 		}
 		return map.get(rootId!)!;
 	}
@@ -85,16 +87,38 @@ export class LevelTree {
 		ctx.textBaseline = "bottom";
 		const size = ctx.canvas.height / 40;
 		ctx.font = ` ${size}px Courier New`;
+		ctx.globalAlpha = Math.max(0, (ctx.canvas.width * ctx.canvas.width * 0.02 - cursorPosition.subVec(position).magnitudeSqr()) / (ctx.canvas.width * ctx.canvas.width * 0.02));
 		ctx.fillText(this.level?.title || "", position.x, position.y - RADIUS * 1.2);
+		ctx.globalAlpha = 1;
 
 		// draw description if hovered
-		if (this.hovered) {
+		if (this.hovered && this.level?.description) {
 			ctx.fillStyle = "#444";
-			const width = ctx.measureText(this.level?.description || "").width;
-			ctx.fillRect(cursorPosition.x - width / 2 - size / 2, cursorPosition.y + RADIUS - size / 2, width + size, size * 2);
+
+			if (this.descriptionLines === undefined) {
+				let description = this.level.description;
+				// Split description into lines
+				this.descriptionLines = [];
+				const punctuations = [". ", "! ", "? "];
+				let indices = punctuations.map(punc => description.indexOf(punc)).filter(punc => punc >= 0);
+				let min: number;
+				while (indices.length && this.descriptionLines.length < 4) {
+					min = indices.reduce((a, b) => Math.min(a, b));
+					this.descriptionLines.push(description.slice(0, min) + description.slice(min, min + 1));
+					description = description.slice(min + 2);
+					indices = punctuations.map(punc => description.indexOf(punc)).filter(punc => punc >= 0);
+				}
+				if (this.descriptionLines.length >= 4) this.descriptionLines[3] = "...";
+				else if (description) this.descriptionLines.push(description);
+			}
+			
+			const width = this.descriptionLines.map(line => ctx.measureText(line).width).reduce((a, b) => Math.max(a, b));
+			ctx.fillRect(cursorPosition.x - width / 2 - size / 2, cursorPosition.y + RADIUS - size / 2, width + size, size * (this.descriptionLines.length * 1.5 + 0.5));
 			ctx.fillStyle = "#fff";
 			ctx.textBaseline = "top";
-			ctx.fillText(this.level?.description || "", cursorPosition.x, cursorPosition.y + RADIUS);
+			this.descriptionLines.forEach((line, ii) => {
+				ctx.fillText(line, cursorPosition.x, cursorPosition.y + RADIUS + ii * size * 1.5);
+			});
 		}
 		return this.branches;
 	}
