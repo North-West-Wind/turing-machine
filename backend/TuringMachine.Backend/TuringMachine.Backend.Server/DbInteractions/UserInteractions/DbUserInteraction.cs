@@ -62,7 +62,7 @@ namespace TuringMachine.Backend.Server.DbInteractions.UserInteractions
             if (validateLicenceKeyResponse.Status is not SUCCESS)
                 return validateLicenceKeyResponse.WithThisTraceInfo<string>(nameof(RegisterUserAsync) , BACKEND_ERROR);
 
-            ServerResponse generateAccessTokenResponse = await DbAccessTokenInteraction.CreateAccessTokenAsync(username , db);
+            ServerResponse generateAccessTokenResponse = await DbAccessTokenInteraction.CreateAccessTokenAsync(user.UUID.ToString() , db);
             if (generateAccessTokenResponse.Status is not SUCCESS)
                 return generateAccessTokenResponse.WithThisTraceInfo<string>(nameof(RegisterUserAsync) , BACKEND_ERROR);
 
