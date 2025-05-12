@@ -70,17 +70,13 @@ namespace TuringMachine.Backend.Server.DbInteraction.Level
                 Title       = levelInfo.Title ,
                 Description = levelInfo.Description ,
 
-                Parents = (     from info in db.LevelInfos  // using joint table (ChildLevels) to find parent levels
-                                where info.LevelID == levelID
-                                let relationship = info.ParentLevels
-                                    from parentLevel in relationship
-                                    select parentLevel.ParentLevel
+                Parents = (     from relation in db.LevelRelationships  // using joint table (ChildLevels) to find parent levels
+                                where relation.ChildLevel == levelID
+                                select relation.ParentLevel
                     ).ToArray() ,
-                Children = (    from info in db.LevelInfos  // using joint table (ChildLevels) to find child levels
-                                where info.LevelID == levelID
-                                let relationship = info.ChildLevels
-                                    from childLevel in relationship
-                                    select childLevel.ParentLevel
+                Children = (    from relation in db.LevelRelationships  // using joint table (ChildLevels) to find child levels
+                                where relation.ParentLevel == levelID
+                                select relation.ChildLevel
                     ).ToArray() ,
 
                 TestCases   = getTestCasesResponse.Result ,
