@@ -4,7 +4,6 @@ using System.Net.NetworkInformation;
 using System.Reflection.Metadata.Ecma335;
 using System.Security.Cryptography;
 using System.Text;
-using Azure;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
@@ -91,9 +90,20 @@ namespace TuringMachine.Backend.Server
                 .WithName("GetProgress")
                 .WithOpenApi();
 
-            //todo: access token auth
             app
-                .MapGet("/API/Progress/GetAll" , async (DataContext db) => await DbLevelProgressInteraction.GetAllProgressAsync(db))
+                .MapGet("/API/Progress/GetAll" ,
+                        async (string accessToken , DataContext db) =>
+                        {
+                            ServerResponse<string> validateAndSaveTokenAndGetUUIDResponse = await DbAccessTokenInteraction.ValidateAndSaveTokenAndGetUUIDAsync(accessToken , db);
+                            if (validateAndSaveTokenAndGetUUIDResponse.Status is not SUCCESS)
+                                return validateAndSaveTokenAndGetUUIDResponse.WithThisTraceInfo("/API/Progress/GetAll" , BACKEND_ERROR);
+                            
+                            ServerResponse<ICollection<Progress>> allProgressResponse = await DbLevelProgressInteraction.GetAllProgressAsync(db);
+                            if (allProgressResponse.Status is not SUCCESS)
+                                return allProgressResponse.WithThisTraceInfo("/API/Progress/Get" , BACKEND_ERROR);
+
+                            return allProgressResponse;
+                        })
                 .WithName("GetAllProgress")
                 .WithOpenApi();
 
