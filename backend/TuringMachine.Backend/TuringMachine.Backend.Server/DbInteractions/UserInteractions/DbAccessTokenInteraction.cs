@@ -15,6 +15,7 @@ namespace TuringMachine.Backend.Server.DbInteractions.UserInteractions
 {
     internal static class DbAccessTokenInteraction
     {
+        /// <summary> Validates the token, and extends the token to 30 minutes after now. </summary>
         /// <returns>
         ///     Return an access token for a particular user when "SUCCESS". <br/><br/>
         ///     Status is either "SUCCESS", "USER_NOT_FOUND" or "DUPLICATED_USER".
@@ -50,6 +51,7 @@ namespace TuringMachine.Backend.Server.DbInteractions.UserInteractions
             }
         }
 
+        /// <summary> Validates the token, and extends the token to 30 minutes after now. </summary>
         /// <returns>
         ///     Return an access token for a particular user when "SUCCESS". <br/><br/>
         ///     Status is either "SUCCESS", "USER_NOT_FOUND" or "DUPLICATED_USER".
