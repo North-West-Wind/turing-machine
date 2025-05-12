@@ -10,7 +10,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using TuringMachine.Backend.Server.Database;
-using TuringMachine.Backend.Server.DbInteraction;
+using TuringMachine.Backend.Server.DbInteractions;
+using TuringMachine.Backend.Server.DbInteractions.DbProgressInteractions;
 using TuringMachine.Backend.Server.DbInteractions.LevelInteractions;
 using TuringMachine.Backend.Server.DbInteractions.UserInteractions;
 using TuringMachine.Backend.Server.ServerResponses;
@@ -113,7 +114,7 @@ namespace TuringMachine.Backend.Server
                 .WithOpenApi();
 
             app
-                .MapGet("/API/User/ValidateToken" , (_) => throw new NotImplementedException())
+                .MapGet("/API/User/ValidateToken" , (string accessToken, DataContext db) => DbAccessTokenInteraction.ValidateToken(accessToken, db))
                 .WithName("ValidateUserToken")
                 .WithOpenApi();
             #endregion
