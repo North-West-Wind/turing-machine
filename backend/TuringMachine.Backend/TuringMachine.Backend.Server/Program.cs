@@ -74,7 +74,7 @@ namespace TuringMachine.Backend.Server
                 .WithOpenApi();
 
             app
-                .MapGet("/API/Progress/Get" , (string uuid, byte levelID, DataContext db) => DbLevelProgressInteraction.GetProgress(uuid, levelID, db))
+                .MapGet("/API/Progress/Get" , (string uuid , byte levelID , DataContext db) => DbLevelProgressInteraction.GetProgress(uuid , levelID , db))
                 .WithName("GetProgress")
                 .WithOpenApi();
 
@@ -96,15 +96,17 @@ namespace TuringMachine.Backend.Server
                 .WithOpenApi();
 
             app
-                .MapPost("/API/User/Login" ,
-                         async (string username , string hashedPassword , string salt , DataContext db) =>
-                         {
-                             ServerResponse<string> loginUserResponse = await DbUserInteraction.LoginUserAsync(username , hashedPassword , salt , db);
-                             if (loginUserResponse.Status is not SUCCESS)
-                                 loginUserResponse.WithThisTraceInfo<string>(nameof(DbUserInteraction.LoginUserAsync) , BACKEND_ERROR);
+                .MapPost(
+                    "/API/User/Login" ,
+                    async (string username , string hashedPassword , string salt , DataContext db) =>
+                    {
+                        ServerResponse<string> loginUserResponse = await DbUserInteraction.LoginUserAsync(username , hashedPassword , salt , db);
+                        if (loginUserResponse.Status is not SUCCESS)
+                            loginUserResponse.WithThisTraceInfo<string>(nameof(DbUserInteraction.LoginUserAsync) , BACKEND_ERROR);
 
-                             return loginUserResponse;
-                         })
+                        return loginUserResponse;
+                    }
+                )
                 .WithName("LoginUserAsync")
                 .WithOpenApi();
 
@@ -114,7 +116,7 @@ namespace TuringMachine.Backend.Server
                 .WithOpenApi();
 
             app
-                .MapGet("/API/User/ValidateToken" , (string accessToken, DataContext db) => DbAccessTokenInteraction.ValidateToken(accessToken, db))
+                .MapGet("/API/User/ValidateToken" , (string accessToken , DataContext db) => DbAccessTokenInteraction.ValidateToken(accessToken , db))
                 .WithName("ValidateUserToken")
                 .WithOpenApi();
             #endregion
