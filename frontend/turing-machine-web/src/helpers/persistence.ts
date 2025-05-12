@@ -1,9 +1,11 @@
-import { DetailedLevel } from "./designer/level";
+import { Level } from "./designer/level";
 import { SaveableTuringMachine } from "./designer/machine";
 import { Auth } from "./network";
 
 export enum PersistenceKey {
 	LEVEL = "tm:level",
+	LEVEL_MACHINE = "tm:level_machine",
+	PROGRESS = "tm:level_progress",
 	MACHINE = "tm:machine",
 	TIME = "tm:save_time",
 	AUTH = "tm:auth",
@@ -29,7 +31,11 @@ function get<T>(key: PersistenceKey) {
 }
 
 export function getLevel() {
-	return get<DetailedLevel>(PersistenceKey.LEVEL);
+	return get<Level>(PersistenceKey.LEVEL);
+}
+
+export function getLevelMachine() {
+	return get<SaveableTuringMachine>(PersistenceKey.LEVEL_MACHINE);
 }
 
 export function getMachine() {

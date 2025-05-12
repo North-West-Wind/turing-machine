@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react"
-import { SimpleLevel } from "../../helpers/designer/level"
+import { Level } from "../../helpers/designer/level"
 import { LevelTree } from "../../helpers/structure/level-tree"
 import { Vec2 } from "../../helpers/designer/math";
 import { useNavigate } from "react-router-dom";
@@ -18,7 +18,7 @@ let position = Vec2.ZERO;
 let cursorPosition = Vec2.ZERO;
 let hovered: LevelTree | undefined;
 
-export default function LevelTreeCanvas(props: { levels: SimpleLevel[], open: (levelId?: number) => void }) {
+export default function LevelTreeCanvas(props: { levels: Level[], open: (levelId?: number) => void }) {
 	const [tree, setTree] = useState(LevelTree.build(props.levels));
 	const [cursor, setCursor] = useState("");
 	const ref = useRef<HTMLCanvasElement>(null);
@@ -110,7 +110,7 @@ export default function LevelTreeCanvas(props: { levels: SimpleLevel[], open: (l
 				window.removeEventListener("mousemove", onMouseMove);
 			}, { once: true });
 		} else if (ev.button == LEFT_CLICK && hovered) {
-			props.open(hovered.getDetail()?.levelID);
+			props.open(hovered.getDetail()?.LevelID);
 		}
 	};
 

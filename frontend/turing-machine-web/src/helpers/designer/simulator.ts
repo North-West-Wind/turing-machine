@@ -7,11 +7,10 @@ import { TapeSymbols } from "../../logic/Tapes/TapesUtilities/TapeSymbols";
 import { TapeTypes } from "../../logic/Tapes/TapeTypes";
 import { TuringMachineConfig } from "../../logic/TuringMachineConfig";
 import { TuringMachineSimulator } from "../../logic/TuringMachineSimulator";
-import { isEmpty } from "../objects";
-import { getLevel, getMachine, PersistenceKey, save } from "../persistence";
+import { getLevel, getLevelMachine, getMachine, PersistenceKey, save } from "../persistence";
 import { StateGraph, StateRect, StateText, StateTransition, StateVertex } from "./graph";
-import constraints from "./level";
-import { ClientSaveableUI, Saveable2DVector, SaveableHead, SaveableMachine, SaveableTape, SaveableTransition, SaveableTransitionStatement, SaveableTuringMachine, SaveableUI, SaveableUIBox, SaveableUIText, SaveableUIVertex } from "./machine";
+import constraints, { RangeValidation } from "./level";
+import { SaveableMachine, SaveableTuringMachine, SaveableUI, ClientSaveableUI, SaveableLogicTransition, SaveableLogicTransitionStatement, SaveableLogicHead } from "./machine";
 import { Vec2 } from "./math";
 
 export type Editable = {
@@ -49,11 +48,10 @@ export type Tape = {
 }
 
 class RenderingTuringMachineSimulator extends EventTarget {
-	private machines: (TuringMachineConfig & { color: string, label?: string })[] = [];
+	private machines: TuringMachineConfig[] = [];
 	private tapes: TapeConfig[] = [];
 	private graphs: (StateGraph | null)[] = [];
-	private uiData: (ClientSaveableUI | undefined)[] = [];
-	private edgeData: Record<`${number}_${number}`, Saveable2DVector[]>[] = [];
+	private uiData: ClientSaveableUI[] = [];
 	tickInterval = 1000; // milliseconds
 	private paused = false;
 	running = false;
@@ -62,6 +60,7 @@ class RenderingTuringMachineSimulator extends EventTarget {
 	private outputTape = -1;
 	private state?: SystemState;
 	private haltAnnounced = new Set<number>();
+	private testOperations = -1;
 
 	constructor() {
 		super();
@@ -72,30 +71,34 @@ class RenderingTuringMachineSimulator extends EventTarget {
 	
 	// Category: Pre-simulation
 
+	private getDefaultVertexPosition(id: number) {
+		// Vec2 for no position data: put vertices in a grid with interval 100, like
+		/** 1 2 3 4...
+		 *  2 2 3 
+		 *  3 3 3 */
+		const shell = Math.floor(Math.sqrt(id)) + 1;
+		const smallShell = shell - 1;
+		const posId = id - (smallShell * smallShell) - Math.floor((shell * shell - smallShell * smallShell) / 2);
+		let pos: Vec2;
+		if (posId < 0) pos = new Vec2(shell * 100, (-posId + 1) * 100);
+		else pos = new Vec2((posId + 1) * 100, shell * 100);
+		return pos;
+	}
+
 	getMachineGraph(id: number) {
 		if (!this.machines[id]) throw new Error(`Machine with ID ${id} doesn't exist`);
 		if (this.graphs[id]) return this.graphs[id];
 		const graph = new StateGraph();
 		// Transition is always more than vertices
 		// More efficient to iterate through transitions
-		const vertices: (StateVertex| null)[] = [];
+		const vertices: StateVertex[] = [];
 		for (const transition of this.machines[id].Statements) {
 			const sourceId = transition.Source.StateID;
 			if (!vertices[sourceId]) {
-				// Vec2 for no position data: put vertices in a grid with interval 100, like
-				/** 1 2 3 4...
-				 *  2 2 3 
-				 *  3 3 3 */
-				const shell = Math.floor(Math.sqrt(sourceId)) + 1;
-				const smallShell = shell - 1;
-				const posId = sourceId - (smallShell * smallShell) - Math.floor((shell * shell - smallShell * smallShell) / 2);
-				let pos: Vec2;
-				if (posId < 0) pos = new Vec2(shell * 100, (-posId + 1) * 100);
-				else pos = new Vec2((posId + 1) * 100, shell * 100);
 				// fill vertices array
 				for (let ii = 0; ii <= sourceId - vertices.length; ii++)
-					vertices.push(null);
-				vertices[sourceId] = new StateVertex(sourceId, pos);
+					vertices.push(new StateVertex(vertices.length, this.getDefaultVertexPosition(vertices.length)));
+				vertices[sourceId] = new StateVertex(sourceId, this.getDefaultVertexPosition(sourceId));
 			}
 			const read: string[] = [], write: string[] = [], move: number[] = [];
 			transition.Conditions.forEach(cond => {
@@ -108,50 +111,37 @@ class RenderingTuringMachineSimulator extends EventTarget {
 		for (const vertex of this.machines[id].TransitionNodes) {
 			const id = vertex.StateID;
 			if (!vertices[id]) {
-				const shell = Math.floor(Math.sqrt(id)) + 1;
-				const smallShell = shell - 1;
-				const posId = id - (smallShell * smallShell) - Math.floor((shell * shell - smallShell * smallShell) / 2);
-				let pos: Vec2;
-				if (posId < 0) pos = new Vec2(shell * 100, (-posId + 1) * 100);
-				else pos = new Vec2((posId + 1) * 100, shell * 100);
 				// fill vertices array
 				for (let ii = 0; ii <= id - vertices.length; ii++)
-					vertices.push(null);
-				vertices[id] = new StateVertex(id, pos);
+					vertices.push(new StateVertex(vertices.length, this.getDefaultVertexPosition(vertices.length)));
+				vertices[id] = new StateVertex(id, this.getDefaultVertexPosition(id));
 			}
 		}
 		vertices.forEach(vert => {
-			if (vert && this.uiData[id]?.nodes[vert.id]) {
-				vert.setLabel(this.uiData[id].nodes[vert.id]?.label);
-				vert.setPosition(Vec2.fromSaveable(this.uiData[id].nodes[vert.id]!.position));
+			if (vert && this.uiData[id].nodes.has(vert.id)) {
+				const uiNode = this.uiData[id].nodes.get(vert.id)!;
+				vert.setPosition(new Vec2(uiNode.X, uiNode.Y));
 			}
 			graph.addVertex(vert);
 		});
 		vertices.forEach(vert => vert && graph.updateVertexEdges(vert.id));
 		// update edges with edge data
-		if (this.edgeData[id])
-			for (const [key, lines] of Object.entries(this.edgeData[id])) {
-				if (!lines.length) continue;
-				const [src, dest] = key.split("_").map(val => parseInt(val));
-				graph.getEdge(src, dest)?.setLines(lines.map(Vec2.fromSaveable));
-			}
+		this.uiData[id].edges.forEach((lines, key) => {
+			if (!lines.length) return;
+			const [src, dest] = key.split("_").map(val => parseInt(val));
+			graph.getEdge(src, dest)?.setLines(lines);
+		});
 		// set starting node for graph
 		graph.setStartingNode(this.machines[id].StartNode.StateID);
 		// set head number
 		graph.setHeads(this.machines[id].NumberOfHeads);
 		// load ui data
-		if (this.uiData[id]) {
-			for (const box of this.uiData[id].boxes) {
-				if (box === null) graph.rawAddRect(null);
-				else {
-					const start = Vec2.fromSaveable(box.start);
-					graph.rawAddRect(new StateRect(start, start.add(box.size.x, box.size.y), box.color));
-				}
-			}
-			for (const text of this.uiData[id].texts) {
-				if (text === null) graph.rawAddText(null);
-				else graph.rawAddText(new StateText(text.value, Vec2.fromSaveable(text.position)));
-			}
+		for (const box of this.uiData[id].boxes) {
+			const start = new Vec2(box.X, box.Y);
+			graph.addRect(new StateRect(start, start.add(box.Width, box.Height), box.Color));
+		}
+		for (const text of this.uiData[id].texts) {
+			graph.addText(new StateText(text.Value, new Vec2(text.X, text.Y)));
 		}
 		return this.graphs[id] = graph;
 	}
@@ -170,6 +160,14 @@ class RenderingTuringMachineSimulator extends EventTarget {
 
 	getMachineConfigs() {
 		return this.machines;
+	}
+
+	setMachineColor(id: number, color: number) {
+		return this.uiData[id].color = color;
+	}
+
+	getMachineColor(id: number) {
+		return this.uiData[id].color;
 	}
 
 	getTapeConfig(id: number) {
@@ -246,29 +244,21 @@ class RenderingTuringMachineSimulator extends EventTarget {
 			heads += machine.NumberOfHeads;
 		});
 		// check constraints
-		let validation: number[];
-		if (constraints.constraints?.states) {
-			validation = constraints.validRange(states, constraints.constraints.states);
-			if (validation[0] != 0)
-				this.dispatchWarningEvent(constraints.rangeConstraintMessage("states", validation[1], validation[2]));
-		}
-		if (constraints.constraints?.transitions) {
-			validation = constraints.validRange(transitions, constraints.constraints.transitions);
-			if (validation[0] != 0)
-				this.dispatchWarningEvent(constraints.rangeConstraintMessage("transitions", validation[1], validation[2]));
-		}
-		if (constraints.constraints?.tapes) {
-			validation = constraints.validRange(this.tapes.filter(tape => tape !== null).length, constraints.constraints.tapes);
-			if (validation[0] != 0)
-				this.dispatchWarningEvent(constraints.rangeConstraintMessage("tapes", validation[1], validation[2]));
-		}
-		if (constraints.constraints?.heads) {
-			validation = constraints.validRange(heads, constraints.constraints.heads);
-			if (validation[0] != 0)
-				this.dispatchWarningEvent(constraints.rangeConstraintMessage("heads", validation[1], validation[2]));
-		}
+		let validation: RangeValidation;
+		validation = constraints.validStateRange(states);
+		if (validation[0] != 0)
+			this.dispatchWarningEvent(constraints.rangeConstraintMessage("states", validation[1], validation[2]));
+		validation = constraints.validTransitionRange(transitions);
+		if (validation[0] != 0)
+			this.dispatchWarningEvent(constraints.rangeConstraintMessage("transitions", validation[1], validation[2]));
+		validation = constraints.validTapeRange(this.tapes.length);
+		if (validation[0] != 0)
+			this.dispatchWarningEvent(constraints.rangeConstraintMessage("tapes", validation[1], validation[2]));
+		validation = constraints.validHeadRange(heads);
+		if (validation[0] != 0)
+			this.dispatchWarningEvent(constraints.rangeConstraintMessage("heads", validation[1], validation[2]));
 		if (!tapeTypes)
-			this.dispatchWarningEvent(`Some tape(s) is/are using disallowed tape type(s). Allowed: ${constraints.constraints?.tapeTypes?.join(", ")}`)
+			this.dispatchWarningEvent(`Some tape(s) is/are using disallowed tape type(s). Allowed: ${constraints.availableTapeTypes().map(this.tapeTypeToString).join(", ")}`)
 	}
 
 	start() {
@@ -321,11 +311,11 @@ class RenderingTuringMachineSimulator extends EventTarget {
 
 	async test() {
 		const level = getLevel();
-		if (!level) return -1;
+		if (!level) return this.testOperations = -1;
 		const MAX_STEPS = 1_000_000; // arbitary max step to avoid infinite loop
 		let operations = 0;
-		for (const { input, output } of level.testCases) {
-			this.build(input);
+		for (const { Input, Output } of level.Testcases) {
+			this.build(Input);
 			TuringMachineSimulator.StartSimulation();
 			let halted = false, steps = 0;
 			let state: SystemState | undefined;
@@ -337,11 +327,11 @@ class RenderingTuringMachineSimulator extends EventTarget {
 				halted = state.Machines.every(machine => machine.IsHalted);
 			}
 			TuringMachineSimulator.StopSimulation();
-			if (!halted) return -1;
+			if (!halted) return this.testOperations = -1;
 			const tapeOutput = state?.Tapes.find(tape => tape.ID == this.outputTape)?.Content.replace(/_/g, "");
-			if (tapeOutput != output) return -1;
+			if (tapeOutput != Output) return this.testOperations = -1;
 		}
-		return operations;
+		return this.testOperations = operations;
 	}
 
 	private scheduleNextTick() {
@@ -351,9 +341,18 @@ class RenderingTuringMachineSimulator extends EventTarget {
 	// Category: Wrappers for caching
 	
 	addMachine(config: TuringMachineConfig, color?: string) {
-		if (color === undefined) color = Math.floor(Math.random() * 16777216).toString(16).padStart(6, "0");
-		else if (color.startsWith("#")) color = color.slice(1);
-		this.machines.push({ color, ...config });
+		let num: number;
+		if (color === undefined) {
+			num = Math.floor(Math.random() * 16777216);
+			color = num.toString(16).padStart(6, "0");
+		} else if (color.startsWith("#")) {
+			color = color.slice(1);
+			num = parseInt(color, 16);
+		} else num = parseInt(color, 16);
+		this.machines.push(config);
+		const ui = new ClientSaveableUI();
+		ui.color = num;
+		this.uiData.push(ui);
 		this.dispatchChangeMachineLengthEvent();
 		return this.machines.length - 1;
 	}
@@ -362,7 +361,6 @@ class RenderingTuringMachineSimulator extends EventTarget {
 		this.machines.splice(id, 1);
 		this.graphs.splice(id, 1);
 		this.uiData.splice(id, 1);
-		this.edgeData.splice(id, 1);
 		this.dispatchChangeMachineLengthEvent();
 		this.dispatchEvent(new CustomEvent(TuringMachineEvent.DELETE_MACHINE, { detail: id }));
 	}
@@ -528,62 +526,77 @@ class RenderingTuringMachineSimulator extends EventTarget {
 	// Save to local storage tm:machine
 	save() {
 		const machines: SaveableMachine[] = [];
+		let transitionCount = 0;
+		let stateCount = 0;
+		let headCount = 0;
+
 		this.machines.forEach((machine, ii) => {
 			if (this.graphs[ii])
 				this.graphs[ii].updateConfig(machine);
-			const transitions: SaveableTransition[] = machine.Statements.map(statement => ({
-				source: statement.Source.StateID,
-				target: statement.Target.StateID,
-				statements: statement.Conditions.map(cond => ({ read: cond.Read, write: cond.Write, move: cond.Move })) as SaveableTransitionStatement[],
-				transitionLineSteps: this.graphs[ii]?.getEdge(statement.Source.StateID, statement.Target.StateID)?.getLines().map(vec => vec.toSaveable()) || this.edgeData[ii][`${statement.Source.StateID}_${statement.Target.StateID}`] || []
-			}));
-			const heads: SaveableHead[] = [];
+			const usedStates = new Set<number>();
+			const transitions: SaveableLogicTransition[] = machine.Statements.map(statement => {
+				usedStates.add(statement.Source.StateID);
+				usedStates.add(statement.Target.StateID);
+				return {
+					SourceNodeID: statement.Source.StateID,
+					TargetNodeID: statement.Target.StateID,
+					Statements: statement.Conditions.map(cond => ({ Read: cond.Read, Write: cond.Write, Move: cond.Move })) as SaveableLogicTransitionStatement[]
+				};
+			});
+			stateCount += usedStates.size;
+			transitionCount += transitions.length;
+			const heads: SaveableLogicHead[] = [];
 			for (let ii = 0; ii < machine.NumberOfHeads; ii++) {
 				heads.push({
-					type: this.headTypeToSaveableString(machine.HeadTypes[ii]),
-					tape: machine.TapesReference[ii],
-					position: machine.InitialPositions[ii]
+					HeadOrderIndex: ii,
+					Type: this.headTypeToSaveableString(machine.HeadTypes[ii]),
+					TapeID: machine.TapesReference[ii],
+					Position: machine.InitialPositions[ii]
 				});
 			}
-			const label: SaveableUI = {
-				color: parseInt(machine.color, 16),
-				boxes: [],
-				texts: [],
-				nodes: []
+			headCount += heads.length;
+			let ui: SaveableUI = {
+				Color: this.uiData[ii].color,
+				TransitionLines: [],
+				HighlightBoxes: [],
+				TextLabels: [],
+				Nodes: []
 			};
-			if (this.graphs[ii]) {
-				const graph = this.graphs[ii].toSaveable();
-				label.boxes = graph.boxes;
-				label.texts = graph.texts;
-				label.nodes = graph.nodes;
-			} else if (this.uiData[ii]) {
-				label.boxes = this.uiData[ii].boxes.map(box => box === null ? {} : box);
-				label.texts = this.uiData[ii].texts.map(tex => tex === null ? {} : tex);
-				label.nodes = this.uiData[ii].nodes.map(nod => nod === null ? {} : nod);
-			}
+			if (this.graphs[ii])
+				ui = Object.assign(this.graphs[ii].toSaveable(), { Color: ui.Color });
+			else (this.uiData[ii])
+				ui = this.uiData[ii].toSaveable();
 			machines.push({
-				transitions,
-				heads,
-				startNode: machine.StartNode.StateID,
-				label
+				UI: ui,
+				Machine: {
+					Transitions: transitions,
+					Heads: heads,
+					StartNode: machine.StartNode.StateID
+				}
 			});
 		});
 
 		const saveable: SaveableTuringMachine = {
-			tapes: this.tapes.map((tape, ii) => ({
-				type: this.tapeTypeToSaveableString(tape.TapeType),
-				values: tape.TapeContent || undefined,
-				isInput: this.inputTape == ii,
-				isOutput: this.outputTape == ii
-			}) as SaveableTape),
-			machines
+			Author: "",
+			TransitionCount: transitionCount,
+			StateCount: stateCount,
+			HeadCount: headCount,
+			TapeCount: this.tapes.length,
+			OperationCount: this.testOperations,
+			TapeInfo: {
+				InputTapes: this.inputTape,
+				OutputTapes: this.outputTape,
+				Tapes: this.tapes.map(tape => ({
+					Type: this.tapeTypeToSaveableString(tape.TapeType),
+					InitialValues: tape.TapeContent
+				}))
+			},
+			Machine: machines
 		};
 
 		const level = getLevel();
-		if (level) {
-			level.design = saveable;
-			save(PersistenceKey.LEVEL, JSON.stringify(level));
-		} else save(PersistenceKey.MACHINE, JSON.stringify(saveable));
+		if (level) save(PersistenceKey.LEVEL_MACHINE, JSON.stringify(saveable));
+		else save(PersistenceKey.MACHINE, JSON.stringify(saveable));
 
 		return saveable;
 	}
@@ -593,71 +606,57 @@ class RenderingTuringMachineSimulator extends EventTarget {
 			// load saved machine. priority: level -> machine
 			let saveable: SaveableTuringMachine | undefined;
 			const level = getLevel();
-			if (level) saveable = level.design;
-			else saveable = getMachine();
+			if (level) saveable = getLevelMachine();
+			if (!saveable) saveable = getMachine();
 			if (!saveable) return;
 
 			this.tapes = [];
 			
 			let index = 0;
-			saveable.tapes.forEach(tape => {
-				const type = this.tapeTypeFromString(tape.type);
+			this.inputTape = saveable.TapeInfo.InputTapes;
+			this.outputTape = saveable.TapeInfo.OutputTapes;
+			saveable.TapeInfo.Tapes.forEach(tape => {
+				const type = this.tapeTypeFromString(tape.Type);
 				if (type === undefined) return;
-				if (tape.isInput) this.inputTape = index;
-				if (tape.isOutput) this.outputTape = index;
-				this.tapes.push(new TapeConfig(type, tape.values?.length || 0, tape.values || ""));
+				this.tapes.push(new TapeConfig(type, tape.InitialValues.length, tape.InitialValues));
 				index++;
 			});
 			this.graphs = [];
 			this.uiData = [];
-			this.edgeData = [];
 			this.machines = [];
 			index = 0;
-			saveable.machines.forEach((machine, ii) => {
-				const client: ClientSaveableUI = {
-					title: machine.label.title,
-					color: machine.label.color,
-					boxes: machine.label.boxes.map(box => isEmpty(box) ? null : box as SaveableUIBox),
-					texts: machine.label.texts.map(tex => isEmpty(tex) ? null : tex as SaveableUIText),
-					nodes: machine.label.nodes.map(nod => isEmpty(nod) ? null : nod as SaveableUIVertex)
-				};
-				this.uiData.push(client);
-				this.edgeData.push({});
-				if (!machine) return null;
+			saveable.Machine.forEach(machine => {
+				this.uiData.push(new ClientSaveableUI(machine.UI));
 				const types: HeadTypes[] = [];
 				const positions: number[] = [];
 				const refs: number[] = [];
-				for (const head of machine.heads) {
-					const type = this.headTypeFromString(head.type);
+				for (const head of machine.Machine.Heads) {
+					const type = this.headTypeFromString(head.Type);
 					if (type === undefined) return null;
 					types.push(type);
-					positions.push(head.position);
-					refs.push(head.tape);
+					positions.push(head.Position);
+					refs.push(head.TapeID);
 				}
 				let maxNode = 0;
 				const usedNodes = new Set<number>();
-				const transitions = machine.transitions.map(transition => {
-					maxNode = Math.max(maxNode, transition.source, transition.target);
-					usedNodes.add(transition.source);
-					usedNodes.add(transition.target);
-					this.edgeData[ii][`${transition.source}_${transition.target}`] = transition.transitionLineSteps;
+				const transitions = machine.Machine.Transitions.map(transition => {
+					maxNode = Math.max(maxNode, transition.SourceNodeID, transition.TargetNodeID);
+					usedNodes.add(transition.SourceNodeID);
+					usedNodes.add(transition.TargetNodeID);
 					return new TransitionStatement(
-						new TransitionNode(transition.source),
-						new TransitionNode(transition.target),
-						transition.statements.map(statement => new HeadTransition(statement.read, statement.write, statement.move)));
+						new TransitionNode(transition.SourceNodeID),
+						new TransitionNode(transition.TargetNodeID),
+						transition.Statements.map(statement => new HeadTransition(statement.Read, statement.Write, statement.Move)));
 				});
-				machine.label.nodes.forEach((node, ii) => {
-					if (!isEmpty(node)) usedNodes.add(ii);
-				});
-				this.machines.push({ color: machine.label.color.toString(16).padStart(6, "0"), ...new TuringMachineConfig(
-					machine.heads.length,
+				this.machines.push(new TuringMachineConfig(
+					machine.Machine.Heads.length,
 					types,
 					positions,
 					refs,
 					Array.from(usedNodes).map(node => new TransitionNode(node)),
 					transitions,
-					new TransitionNode(machine.startNode)
-				)});
+					new TransitionNode(machine.Machine.StartNode)
+				));
 			});
 			this.dispatchEvent(new Event(TuringMachineEvent.LOAD));
 			console.log(`Loaded ${this.machines.length} machines and ${this.tapes.length} tapes`);

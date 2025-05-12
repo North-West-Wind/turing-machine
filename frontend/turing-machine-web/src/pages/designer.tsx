@@ -5,7 +5,8 @@ import DesignerGraph from "../components/designer/graph";
 import { useEffect, useState } from "react";
 import DesignerLevel from "../components/designer/level";
 import simulator from "../helpers/designer/simulator";
-import { saveToCloud } from "../helpers/network";
+import { saveMachine } from "../helpers/network";
+import { getLevel } from "../helpers/persistence";
 
 export default function DesignerPage() {
 	const [rightWidth, setRightWidth] = useState(0.7);
@@ -16,8 +17,9 @@ export default function DesignerPage() {
 	const save = () => {
 		setStatus("Saving...");
 		const saveable = simulator.save();
-		setStatus("Saved locally! Saving to cloud...");
-		saveToCloud(saveable).then(res => {
+		setStatus("Saved locally!");
+		const level = getLevel();
+		if (level) saveMachine(saveable, level.LevelID).then(res => {
 			if (res.error) {
 				setStatus("Saved locally!");
 				console.error(res.message);
@@ -26,6 +28,7 @@ export default function DesignerPage() {
 			console.error(err);
 			setStatus("Saved locally!");
 		});
+		else setStatus("Saved locally! (Sandbox doesn't save to cloud)");
 	};
 
 	useEffect(() => {

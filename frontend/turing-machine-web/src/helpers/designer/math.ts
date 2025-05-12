@@ -1,4 +1,3 @@
-import { Saveable2DVector } from "./machine";
 
 export enum CommonNumbers {
 	PI2 = Math.PI * 2
@@ -6,10 +5,6 @@ export enum CommonNumbers {
 
 export class Vec2 {
 	static readonly ZERO = new Vec2(0, 0);
-
-	static fromSaveable(saveable: Saveable2DVector) {
-		return new Vec2(saveable.x, saveable.y);
-	}
 
 	readonly x: number;
 	readonly y: number;
@@ -101,9 +96,5 @@ export class Vec2 {
 
 	toString() {
 		return `(${this.x.toFixed(2)}, ${this.y.toFixed(2)})`;
-	}
-
-	toSaveable(): Saveable2DVector {
-		return { x: this.x, y: this.y };
 	}
 }

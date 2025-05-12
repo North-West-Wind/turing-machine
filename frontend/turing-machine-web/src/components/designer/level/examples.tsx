@@ -6,9 +6,9 @@ export default function DesignerLevelExamples(props: { tests: LevelTest[] }) {
 		{props.tests.map((test, ii) => {
 			return <div key={ii}>
 				<h2>Input</h2>
-				<p>{test.input}</p>
+				<p>{test.Input}</p>
 				<h2>Output</h2>
-				<p>{test.output}</p>
+				<p>{test.Output}</p>
 			</div>;
 		})}
 	</div>;

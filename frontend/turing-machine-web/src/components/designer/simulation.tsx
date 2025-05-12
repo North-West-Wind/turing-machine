@@ -73,8 +73,8 @@ export default function DesignerSimulation(props: { onWidthChange: (factor: numb
 					return <DesignerSimulationMachine
 						key={ii}
 						id={ii}
-						name={conf.label ? `${conf.label} (M${ii})` : `M${ii}`}
-						color={`#${conf.color}`}
+						name={`M${ii}`}
+						color={`#${simulator.getMachineColor(ii).toString(16).padStart(6, "0")}`}
 						tapes={conf.TapesReference}
 						selected={machine == ii}
 						onClick={() => {

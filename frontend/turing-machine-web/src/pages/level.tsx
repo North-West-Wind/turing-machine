@@ -3,23 +3,22 @@ import DesignerLevel from "../components/designer/level";
 import LevelTreeCanvas from "../components/level/canvas";
 import "../styles/level.css";
 import { useNavigate, useParams } from "react-router-dom";
-import { DetailedLevel, SimpleLevel } from "../helpers/designer/level";
-import { getLevel } from "../helpers/network";
+import { Level } from "../helpers/designer/level";
+import { getLevel, getLevels } from "../helpers/network";
 import Loading from "../components/common/loading";
-import { cacheLevel, lazyLevels } from "../helpers/lazy";
 
 export default function LevelPage() {
 	const params = useParams();
 	const navigate = useNavigate();
 	
-	const [levels, setLevels] = useState<SimpleLevel[]>();
-	const [level, setLevel] = useState<DetailedLevel>();
+	const [levels, setLevels] = useState<Level[]>();
+	const [level, setLevel] = useState<Level>();
 	const [detailed, setDetailed] = useState(!!params.id);
 
 	useEffect(() => {
 		(async () => {
 			try {
-				setLevels(await lazyLevels.get());
+				setLevels(await getLevels());
 			} catch (err) {
 				console.error(err);
 			}
@@ -33,9 +32,8 @@ export default function LevelPage() {
 				return;
 			}
 			try {
-				const level = cacheLevel(parseInt(params.id));
-				if (level) setLevel(level);
-				else setLevel(cacheLevel(await getLevel(params.id)));
+				if (!levels) setLevel(await getLevel(params.id));
+				else setLevel(levels.find(lev => lev.LevelID.toString() == params.id));
 				setDetailed(true);
 			} catch (err) {
 				console.error(err);

@@ -11,6 +11,7 @@ export default function DesignerPropertiesMachineCombo(props: { id: number }) {
 	const [id, setId] = useState(props.id);
 	const [machine, setMachine] = useState(simulator.getMachineConfig(props.id));
 	const [heads, setHeads] = useState(machine?.TapesReference.map((tape, ii) => ({ tape, type: machine.HeadTypes[ii] })));
+	const [color, setColorState] = useState(simulator.getMachineColor(props.id));
 
 	useEffect(() => {
 		setId(props.id);
@@ -21,7 +22,9 @@ export default function DesignerPropertiesMachineCombo(props: { id: number }) {
 
 	const setColor = (color: string) => {
 		if (!/^[0-9a-fA-F]{6}$/.test(color)) return false;
-		machine.color = color;
+		const parsed = parseInt(color, 16);
+		simulator.setMachineColor(props.id, parsed);
+		setColorState(parsed);
 		return true;
 	};
 
@@ -57,8 +60,7 @@ export default function DesignerPropertiesMachineCombo(props: { id: number }) {
 
 	return <>
 		<DesignerPropertiesTitle value={`Machine ${id}`} />
-		<DesignerPropertiesText value={machine.label || ""} prefix="Label" onCommit={v => !!(machine.label = v)} />
-		<DesignerPropertiesText value={machine.color} prefix="Color" onCommit={setColor} />
+		<DesignerPropertiesText value={color.toString(16).padStart(6, "0")} prefix="Color" onCommit={setColor} />
 		<DesignerPropertiesHeads heads={heads} onAdd={addHead} onDelete={deleteHead} onChangeRef={changeHeadRef} onChangeType={changeHeadType} />
 	</>;
 }

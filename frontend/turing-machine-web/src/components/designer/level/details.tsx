@@ -1,33 +1,27 @@
 import { useNavigate } from "react-router-dom";
-import { DetailedLevel, SimpleLevel } from "../../../helpers/designer/level";
-import { getRanks, PersistenceKey, save } from "../../../helpers/persistence";
+import { Level } from "../../../helpers/designer/level";
+import { PersistenceKey, save } from "../../../helpers/persistence";
 import simulator from "../../../helpers/designer/simulator";
 import Loading from "../../common/loading";
 import { useEffect, useState } from "react";
-import { getLevelStat, saveToCloud, submitMachine } from "../../../helpers/network";
-import { lazyLevels } from "../../../helpers/lazy";
+import { getLevelProgress, saveMachine, submitMachine } from "../../../helpers/network";
 
-export default function DesignerLevelDetails(props: { level: DetailedLevel, playable?: boolean }) {
+export default function DesignerLevelDetails(props: { level: Level, playable?: boolean }) {
 	const [loading, setLoading] = useState(false);
-	const [solved, setSolved] = useState(props.level.isSolved);
-	const [rank, setRank] = useState(-1);
-	const [levels, setLevels] = useState(new Map<number, SimpleLevel>());
+	const [solved, setSolved] = useState<boolean>();
+	const [score, setScore] = useState(-1);
 	const navigate = useNavigate();
 
 	useEffect(() => {
-		lazyLevels.get().then(simpleLevels => {
-			simpleLevels.forEach(level => levels.set(level.levelID, level));
-			setLevels(new Map(levels));
-		});
+		getLevelProgress(props.level.LevelID).then(progress => {
+			setSolved(!!progress?.IsSolved);
+		}).catch(console.error);
 	}, []);
 
 	useEffect(() => {
 		if (!solved) return;
-		const ranks = getRanks();
-		if (ranks && ranks[props.level.levelID]) setRank(ranks[props.level.levelID]);
-		getLevelStat(props.level.levelID).then((percentage) => {
-			if (typeof percentage == "number") setRank(percentage);
-		}).catch(console.error); 
+
+
 	}, [solved]);
 
 	const play = () => {
@@ -38,7 +32,7 @@ export default function DesignerLevelDetails(props: { level: DetailedLevel, play
 	const back = async () => {
 		setLoading(true);
 		try {
-			const result = await saveToCloud(simulator.save());
+			const result = await saveMachine(simulator.save(), props.level.LevelID);
 			if (result.error && result.message == "INVALID_TOKEN") {
 				// Can't save because token expired. Reload
 				window.location.reload();
@@ -53,15 +47,14 @@ export default function DesignerLevelDetails(props: { level: DetailedLevel, play
 	};
 
 	const submit = async () => {
-		const id = props.level.levelID;
+		const id = props.level.LevelID;
 		if (!id) return;
 		setLoading(true);
 		const saveable = simulator.save();
 		const result = await simulator.test();
 		if (result >= 0) {
-			const rank = await submitMachine(saveable, result, id);
-			setRank(rank);
-			props.level.isSolved = true;
+			await submitMachine(saveable, id);
+			setScore(saveable.StateCount + saveable.TransitionCount + saveable.TapeCount + saveable.HeadCount + saveable.OperationCount);
 			setSolved(true);
 			alert("Correct!");
 		} else alert("Incorrect!");
@@ -69,28 +62,33 @@ export default function DesignerLevelDetails(props: { level: DetailedLevel, play
 		setLoading(false);
 	};
 
+	const maxScore = props.level.MaxStateCount + props.level.MaxTransitionCount + props.level.MaxTapeCount + props.level.MaxHeadCount + props.level.MaxOperationCount;
+	const minScore = props.level.MinStateCount + props.level.MinTransitionCount + props.level.MinTapeCount + props.level.MinHeadCount + props.level.MinOperationCount;
+
 	return <div className="designer-level-details">
 		<div>
-			<h1>{props.level.title}</h1>
-			<h2>ID: {props.level.levelID}</h2>
-			<h2>You have {props.level.isSolved ? "" : "not "}solved this level.</h2>
-			{rank >= 0 && <h2>Solution Performance: {(rank * 100).toFixed(2)}%</h2>}
+			<h1>{props.level.Title}</h1>
+			<h2>ID: {props.level.LevelID}</h2>
+			<h2>You have {solved === undefined ? "..." : (solved ? "" : "not ")}solved this level.</h2>
+			{score >= 0 && <h2>Solution Performance: {score} (Min: {minScore}, Max: {maxScore})</h2>}
 			{props.playable && <div className="designer-level-button play" onClick={play}>Play</div>}
 			{!props.playable && <div className="designer-level-details-buttons">
 				<div className="designer-level-button upload" onClick={submit}>{solved ? "Re-submit" : "Submit"}</div>
 				<div className="designer-level-button play" onClick={back}>Return to Level Select</div>
 			</div>}
-			{props.level.description.split("\n").map((text, ii) => <div key={ii}>
+			{props.level.Descriptions.split("\n").map((text, ii) => <div key={ii}>
 				<p>{text}</p>
 				<br />
 			</div>)}
-			{!!props.level.parents.length && <>
+			{!!props.level.ParentID && <>
 				<h2>Previous</h2>
-				<p>{props.level.parents.map(id => levels.get(id)?.title).filter(title => !!title).join(", ")}</p>
+				<p>{props.level.ParentID}</p>
+				{/* Figure out title fetching later */}
 			</>}
-			{!!props.level.children.length && <>
+			{!!props.level.ChildrenID.length && <>
 				<h2>Next</h2>
-				<p>{props.level.children.map(id => levels.get(id)?.title).filter(title => !!title).join(", ")}</p>
+				<p>{props.level.ChildrenID.join(", ")}</p>
+				{/* Figure out title fetching later */}
 			</>}
 		</div>
 		<Loading enabled={loading} />

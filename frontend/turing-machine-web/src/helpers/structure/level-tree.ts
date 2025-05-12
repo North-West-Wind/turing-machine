@@ -1,43 +1,42 @@
-import { SimpleLevel } from "../designer/level";
+import { Level } from "../designer/level";
 import { Vec2 } from "../designer/math";
 
 const RADIUS = 20;
 const MAX_ANGLE = Math.PI * 2 / 3;
 
 export class LevelTree {
-	private level?: SimpleLevel;
+	private level?: Level;
 	private children: LevelTree[] = [];
 	private branches?: number[]; // angle (radian) for branches, 0 is vertical
 	private hovered = false;
 	private descriptionLines?: string[];
 
-	static build(levels: SimpleLevel[]) {
+	static build(levels: Level[]) {
 		const map = new Map<number, LevelTree>();
 		let rootId: number | undefined;
 		for (const level of levels) {
-			if (level.levelID == 255) continue; // 255 is NULL level
 			let tree: LevelTree;
-			if (map.has(level.levelID)) {
-				tree = map.get(level.levelID)!;
+			if (map.has(level.LevelID)) {
+				tree = map.get(level.LevelID)!;
 				tree.level = level;
 			} else {
 				tree = new LevelTree(level);
-				map.set(level.levelID, tree);
+				map.set(level.LevelID, tree);
 			}
 
-			if (level.parent !== undefined) {
+			if (level.ParentID !== 0) {
 				let parentTree: LevelTree;
-				if (!map.has(level.parent)) {
+				if (!map.has(level.ParentID)) {
 					parentTree = new LevelTree();
-					map.set(level.parent, parentTree);
-				} else parentTree = map.get(level.parent)!;
+					map.set(level.ParentID, parentTree);
+				} else parentTree = map.get(level.ParentID)!;
 				parentTree.children.push(tree);
-			} else rootId = level.levelID;
+			} else rootId = level.LevelID;
 		}
 		return map.get(rootId!)!;
 	}
 
-	constructor(level?: SimpleLevel) {
+	constructor(level?: Level) {
 		this.level = level;
 	}
 
@@ -88,15 +87,15 @@ export class LevelTree {
 		const size = ctx.canvas.height / 40;
 		ctx.font = ` ${size}px Courier New`;
 		ctx.globalAlpha = Math.max(0, (ctx.canvas.width * ctx.canvas.width * 0.02 - cursorPosition.subVec(position).magnitudeSqr()) / (ctx.canvas.width * ctx.canvas.width * 0.02));
-		ctx.fillText(this.level?.title || "", position.x, position.y - RADIUS * 1.2);
+		ctx.fillText(this.level?.Title || "", position.x, position.y - RADIUS * 1.2);
 		ctx.globalAlpha = 1;
 
 		// draw description if hovered
-		if (this.hovered && this.level?.description) {
+		if (this.hovered && this.level?.Descriptions) {
 			ctx.fillStyle = "#444";
 
 			if (this.descriptionLines === undefined) {
-				let description = this.level.description;
+				let description = this.level.Descriptions;
 				// Split description into lines
 				this.descriptionLines = [];
 				const punctuations = [". ", "! ", "? "];

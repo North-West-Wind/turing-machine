@@ -4,7 +4,7 @@ import { TapeSymbols } from "../../logic/Tapes/TapesUtilities/TapeSymbols";
 import { TuringMachineConfig } from "../../logic/TuringMachineConfig";
 import { PairMap } from "../structure/pair-map";
 import { IDrawable, IDrawableOverlay, IHoverable, ISaveable } from "./canvas";
-import { SaveableUI, SaveableUIBox, SaveableUIText, SaveableUIVertex } from "./machine";
+import { SaveableUI, SaveableUIBox, SaveableUIText, SaveableUINode } from "./machine";
 import { CommonNumbers, Vec2 } from "./math";
 import { Editable } from "./simulator";
 
@@ -32,7 +32,7 @@ export class StateTransition {
 	}
 }
 
-export class StateVertex implements IDrawable, IDrawableOverlay, IHoverable, ISaveable<SaveableUIVertex> {
+export class StateVertex implements IDrawable, IDrawableOverlay, IHoverable, ISaveable<SaveableUINode> {
 	static readonly colors = ["#"]
 
 	readonly id: number;
@@ -188,9 +188,10 @@ export class StateVertex implements IDrawable, IDrawableOverlay, IHoverable, ISa
 
 	toSaveable() {
 		return {
-			label: this.label,
-			position: this.position.toSaveable(),
-			isFinal: this._final
+			NodeID: this.id,
+			X: this.position.x,
+			Y: this.position.y,
+			IsFinal: this._final
 		};
 	}
 }
@@ -543,9 +544,11 @@ export class StateRect implements IDrawable, IHoverable, ISaveable<SaveableUIBox
 
 	toSaveable() {
 		return {
-			start: this.start.toSaveable(),
-			size: this.size.toSaveable(),
-			color: parseInt(this.color, 16)
+			X: this.start.x,
+			Y: this.start.y,
+			Width: this.size.x,
+			Height: this.size.y,
+			Color: parseInt(this.color, 16)
 		};
 	}
 }
@@ -602,43 +605,41 @@ export class StateText implements IDrawable, IHoverable, ISaveable<SaveableUITex
 
 	toSaveable() {
 		return {
-			position: this.position.toSaveable(),
-			value: this.value
+			X: this.position.x,
+			Y: this.position.y,
+			Value: this.value
 		};
 	}
 }
 
-export class StateGraph implements IDrawable, IDrawableOverlay, ISaveable<Omit<SaveableUI, "color">> {
-	private vertices: (StateVertex | null)[] = [];
+export class StateGraph implements IDrawable, IDrawableOverlay, ISaveable<Omit<SaveableUI, "Color">> {
+	private vertices: StateVertex[] = [];
 	private edges = new PairMap<number, number, StateEdge>;
 	private tmpEdge?: { edge: StateEdge, start: number };
-	private rects: (StateRect | null)[] = [];
-	private texts: (StateText| null)[] = [];
+	private rects: StateRect[] = [];
+	private texts: StateText[] = [];
 	private hovered?: Editable;
 	private hoveredEdge?: [number, number];
 	private heads = 0;
 	private startingNode = -1;
 	private currentState = -1;
 
-	addVertex(vertex: StateVertex | null, id?: number) {
-		if (!vertex) {
-			if (!id) return;
-			for (let ii = 0; ii <= id - this.vertices.length; ii++)
-				this.vertices.push(null);
-			return;
-		}
+	addVertex(vertex: StateVertex) {
 		vertex.graph = this;
-		// respect vertex id, as all use cases have that figured out
-		for (let ii = 0; ii <= vertex.id - this.vertices.length; ii++)
-			this.vertices.push(null);
 		this.vertices[vertex.id] = vertex;
 	}
 
 	deleteVertex(id: number) {
 		if (!this.vertices[id]) return;
-		if (this.vertices.length == id + 1) this.vertices.pop();
-		else if (this.vertices[id]) this.vertices[id] = null;
 		this.edges.deleteA(id);
+		for (let ii = id + 1; ii < this.vertices.length; ii++) {
+			// All vertex ref will be moved down 1 index
+			this.edges.getA(ii)?.forEach((edge, dest) => {
+				this.edges.set(ii - 1, dest, edge);
+			});
+			this.edges.deleteA(ii);
+		}
+		this.vertices.splice(id, 1);
 	}
 
 	getVertex(id: number) {
@@ -672,9 +673,7 @@ export class StateGraph implements IDrawable, IDrawableOverlay, ISaveable<Omit<S
 	}
 
 	createVertex(position: Vec2) {
-		const nullIndex = this.vertices.indexOf(null);
-		const id = nullIndex >= 0 ? nullIndex : this.vertices.length;
-		const vertex = new StateVertex(id, position);
+		const vertex = new StateVertex(this.vertices.length, position);
 		this.addVertex(vertex);
 	}
 
@@ -728,40 +727,26 @@ export class StateGraph implements IDrawable, IDrawableOverlay, ISaveable<Omit<S
 		this.edges.delete(src, dest);
 	}
 
-	rawAddRect(rect: StateRect | null) {
-		this.rects.push(rect);
-	}
-
 	addRect(rect: StateRect) {
-		const replacement = this.rects.indexOf(null);
-		if (replacement >= 0) this.rects[replacement] = rect;
-		else this.rects.push(rect);
+		this.rects.push(rect);
 	}
 
 	deleteRect(id: number) {
 		if (!this.rects[id]) return;
-		if (this.rects.length == id + 1) this.rects.pop();
-		else if (this.rects[id]) this.rects[id] = null;
+		this.rects.splice(id, 1);
 	}
 
 	getRect(id: number) {
 		return this.rects[id];
 	}
 
-	rawAddText(text: StateText | null) {
-		this.texts.push(text);
-	}
-
 	addText(text: StateText) {
-		const replacement = this.texts.indexOf(null);
-		if (replacement >= 0) this.texts[replacement] = text;
-		else this.texts.push(text);
+		this.texts.push(text);
 	}
 
 	deleteText(id: number) {
 		if (!this.texts[id]) return;
-		if (this.texts.length == id + 1) this.texts.pop();
-		else if (this.texts[id]) this.texts[id] = null;
+		this.texts.splice(id, 1);
 	}
 
 	getText(id: number) {
@@ -871,9 +856,10 @@ export class StateGraph implements IDrawable, IDrawableOverlay, ISaveable<Omit<S
 
 	toSaveable() {
 		return {
-			boxes: this.rects.map(rect => rect?.toSaveable() || {}),
-			texts: this.texts.map(text => text?.toSaveable() || {}),
-			nodes: this.vertices.map(vert => vert?.toSaveable() || {})
+			TransitionLines: [],
+			HighlightBoxes: this.rects.map(rect => rect.toSaveable()),
+			TextLabels: this.texts.map(text => text.toSaveable()),
+			Nodes: this.vertices.map(vert => vert?.toSaveable()),
 		}
 	}
 }
