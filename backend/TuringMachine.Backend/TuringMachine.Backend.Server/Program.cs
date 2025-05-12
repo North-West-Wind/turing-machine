@@ -189,10 +189,10 @@ namespace TuringMachine.Backend.Server
             #region Machine Design
             app
                 .MapGet(
-                    "/API/GetTapeInfos" ,
-                    async (string designID , DataContext db) =>
+                    "/API/GetHead" ,
+                    async (string machineID , DataContext db) =>
                     {
-                        var response = DbTapeInteraction.GetTapes(designID , db);
+                        var response = DbHeadInteraction.GetHead(machineID , db);
                         await db.SaveChangesAsync();
                         return response;
                     }
@@ -200,21 +200,21 @@ namespace TuringMachine.Backend.Server
 
             app
                 .MapPost(
-                    "/API/MachineDesign/CreateTransition" ,
-                    async (string machineID , IList<TuringMachine.Backend.Server.Models.MachineDesigns.Transition> transition , DataContext db) =>
+                    "/API/UpdateHead" ,
+                    async (string machineID , IList<TuringMachine.Backend.Server.Models.MachineDesigns.Head> head , DataContext db) =>
                     {
-                        var response = DbTapeInteraction.InsertTapes(designID , tapeInfos , db);
+                        var response = DbHeadInteraction.InsertHead(machineID , head , db);
                         await db.SaveChangesAsync();
                         return response;
                     }
                 );
 
             app
-                .MapDelete(
-                    "/API/DeleteTapeInfos" ,
-                    async (string designID , DataContext db) =>
+                .MapPost(
+                    "/API/DeleteHead" ,
+                    async (string machineID , DataContext db) =>
                     {
-                        var response = DbTapeInteraction.DeleteTapes(designID , db);
+                        var response = DbHeadInteraction.DeleteHead(machineID , db);
                         await db.SaveChangesAsync();
                         return response;
                     }
