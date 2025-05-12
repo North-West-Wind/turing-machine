@@ -5,3 +5,7 @@
 GET {{TuringMachine.Backend.Server_HostAddress}}/API/Server/GetResponse
 Accept: application/json
 ###
+
+GET {{TuringMachine.Backend.Server_HostAddress}}/API/Server/GetPublicKey
+Accept: application/json
+###

@@ -51,12 +51,12 @@ namespace TuringMachine.Backend.Server
             #region Register API
             #region Server
             app
-                .MapGet("/API/Server/GetPublicKey" , (_) => throw new NotImplementedException())
+                .MapGet("/API/Server/GetPublicKey" , () => new ServerResponse<string>(ResponseStatus.SUCCESS , rsa.ExportRSAPublicKeyPem()))
                 .WithName("GetPublicKey")
                 .WithOpenApi();
 
             app
-                .MapGet("/API/Server/GetResponse" , () =>  new ServerResponse(ResponseStatus.SUCCESS))
+                .MapGet("/API/Server/GetResponse" , () => new ServerResponse(ResponseStatus.SUCCESS))
                 .WithName("GetResponse")
                 .WithOpenApi();
             #endregion
