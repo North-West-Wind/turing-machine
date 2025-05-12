@@ -11,7 +11,7 @@ using ResponseConstraint = TuringMachine.Backend.Server.Models.LevelTemplates.Co
 using ResponseLevelTemplate = TuringMachine.Backend.Server.Models.LevelTemplates.LevelTemplate;
 #endregion
 
-namespace TuringMachine.Backend.Server.DbInteraction
+namespace TuringMachine.Backend.Server.DbInteractions.LevelInteractions
 {
     internal static class DbLevelInfosInteraction
     {

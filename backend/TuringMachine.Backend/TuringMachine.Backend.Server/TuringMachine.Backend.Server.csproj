@@ -24,6 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="DbInteractions\UserInteractions\" />
     <Folder Include="ServerResponses\ResponseBody\" />
   </ItemGroup>
 
