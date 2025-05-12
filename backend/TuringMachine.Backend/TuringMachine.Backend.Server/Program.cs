@@ -189,10 +189,10 @@ namespace TuringMachine.Backend.Server
             #region Machine Design
             app
                 .MapGet(
-                    "/API/MachineDesign/GetTransition" ,
-                    async (string machineID , DataContext db) =>
+                    "/API/GetTapeInfos" ,
+                    async (string designID , DataContext db) =>
                     {
-                        var response = DbTransitionInteraction.GetTransition(machineID , db);
+                        var response = DbTapeInteraction.GetTapes(designID , db);
                         await db.SaveChangesAsync();
                         return response;
                     }
@@ -200,10 +200,10 @@ namespace TuringMachine.Backend.Server
 
             app
                 .MapPost(
-                    "/API/MachineDesign/CreateTransition" ,
-                    async (string machineID , IList<TuringMachine.Backend.Server.Models.Machines.Transitions.Transition> transition , DataContext db) =>
+                    "/API/InsertTapeInfos" ,
+                    async (string designID , IList<TuringMachine.Backend.Server.Models.Machines.Tapes.Tape> tapeInfos , DataContext db) =>
                     {
-                        var response = DbTransitionInteraction.InsertTransition(machineID , transition , db);
+                        var response = DbTapeInteraction.InsertTapes(designID , tapeInfos , db);
                         await db.SaveChangesAsync();
                         return response;
                     }
@@ -211,10 +211,10 @@ namespace TuringMachine.Backend.Server
 
             app
                 .MapDelete(
-                    "/API/MachineDesign/DeleteTransition" ,
-                    async (string machineID , DataContext db) =>
+                    "/API/DeleteTapeInfos" ,
+                    async (string designID , DataContext db) =>
                     {
-                        var response = DbTransitionInteraction.DeleteTransition(machineID , db);
+                        var response = DbTapeInteraction.DeleteTapes(designID , db);
                         await db.SaveChangesAsync();
                         return response;
                     }

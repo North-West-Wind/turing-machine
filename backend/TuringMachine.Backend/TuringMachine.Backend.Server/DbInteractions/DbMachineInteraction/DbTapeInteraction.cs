@@ -17,6 +17,9 @@ namespace TuringMachine.Backend.Server.DbInteractions.DbMachineInteraction
             IQueryable<DbTape> dbTapes       = db.TapeInfos.Where(tape => tape.DesignID == Guid.Parse(designID));
             ResponseTape?[]    responseTapes = new ResponseTape?[dbTapes.Count()];
 
+            if (!dbTapes.Any())
+                return ServerResponse.StartTracing<IList<ResponseTape?>>(nameof(GetTapes) , NO_SUCH_ITEM);
+
             foreach (DbTape dbTape in dbTapes)
             {
                 responseTapes[dbTape.TapeIndex] = new ResponseTape
@@ -29,17 +32,17 @@ namespace TuringMachine.Backend.Server.DbInteractions.DbMachineInteraction
         }
 
         
-        public static ServerResponse InsertTapes(string designID , IList<ResponseTape> tape , DataContext db)
+        public static ServerResponse InsertTapes(string designID , IList<ResponseTape> tapes , DataContext db)
         {
-            for (short i = 0; i < tape.Count; i++)
+            for (short i = 0; i < tapes.Count; i++)
             {
                 db.TapeInfos.Add(
                     new DbTape
                     {
                         DesignID      = Guid.Parse(designID) ,
                         TapeIndex     = i ,
-                        TapeType      = tape[i].Type ,
-                        InitialValues = tape[i].InitialValues ,
+                        TapeType      = tapes[i].Type ,
+                        InitialValues = tapes[i].InitialValues ,
                     }
                 );
             }
