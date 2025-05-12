@@ -73,6 +73,7 @@ namespace TuringMachine.Backend.Server
                 .WithName("CreateProgress")
                 .WithOpenApi();
 
+            //todo: access token auth
             app
                 .MapGet("/API/Progress/Get" ,
                         async (string accessToken , byte levelID , DataContext db) =>
@@ -86,8 +87,9 @@ namespace TuringMachine.Backend.Server
                 .WithName("GetProgress")
                 .WithOpenApi();
 
+            //todo: access token auth
             app
-                .MapGet("/API/Progress/GetAll" , (_) => throw new NotImplementedException())
+                .MapGet("/API/Progress/GetAll" , async (DataContext db) => await DbLevelProgressInteraction.GetAllProgressAsync(db))
                 .WithName("GetAllProgress")
                 .WithOpenApi();
 
