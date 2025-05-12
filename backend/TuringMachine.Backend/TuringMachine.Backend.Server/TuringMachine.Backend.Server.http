@@ -298,3 +298,47 @@ POST {{TuringMachine.Backend.Server_HostAddress}}/api/save?accessToken={{access_
 Content-Type: application/json
 {"tapes":[{"type":"infinite","isInput":true,"isOutput":true}],"machines":[{"transitions":[{"source":0,"target":0,"statements":[{"read":"_","write":"_","move":0}],"transitionLineSteps":[{"x":311,"y":0},{"x":0,"y":169},{"x":-311,"y":0},{"x":0,"y":-169}]}],"heads":[{"type":"ReadWrite","tape":0,"position":0}],"startNode":0,"label":{"color":8665651,"boxes":[],"texts":[],"nodes":[{"position":{"x":282,"y":246},"isFinal":false}]}}]}
 ###
+
+POST {{TuringMachine.Backend.Server_HostAddress}}/api/save?accessToken={{access_token}}&levelID=0
+Content-Type: application/json
+{
+    "tapes": [
+        { "type": "Infinite", "isInput": true, "isOutput": false }
+    ],
+    "machines": [
+        {
+            "transitions": [
+                {
+                    "source": 0,
+                    "target": 0,
+                    "statements": [
+                        { "read": "_", "write": "_", "move": 0 }
+                    ],
+                    "transitionLineSteps": [
+                        { "x": 290, "y": 0 },
+                        { "x": 0, "y": 187 },
+                        { "x": -290, "y": 0 },
+                        { "x": 0, "y": -187 }
+                    ]
+                }
+            ],
+            "heads": [
+                {
+                    "type": "ReadWrite",
+                    "tape": 0,
+                    "position": 0
+                }
+            ],
+            "startNode": 0,
+            "label": {
+                "color": 10013396,
+                "boxes": [],
+                "texts": [],
+                "nodes": [
+                    { "position": { "x": 234, "y": 161 }, "isFinal": false }
+                ]
+            }
+        }
+    ]
+}
+###

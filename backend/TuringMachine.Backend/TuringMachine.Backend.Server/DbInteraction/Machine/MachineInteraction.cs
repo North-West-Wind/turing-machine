@@ -169,25 +169,28 @@ namespace TuringMachine.Backend.Server.DbInteraction.Machine
             DbTuringMachineDesign dbDesign = designs.Current;
             if (designs.MoveNext()) return ServerResponse.StartTracing(nameof(DeleteTuringMachineDesignAsync) , ResponseStatus.DUPLICATED_ITEM);
 
-            foreach (DbTuringMachine dbDesignMachine in dbDesign.Machines)
+            if (dbDesign.Machines is not null)
             {
-                ServerResponse response;
+                foreach (DbTuringMachine dbDesignMachine in dbDesign.Machines)
+                {
+                    ServerResponse response;
 
-                string machineID = dbDesignMachine.MachineID.ToString();
+                    string machineID = dbDesignMachine.MachineID.ToString();
 
-                response = await DeleteMachineTransitionsAsync(machineID , db);
-                if (response.Status != ResponseStatus.SUCCESS)
-                    return response.WithThisTraceInfo(nameof(DeleteTuringMachineDesignAsync) , ResponseStatus.BACKEND_ERROR);
+                    response = await DeleteMachineTransitionsAsync(machineID , db);
+                    if (response.Status != ResponseStatus.SUCCESS)
+                        return response.WithThisTraceInfo(nameof(DeleteTuringMachineDesignAsync) , ResponseStatus.BACKEND_ERROR);
 
-                response =  await DeleteMachineHeadsAsync(machineID , db);
-                if (response.Status != ResponseStatus.SUCCESS)
-                    return response.WithThisTraceInfo(nameof(DeleteTuringMachineDesignAsync) , ResponseStatus.BACKEND_ERROR);
+                    response = await DeleteMachineHeadsAsync(machineID , db);
+                    if (response.Status != ResponseStatus.SUCCESS)
+                        return response.WithThisTraceInfo(nameof(DeleteTuringMachineDesignAsync) , ResponseStatus.BACKEND_ERROR);
 
-                response = await DeleteMachineTapesAsync(machineID , db);
-                if (response.Status != ResponseStatus.SUCCESS)
-                    return response.WithThisTraceInfo(nameof(DeleteTuringMachineDesignAsync) , ResponseStatus.BACKEND_ERROR);
+                    response = await DeleteMachineTapesAsync(machineID , db);
+                    if (response.Status != ResponseStatus.SUCCESS)
+                        return response.WithThisTraceInfo(nameof(DeleteTuringMachineDesignAsync) , ResponseStatus.BACKEND_ERROR);
+                }
+                db.MachineDesigns.Remove(dbDesign);
             }
-            db.MachineDesigns.Remove(dbDesign);
 
             await db.SaveChangesAsync();
             return new ServerResponse(ResponseStatus.SUCCESS);

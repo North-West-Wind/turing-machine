@@ -10,8 +10,8 @@ namespace TuringMachine.Backend.Server.Database.Entity.Machine
         #region Relation
         public LevelProgress? Progress { get; set; }
 
-        public ICollection<Tape>    Tapes    { get; set; }
-        public ICollection<Machine> Machines { get; set; }
+        public ICollection<Tape>?    Tapes    { get; set; }
+        public ICollection<Machine>? Machines { get; set; }
         #endregion
     }
 }
