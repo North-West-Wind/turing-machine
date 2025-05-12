@@ -5,6 +5,6 @@ namespace TuringMachine.Backend.Server.Models.Machines.Transitions
         public short SourceNodeID { get; set; }
         public short TargetNodeID { get; set; }
 
-        public ICollection<TransitionStatement> Statements { get; set; }
+        public IList<TransitionStatement> Statements { get; set; }
     }
 }

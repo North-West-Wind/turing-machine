@@ -8,8 +8,10 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using TuringMachine.Backend.Server.Database;
 using TuringMachine.Backend.Server.DbInteractions;
+using TuringMachine.Backend.Server.DbInteractions.DbMachineInteraction;
 using TuringMachine.Backend.Server.DbInteractions.DbProgressInteractions;
 using TuringMachine.Backend.Server.DbInteractions.LevelInteractions;
 using TuringMachine.Backend.Server.DbInteractions.UserInteractions;
@@ -185,6 +187,9 @@ namespace TuringMachine.Backend.Server
             #endregion
 
             #region Machine Design
+            app
+                .MapGet("/API/MachineDesign/GetTransitionStatement" , (DataContext db) => DbTransitionInteraction.GetTransition("D61BCFD6-1CC1-47A1-92DE-9C9A3276DBA1" , db));
+
             app
                 .MapPost("/API/MachineDesign/Create" , (_) => throw new NotImplementedException())
                 .WithName("CreateMachineDesign")

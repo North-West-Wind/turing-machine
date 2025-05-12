@@ -1,5 +1,5 @@
-# 如果要從更高的目錄繼承 .editorconfig 設定，請移除以下行
 root = true
+# 如果要從更高的目錄繼承 .editorconfig 設定，請移除以下行
 
 # C# 檔案
 [*.cs]
@@ -30,7 +30,7 @@ dotnet_search_reference_assemblies = true
 # 組合管理 Using
 dotnet_separate_import_directive_groups = false
 dotnet_sort_system_directives_first = true
-file_header_template = unset
+file_header_template = 
 
 # this. 和 Me. 喜好設定
 dotnet_style_qualification_for_event = false
@@ -256,3 +256,8 @@ dotnet_naming_style.以event結尾.required_prefix =
 dotnet_naming_style.以event結尾.required_suffix = Event
 dotnet_naming_style.以event結尾.word_separator = 
 dotnet_naming_style.以event結尾.capitalization = pascal_case
+
+# ReSharper properties
+resharper_int_align = true
+resharper_int_align_assignments = true
+resharper_wrap_object_and_collection_initializer_style = chop_always
