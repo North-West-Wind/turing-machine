@@ -7,7 +7,7 @@ using DbProgressManagement = TuringMachine.Backend.Server.Database.Entity.Progre
 using ResponseProgress = TuringMachine.Backend.Server.Models.Progresses.Progress;
 #endregion
 
-namespace TuringMachine.Backend.Server.DbInteraction
+namespace TuringMachine.Backend.Server.DbInteractions.DbProgressInteractions
 {
     internal static class DbLevelProgressInteraction
     {
