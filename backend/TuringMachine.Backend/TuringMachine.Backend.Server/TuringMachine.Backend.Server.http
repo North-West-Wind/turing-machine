@@ -1,7 +1,5 @@
 @TuringMachine.Backend.Server_HostAddress = http://localhost:5066
 
-
-//  Run the following testing to create database access
 GET {{TuringMachine.Backend.Server_HostAddress}}/API/Server/GetResponse
 Accept: application/json
 ###
