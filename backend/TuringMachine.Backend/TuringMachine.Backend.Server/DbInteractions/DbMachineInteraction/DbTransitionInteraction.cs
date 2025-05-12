@@ -20,31 +20,30 @@ namespace TuringMachine.Backend.Server.DbInteractions.DbMachineInteraction
         ///     Return a list of transition when "SUCCESS". <br/><br/>
         ///     Status is either "SUCCESS" or "BACKEND_ERROR".
         /// </returns>
-        public static ServerResponse<ICollection<ResponseTransition?>> GetTransition(string machineID , DataContext db)
+        public static ServerResponse<ICollection<ResponseTransition>> GetTransition(string machineID , DataContext db)
         {
-            IQueryable<DbTransition> dbTransitions       = db.Transitions.Where(transition => transition.MachineID == Guid.Parse(machineID));
-            int                      size                = dbTransitions.Count();
-            ResponseTransition?[]    responseTransitions = new ResponseTransition?[size];
+            IQueryable<DbTransition>  dbTransitions       = db.Transitions.Where(transition => transition.MachineID == Guid.Parse(machineID));
+            List<ResponseTransition> responseTransitions = new List<ResponseTransition>();
             foreach (DbTransition dbTransition in dbTransitions)
             {
-                if (dbTransition.TransitionIndex >= size)
-                    return ServerResponse.StartTracing<ICollection<ResponseTransition?>>(nameof(GetTransition) , BACKEND_ERROR);
-
-                if (responseTransitions[dbTransition.TransitionIndex] is not null)
-                    return ServerResponse.StartTracing<ICollection<ResponseTransition?>>(nameof(GetTransition) , BACKEND_ERROR);
-
                 ServerResponse<IList<ResponseTransitionStatement>> getTransitionStatements = GetTransitionStatements(dbTransition.TransitionID.ToString() , db);
                 if (getTransitionStatements.Status is not SUCCESS)
-                    return ServerResponse.StartTracing<ICollection<ResponseTransition?>>(nameof(GetTransition) , BACKEND_ERROR);
+                    return ServerResponse.StartTracing<ICollection<ResponseTransition>>(nameof(GetTransition) , BACKEND_ERROR);
 
-                responseTransitions[dbTransition.TransitionIndex] = new ResponseTransition
-                {
-                    SourceNodeID = dbTransition.SourceNodeIndex ,
-                    TargetNodeID = dbTransition.TargetNodeIndex ,
-                    Statements = getTransitionStatements.Result! ,
-                };
+                responseTransitions.Add(
+                    new ResponseTransition
+                    {
+                        SourceNodeID = dbTransition.SourceNodeIndex ,
+                        TargetNodeID = dbTransition.TargetNodeIndex ,
+                        Statements   = getTransitionStatements.Result! ,
+                    }
+                );
             }
-            return new ServerResponse<ICollection<ResponseTransition?>>(SUCCESS , responseTransitions);
+
+            if (responseTransitions.Count == 0)
+                return ServerResponse.StartTracing<ICollection<ResponseTransition>>(nameof(GetTransition) , NO_SUCH_ITEM);
+
+            return new ServerResponse<ICollection<ResponseTransition>>(SUCCESS , responseTransitions);
         }
 
         /// <returns>
@@ -61,7 +60,6 @@ namespace TuringMachine.Backend.Server.DbInteractions.DbMachineInteraction
                 DbTransition dbTransition = new DbTransition
                 {
                     MachineID = Guid.Parse(machineID) ,
-                    TransitionIndex = i ,
                     SourceNodeIndex = transitions[i].SourceNodeID ,
                     TargetNodeIndex = transitions[i].TargetNodeID ,
                 };
@@ -107,7 +105,7 @@ namespace TuringMachine.Backend.Server.DbInteractions.DbMachineInteraction
                 responseTransitionStatements.Add(
                     new ResponseTransitionStatement
                     {
-                        TapeID = dbTransitionStatement.StatementIndex ,
+                        TapeID = dbTransitionStatement.TapeID ,
                         Read = dbTransitionStatement.Read[0] ,
                         Write = dbTransitionStatement.Write[0] ,
                         Move = dbTransitionStatement.Move ,
@@ -130,11 +128,11 @@ namespace TuringMachine.Backend.Server.DbInteractions.DbMachineInteraction
                 db.TransitionStatements.Add(
                     new DbTransitionStatement
                     {
-                        TransitionID   = Guid.Parse(transitionID) ,
-                        StatementIndex = i ,
-                        Read           = transitionStatements[i].Read.ToString() ,
-                        Write          = transitionStatements[i].Write.ToString() ,
-                        Move           = transitionStatements[i].Move ,
+                        TransitionID = Guid.Parse(transitionID) ,
+                        TapeID       = transitionStatements[i].TapeID ,
+                        Read         = transitionStatements[i].Read.ToString() ,
+                        Write        = transitionStatements[i].Write.ToString() ,
+                        Move         = transitionStatements[i].Move ,
                     }
                 );
 

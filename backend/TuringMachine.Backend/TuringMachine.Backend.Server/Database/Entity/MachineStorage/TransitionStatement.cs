@@ -2,11 +2,11 @@
 {
     internal class TransitionStatement
     {
-        public Guid   TransitionID   { get; set; }
-        public byte   StatementIndex { get; set; }
-        public string Read           { get; set; }
-        public string Write          { get; set; }
-        public int    Move           { get; set; }
+        public Guid   TransitionID { get; set; }
+        public short  TapeID       { get; set; }
+        public string Read         { get; set; }
+        public string Write        { get; set; }
+        public int    Move         { get; set; }
 
 
         #region Relationship

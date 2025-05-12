@@ -4,7 +4,6 @@
     {
         public Guid  TransitionID    { get; set; }
         public Guid  MachineID       { get; set; }
-        public short TransitionIndex { get; set; }
         public short SourceNodeIndex { get; set; }
         public short TargetNodeIndex { get; set; }
 

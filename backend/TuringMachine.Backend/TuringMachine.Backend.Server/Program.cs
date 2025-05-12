@@ -188,7 +188,37 @@ namespace TuringMachine.Backend.Server
 
             #region Machine Design
             app
-                .MapGet("/API/MachineDesign/GetTransitionStatement" , (DataContext db) => DbTransitionInteraction.GetTransition("D61BCFD6-1CC1-47A1-92DE-9C9A3276DBA1" , db));
+                .MapGet(
+                    "/API/MachineDesign/GetTransition" ,
+                    async (string machineID , DataContext db) =>
+                    {
+                        var response = DbTransitionInteraction.GetTransition(machineID , db);
+                        await db.SaveChangesAsync();
+                        return response;
+                    }
+                );
+
+            app
+                .MapPost(
+                    "/API/MachineDesign/CreateTransition" ,
+                    async (string machineID , IList<TuringMachine.Backend.Server.Models.Machines.Transitions.Transition> transition , DataContext db) =>
+                    {
+                        var response = DbTransitionInteraction.InsertTransition(machineID , transition , db);
+                        await db.SaveChangesAsync();
+                        return response;
+                    }
+                );
+
+            app
+                .MapDelete(
+                    "/API/MachineDesign/DeleteTransition" ,
+                    async (string machineID , DataContext db) =>
+                    {
+                        var response = DbTransitionInteraction.DeleteTransition(machineID , db);
+                        await db.SaveChangesAsync();
+                        return response;
+                    }
+                );
 
             app
                 .MapPost("/API/MachineDesign/Create" , (_) => throw new NotImplementedException())

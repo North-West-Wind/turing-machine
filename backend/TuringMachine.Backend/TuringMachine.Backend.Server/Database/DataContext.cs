@@ -143,7 +143,7 @@ namespace TuringMachine.Backend.Server.Database
                 .HasKey(transition => transition.TransitionID);
             modelBuilder
                 .Entity<TransitionStatement>()
-                .HasKey(statement => new { statement.TransitionID , statement.StatementIndex });
+                .HasKey(statement => new { statement.TransitionID , statement.TapeID });
 
             modelBuilder
                 .Entity<Progress>()
