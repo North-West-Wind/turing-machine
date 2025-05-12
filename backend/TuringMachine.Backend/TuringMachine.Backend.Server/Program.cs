@@ -14,6 +14,7 @@ using TuringMachine.Backend.Server.DbInteractions;
 using TuringMachine.Backend.Server.DbInteractions.DbProgressInteractions;
 using TuringMachine.Backend.Server.DbInteractions.LevelInteractions;
 using TuringMachine.Backend.Server.DbInteractions.UserInteractions;
+using TuringMachine.Backend.Server.Models.Progresses;
 using TuringMachine.Backend.Server.ServerResponses;
 using static TuringMachine.Backend.Server.Models.Misc.ResponseStatus;
 
@@ -81,7 +82,11 @@ namespace TuringMachine.Backend.Server
                             if (validateAndSaveTokenAndGetUUIDResponse.Status is not SUCCESS)
                                 return validateAndSaveTokenAndGetUUIDResponse.WithThisTraceInfo("/API/Progress/Get" , BACKEND_ERROR);
 
-                            return DbLevelProgressInteraction.GetProgress(validateAndSaveTokenAndGetUUIDResponse.Result! , levelID , db);
+                            ServerResponse<Progress> getProgressResponse = DbLevelProgressInteraction.GetProgress(validateAndSaveTokenAndGetUUIDResponse.Result! , levelID , db);
+                            if (getProgressResponse.Status is not SUCCESS)
+                                return getProgressResponse.WithThisTraceInfo("/API/Progress/Get" , BACKEND_ERROR);
+
+                            return getProgressResponse;
                         })
                 .WithName("GetProgress")
                 .WithOpenApi();
