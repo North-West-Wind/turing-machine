@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using TuringMachine.Backend.Server.Database;
-using TuringMachine.Backend.Server.DbInteractions;
+using TuringMachine.Backend.Server.DbInteractions.LevelInteractions;
 using TuringMachine.Backend.Server.Models.Misc;
 using TuringMachine.Backend.Server.ServerResponses;
 
