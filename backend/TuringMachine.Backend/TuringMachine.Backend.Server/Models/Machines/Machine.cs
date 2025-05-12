@@ -4,8 +4,8 @@ namespace TuringMachine.Backend.Server.Models.Machine
 {
     internal class Machine
     {
-        public UI UI { get; set; }
+        public UI            UI            { get; set; }
         public MachineConfig MachineConfig { get; set; }
-        public short StartNode { get; set; }
+        public short         StartNode     { get; set; }
     }
 }

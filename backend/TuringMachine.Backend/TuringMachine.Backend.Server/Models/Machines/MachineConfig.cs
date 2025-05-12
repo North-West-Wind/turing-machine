@@ -5,8 +5,8 @@ namespace TuringMachine.Backend.Server.Models.Machine
 {
     internal class MachineConfig
     {
-        public Transition[] Transitions { get; set; }
-        
-        public Head[] Heads { get; set; }
+        public ICollection<Transition> Transitions { get; set; }
+
+        public ICollection<Head> Heads { get; set; }
     }
 }
