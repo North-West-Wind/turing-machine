@@ -73,7 +73,6 @@ namespace TuringMachine.Backend.Server
                 .WithName("CreateProgress")
                 .WithOpenApi();
 
-            //todo: access token auth
             app
                 .MapGet("/API/Progress/Get" ,
                         async (string accessToken , byte levelID , DataContext db) =>
