@@ -16,24 +16,16 @@ namespace TuringMachine.Backend.Server.DbInteractions.UserInteractions
     {
         public static ServerResponse ValidateToken(string accessToken , DataContext db)
         {
-            var user = db.Users.Where(user => user.AccessToken == accessToken).GetEnumerator();
+            using var user = db.Users.Where(user => user.AccessToken == accessToken).GetEnumerator();
             
-            if (!user.MoveNext()) 
-                return ServerResponse.StartTracing<string>(nameof(user), ResponseStatus.NO_SUCH_ITEM);
-            
+            if (!user.MoveNext()) return ServerResponse.StartTracing<string>(nameof(user) , NO_SUCH_ITEM);
             DbUser userDb = user.Current;
-            
-            if (user.MoveNext())
-                return ServerResponse.StartTracing<string>(nameof(user), ResponseStatus.DUPLICATED_ITEM);
+            if (user.MoveNext()) return ServerResponse.StartTracing<string>(nameof(user) , DUPLICATED_ITEM);
             
             DateTime localDate = DateTime.Now;
-
-            if (userDb is null)
-                return new ServerResponse(ResponseStatus.INVALID_TOKEN);
-                
-            return localDate > userDb.AccessTokenExpireTime ? 
-                ServerResponse.StartTracing<string>(nameof(user), ResponseStatus.TOKEN_EXPIRED) 
-                : new ServerResponse(ResponseStatus.SUCCESS);
+            return localDate > userDb.AccessTokenExpireTime
+                ? ServerResponse.StartTracing<string>(nameof(user) , TOKEN_EXPIRED) 
+                : new ServerResponse(SUCCESS);
         }
 
 
