@@ -1,10 +1,10 @@
-namespace TuringMachine.Backend.Server.Models.Machines.Tapes
+namespace TuringMachine.Backend.Server.Models.MachineDesigns
 {
     internal class TapeInfo
     {
         public short InputTape  { get; set; }
         public short OutputTape { get; set; }
 
-        public ICollection<Tape> Tapes { get; set; }
+        public List<Tape> Tapes { get; set; }
     }
 }

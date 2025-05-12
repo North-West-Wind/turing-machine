@@ -200,8 +200,8 @@ namespace TuringMachine.Backend.Server
 
             app
                 .MapPost(
-                    "/API/InsertTapeInfos" ,
-                    async (string designID , IList<TuringMachine.Backend.Server.Models.Machines.Tapes.Tape> tapeInfos , DataContext db) =>
+                    "/API/MachineDesign/CreateTransition" ,
+                    async (string machineID , IList<TuringMachine.Backend.Server.Models.MachineDesigns.Transition> transition , DataContext db) =>
                     {
                         var response = DbTapeInteraction.InsertTapes(designID , tapeInfos , db);
                         await db.SaveChangesAsync();

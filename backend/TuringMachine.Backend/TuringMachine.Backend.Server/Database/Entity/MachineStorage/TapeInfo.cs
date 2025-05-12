@@ -1,4 +1,4 @@
-﻿using TuringMachine.Backend.Server.Models.Machines.Tapes;
+﻿using TuringMachine.Backend.Server.Models.MachineDesigns;
 
 namespace TuringMachine.Backend.Server.Database.Entity.MachineStorage
 {

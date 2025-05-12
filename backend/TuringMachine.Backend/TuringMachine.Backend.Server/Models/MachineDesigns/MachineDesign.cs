@@ -1,6 +1,4 @@
 using System.Text.Json.Serialization;
-using TuringMachine.Backend.Server.Models.Machines.Tapes;
-using TuringMachine.Backend.Server.Models.Machines.Transitions;
 
 namespace TuringMachine.Backend.Server.Models.MachineDesigns
 {
@@ -10,12 +8,12 @@ namespace TuringMachine.Backend.Server.Models.MachineDesigns
         public byte LevelID { get; set; }
 
         public TapeInfo                   TapeInfo { get; set; }
-        public ICollection<MachineDesign> Machines { get; set; }
+        public ICollection<MachineConfig> Machines { get; set; }
 
 
         #region Statistics
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public short? MaxTransition { get; set; }
+        // [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        // public short? MaxTransition { get; set; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? TransitionCount { get; set; }

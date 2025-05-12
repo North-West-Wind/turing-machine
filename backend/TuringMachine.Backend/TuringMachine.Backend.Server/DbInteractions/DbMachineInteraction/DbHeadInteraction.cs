@@ -1,13 +1,13 @@
 ﻿using System.Diagnostics;
 using TuringMachine.Backend.Server.Database;
-using TuringMachine.Backend.Server.Models.Machines.Heads;
+using TuringMachine.Backend.Server.Models.MachineDesigns;
 using TuringMachine.Backend.Server.ServerResponses;
 using static TuringMachine.Backend.Server.Models.Misc.ResponseStatus;
 
 #region Type Alias
 using DbHead = TuringMachine.Backend.Server.Database.Entity.MachineStorage.Head;
 
-using ResponseHead = TuringMachine.Backend.Server.Models.Machines.Heads.Head;
+using ResponseHead = TuringMachine.Backend.Server.Models.MachineDesigns.Head;
 #endregion
 
 namespace TuringMachine.Backend.Server.DbInteractions.DbMachineInteraction

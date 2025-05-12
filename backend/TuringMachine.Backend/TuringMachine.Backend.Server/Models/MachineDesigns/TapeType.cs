@@ -1,4 +1,4 @@
-namespace TuringMachine.Backend.Server.Models.Machines.Tapes
+namespace TuringMachine.Backend.Server.Models.MachineDesigns
 {
     internal enum TapeType : byte
     {
