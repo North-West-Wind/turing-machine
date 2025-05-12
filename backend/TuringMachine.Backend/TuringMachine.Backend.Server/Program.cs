@@ -132,7 +132,17 @@ namespace TuringMachine.Backend.Server
 
             #region License Key
             app
-                .MapPost("/API/LicenseKey/Create" , (_) => throw new NotImplementedException())
+                .MapPost(
+                    "/API/LicenseKey/Create" ,
+                    async (int count , DataContext db) =>
+                    {
+                        ServerResponse<ICollection<string>> batchCreateAndSaveLicenseKeyResponse = await DbLicenseKeyInteraction.BatchCreateAndSaveLicenseKeyAsync(count , db);
+                        if (batchCreateAndSaveLicenseKeyResponse.Status is not SUCCESS)
+                            batchCreateAndSaveLicenseKeyResponse.WithThisTraceInfo<ICollection<string>>("/API/LicenseKey/Create" , BACKEND_ERROR);
+
+                        return batchCreateAndSaveLicenseKeyResponse;
+                    }
+                )
                 .WithName("CreateLicenseKey")
                 .WithOpenApi();
             #endregion
