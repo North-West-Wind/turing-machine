@@ -7,3 +7,7 @@ Accept: application/json
 GET {{TuringMachine.Backend.Server_HostAddress}}/API/Server/GetPublicKey
 Accept: application/json
 ###
+
+GET {{TuringMachine.Backend.Server_HostAddress}}/API/LevelTemplate/Get?levelID=0
+Accept: application/json
+###
