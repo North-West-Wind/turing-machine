@@ -18,12 +18,13 @@ namespace TuringMachine.Backend.Server.DbInteractions.UIInteractions
             
             List<TransitionLine> lines = dbTransitions.Select(v =>
             {
+                int byteSize = Buffer.ByteLength(v.StepX);
                 int count = v.StepX.Length / sizeof(double);
-                double[] stepX = ArrayPool<double>.Shared.Rent(count);
-                double[] stepY = ArrayPool<double>.Shared.Rent(count);
+                double[] stepX = new double[count];
+                double[] stepY = new double[count];
                 
-                Buffer.BlockCopy(v.StepX , 0 , stepX , 0 , v.StepX.Length);
-                Buffer.BlockCopy(v.StepY , 0 , stepY , 0 , v.StepY.Length);
+                Buffer.BlockCopy(v.StepX , 0 , stepX , 0 , byteSize);
+                Buffer.BlockCopy(v.StepY , 0 , stepY , 0 , byteSize);
                 
                 Vector2<double>[] steps = new Vector2<double>[count];
                 for (int i = 0; i < count; i++)
@@ -34,9 +35,6 @@ namespace TuringMachine.Backend.Server.DbInteractions.UIInteractions
                         Y = stepY[i]
                     };
                 }
-                
-                ArrayPool<double>.Shared.Return(stepX);
-                ArrayPool<double>.Shared.Return(stepY);
                 
                 return new TransitionLine
                 {
@@ -58,9 +56,8 @@ namespace TuringMachine.Backend.Server.DbInteractions.UIInteractions
             db.TransitionLines.AddRange(lines.Select(v =>
             {
                 int count = v.Steps.Count;
-                
-                double[] rawStepX = ArrayPool<double>.Shared.Rent(count);
-                double[] rawStepY = ArrayPool<double>.Shared.Rent(count);
+                double[] rawStepX = new double[count];
+                double[] rawStepY = new double[count];
 
                 for (int i = 0; i < count; i++)
                 {
@@ -68,14 +65,12 @@ namespace TuringMachine.Backend.Server.DbInteractions.UIInteractions
                     rawStepY[i] = v.Steps[i].Y;
                 }
 
-                byte[] stepX = new byte[v.Steps.Count * sizeof(double)];
-                byte[] stepY = new byte[v.Steps.Count * sizeof(double)];
+                int byteSize = Buffer.ByteLength(rawStepX);
+                byte[] stepX = new byte[byteSize];
+                byte[] stepY = new byte[byteSize];
                 
-                Buffer.BlockCopy(rawStepX , 0 , stepX , 0 , stepX.Length);
-                Buffer.BlockCopy(rawStepY , 0 , stepY , 0 , stepY.Length);
-                
-                ArrayPool<double>.Shared.Return(rawStepX);
-                ArrayPool<double>.Shared.Return(rawStepY);
+                Buffer.BlockCopy(rawStepX , 0 , stepX , 0 , byteSize);
+                Buffer.BlockCopy(rawStepY , 0 , stepY , 0 , byteSize);
 
                 return new DbTransitionLine
                 {
