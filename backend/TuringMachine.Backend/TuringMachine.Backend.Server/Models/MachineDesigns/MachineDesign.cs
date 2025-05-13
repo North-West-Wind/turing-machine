@@ -1,5 +1,5 @@
 using System.Text.Json.Serialization;
-using NotImplementedException = System.NotImplementedException;
+using TuringMachine.Backend.Server.Models.UserInterface;
 
 namespace TuringMachine.Backend.Server.Models.MachineDesigns
 {
@@ -33,9 +33,39 @@ namespace TuringMachine.Backend.Server.Models.MachineDesigns
         #endregion
 
 
-        public static MachineDesign CreateTemplate()
+        public static MachineDesign CreateTemplate(string author)
         {
-            throw new NotImplementedException();
+            MachineDesign template = new MachineDesign
+            {
+                Author = author ,
+                TapeInfo = new TapeInfo
+                {
+                    InputTape = 0 ,
+                    OutputTape = 1 ,
+                } ,
+                Machines = new List<MachineUIConfigPair>
+                {
+                    new MachineUIConfigPair
+                    {
+                        MachineConfig = new MachineConfig
+                        {
+                            StartNode = 0 ,
+                            Heads = new List<Head>(0) ,
+                            Transitions = new List<Transition>(0) ,
+                        } ,
+                        UILabel = new UILabel
+                        {
+                            Color = 0 ,
+                            HighlightBoxes = new List<HighlightBox>(0) ,
+                            Nodes = new List<Node>(0) ,
+                            TextLabels = new List<TextLabel>(0),
+                            TransitionLines = new List<TransitionLine>(0) ,
+                        } ,
+                    } ,
+                } ,
+            };
+
+            return template;
         }
     }
 }
