@@ -1,5 +1,6 @@
 import cors from "cors";
 import * as crypto from "crypto";
+import "dotenv/config";
 import express, { Request, Response } from "express";
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "fs";
 
@@ -7,7 +8,7 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSyn
 const DELAY = 2000;
 
 // test credentials
-const LICENSE = "69420";
+const LICENSE = process.env.LICENSE || "69420";
 
 // prepare directories
 mkdirSync("assets/levels", { recursive: true });
