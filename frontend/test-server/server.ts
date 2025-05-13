@@ -209,6 +209,12 @@ app.get("/api/level", async (req, res) => {
 	// Check level
 	const levelID = parseInt(req.query.levelID as string);
 	if (isNaN(levelID)) return sendResponse(res, "NO_SUCH_ITEM", undefined, 404);
+	// special case for sandbox
+	if (levelID == 255) {
+		const { result: machine } = wrapFile(`assets/users/${user.username}/sandbox.json`);
+		res.json({ design: machine });
+		return;
+	}
 	// copy level if user doesn't have their own instance
 	const levelName = LEVEL_NAMES[levelID];
 	if (!existsSync(`assets/users/${user.username}/levels/${levelName}.json`)) {
@@ -268,6 +274,12 @@ app.post("/api/save", (req, res) => {
 	if (req.body === undefined)
 		return sendResponse(res, "BACKEND_ERROR", "No machine", 400);
 	writeFileSync(`assets/users/${user.username}/progress.json`, JSON.stringify({ level: levelID, machineDesign: req.body, time: new Date().toISOString(), isSolved: false }));
+	if (levelID == 255) writeFileSync(`assets/users/${user.username}/sandbox.json`, JSON.stringify(req.body));
+	else {
+		const { result: level } = wrapFile(`assets/users/${user.username}/levels/${LEVEL_NAMES[levelID]}.json`);
+		level.design = req.body;
+		writeFileSync(`assets/users/${user.username}/levels/${LEVEL_NAMES[levelID]}.json`, JSON.stringify(level));
+	}
 	sendResponse(res, "SUCCESS");
 });
 
@@ -293,6 +305,32 @@ app.get("/api/import", (req, res) => {
 		return sendResponse(res, "NO_SUCH_ITEM", undefined, 404);
 	// return the machine
 	res.json(wrapFile(`assets/machines/${designID}.json`));
+});
+
+app.get("/api/stat", (req, res) => {
+	const user = validateToken(req);
+	if (!user) return sendResponse(res, "INVALID_TOKEN", undefined, 403);
+	const levelID = parseInt(req.query.levelID as string);
+	if (isNaN(levelID)) return sendResponse(res, "NO_SUCH_ITEM", undefined, 404);
+
+	const levelName = LEVEL_NAMES[levelID];
+	if (!existsSync(`assets/users/${user.username}/levels/${levelName}.json`))
+		return sendResponse(res, "SUCCESS", null);
+	const { result: level } = wrapFile(`assets/users/${user.username}/levels/${levelName}.json`);
+
+	if (level.operations < 0) return sendResponse(res, "SUCCESS", null);
+
+	// calculate percentage from other submissions
+	const submissions = [level.operations];
+	for (const user of readdirSync("assets/users")) {
+		const stat = statSync("assets/users/" + user);
+		if (!stat.isDirectory() || !existsSync(`assets/users/${user}/levels/${levelID}.json`)) continue;
+		const file = wrapFile(`assets/users/${user}/levels/${levelID}.json`);
+		if (file.result.operations >= 0) submissions.push(file.result.operations);
+	}
+
+	const rank = submissions.sort().indexOf(level.operations);
+	sendResponse(res, "SUCCESS", (submissions.length - rank) / submissions.length);
 });
 
 app.listen(3100, () => console.log("Listening..."));

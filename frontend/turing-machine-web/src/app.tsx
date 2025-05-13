@@ -23,7 +23,7 @@ export function App() {
 			validateAccessToken().then(async valid => {
 				if (valid) {
 					startAutoValidate();
-					if (!["/", "/mode", "/level", "/designer", "/tutorial"].includes(window.location.pathname) && !window.location.pathname.startsWith("/level/"))
+					if (!["/mode", "/level", "/designer", "/tutorial"].includes(window.location.pathname) && !window.location.pathname.startsWith("/level/"))
 						window.location.replace("/mode");
 					else {
 						const progress = await getProgress();

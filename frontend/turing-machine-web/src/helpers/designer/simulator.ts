@@ -595,7 +595,7 @@ class RenderingTuringMachineSimulator extends EventTarget {
 			const level = getLevel();
 			if (level) saveable = level.design;
 			else saveable = getMachine();
-			if (!saveable) return;
+			if (!saveable) saveable = { tapes: [], machines: [] };
 
 			this.tapes = [];
 			

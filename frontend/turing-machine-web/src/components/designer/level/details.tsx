@@ -54,7 +54,7 @@ export default function DesignerLevelDetails(props: { level: DetailedLevel, play
 
 	const submit = async () => {
 		const id = props.level.levelID;
-		if (!id) return;
+		if (id === undefined) return;
 		setLoading(true);
 		const saveable = simulator.save();
 		const result = await simulator.test();
