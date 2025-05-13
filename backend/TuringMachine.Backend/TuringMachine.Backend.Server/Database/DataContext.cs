@@ -102,7 +102,7 @@ namespace TuringMachine.Backend.Server.Database
                 .ToTable("TransitionLines" , uiLabelsSchema);
             modelBuilder
                 .Entity<TextLabel>()
-                .ToTable("Texts" , uiLabelsSchema);
+                .ToTable("TextLabel" , uiLabelsSchema);
             modelBuilder
                 .Entity<UIInfo>()
                 .ToTable("UIInfos" , uiLabelsSchema);
