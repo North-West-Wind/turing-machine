@@ -3,7 +3,6 @@
     internal class HighlightBoxesLabel
     {
         public Guid   UILabelID { get; set; }
-        // TODO: unused in response
         public short  BoxIndex  { get; set; }
         public string Title     { get; set; }
         public float  X         { get; set; }

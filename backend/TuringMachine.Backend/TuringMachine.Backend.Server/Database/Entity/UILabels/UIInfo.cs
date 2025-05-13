@@ -16,6 +16,7 @@ namespace TuringMachine.Backend.Server.Database.Entity.UILabels
         public ICollection<TransitionLine>      TransitionLines { get; set; }
         public ICollection<HighlightBoxesLabel> HighlighBoxes   { get; set; }
         public ICollection<NodeLabel>           Nodes           { get; set; }
+        public ICollection<TextLabel>           Texts           { get; set; }
         #endregion
     }
 }
