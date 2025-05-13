@@ -540,7 +540,7 @@ class RenderingTuringMachineSimulator extends EventTarget {
 				return {
 					SourceNodeID: statement.Source.StateID,
 					TargetNodeID: statement.Target.StateID,
-					Statements: statement.Conditions.map(cond => ({ Read: cond.Read, Write: cond.Write, Move: cond.Move })) as SaveableLogicTransitionStatement[]
+					Statements: statement.Conditions.map((cond, ii) => ({ Read: cond.Read, Write: cond.Write, Move: cond.Move, TapeID: machine.TapesReference[ii] } as SaveableLogicTransitionStatement))
 				};
 			});
 			stateCount += usedStates.size;
@@ -548,7 +548,6 @@ class RenderingTuringMachineSimulator extends EventTarget {
 			const heads: SaveableLogicHead[] = [];
 			for (let ii = 0; ii < machine.NumberOfHeads; ii++) {
 				heads.push({
-					HeadOrderIndex: ii,
 					Type: this.headTypeToSaveableString(machine.HeadTypes[ii]),
 					TapeID: machine.TapesReference[ii],
 					Position: machine.InitialPositions[ii]
@@ -591,7 +590,7 @@ class RenderingTuringMachineSimulator extends EventTarget {
 					InitialValues: tape.TapeContent
 				}))
 			},
-			Machine: machines
+			Machines: machines
 		};
 
 		const level = getLevel();
@@ -612,25 +611,22 @@ class RenderingTuringMachineSimulator extends EventTarget {
 
 			this.tapes = [];
 			
-			let index = 0;
 			this.inputTape = saveable.TapeInfo.InputTapes;
 			this.outputTape = saveable.TapeInfo.OutputTapes;
 			saveable.TapeInfo.Tapes.forEach(tape => {
 				const type = this.tapeTypeFromString(tape.Type);
 				if (type === undefined) return;
 				this.tapes.push(new TapeConfig(type, tape.InitialValues.length, tape.InitialValues));
-				index++;
 			});
 			this.graphs = [];
 			this.uiData = [];
 			this.machines = [];
-			index = 0;
-			saveable.Machine.forEach(machine => {
+			saveable.Machines.forEach(machine => {
 				this.uiData.push(new ClientSaveableUI(machine.UI));
 				const types: HeadTypes[] = [];
 				const positions: number[] = [];
 				const refs: number[] = [];
-				for (const head of machine.Machine.Heads) {
+				for (const head of machine.Machine.Heads.sort((a, b) => a.TapeID - b.TapeID)) {
 					const type = this.headTypeFromString(head.Type);
 					if (type === undefined) return null;
 					types.push(type);
@@ -646,7 +642,7 @@ class RenderingTuringMachineSimulator extends EventTarget {
 					return new TransitionStatement(
 						new TransitionNode(transition.SourceNodeID),
 						new TransitionNode(transition.TargetNodeID),
-						transition.Statements.map(statement => new HeadTransition(statement.Read, statement.Write, statement.Move)));
+						transition.Statements.sort((a, b) => a.TapeID - b.TapeID).map(statement => new HeadTransition(statement.Read, statement.Write, statement.Move)));
 				});
 				this.machines.push(new TuringMachineConfig(
 					machine.Machine.Heads.length,

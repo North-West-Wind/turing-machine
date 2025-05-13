@@ -16,8 +16,8 @@ export function App() {
 		const auth = getAuth();
 		if (!auth) {
 			// Not logged in -> /login
-			//if (window.location.pathname != "/login")
-			//	window.location.replace("/login");
+			if (window.location.pathname != "/login")
+				window.location.replace("/login");
 		}	else {
 			// Logged in -> validate
 			validateAccessToken().then(async valid => {

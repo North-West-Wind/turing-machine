@@ -60,7 +60,6 @@ export type SaveableLogicTransition = {
 }
 
 export type SaveableLogicHead = {
-	HeadOrderIndex: number;
 	TapeID: number;
 	Type: "Read" | "Write" | "ReadWrite";
 	Position: number;
@@ -88,7 +87,7 @@ export type SaveableTuringMachine = {
 
 	TapeInfo: SaveableTapeInfo;
 
-  Machine: SaveableMachine[];
+  Machines: SaveableMachine[];
 }
 
 export class ClientSaveableUI implements ISaveable<SaveableUI> {

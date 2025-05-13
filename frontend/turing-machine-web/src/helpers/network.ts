@@ -9,8 +9,8 @@ import { DateTime } from "luxon";
 const BASE_URL = "/API";
 
 type UnsuccessfulServerResponse = {
-	ResponseTime: string;
-	Status: "TOKEN_EXPIRED"
+	time: string;
+	status: "TOKEN_EXPIRED"
 				| "INVALID_TOKEN"
 				| "INVALID_USERNAME_OR_PASSWORD"
 				| "INVALID_PASSWORD"
@@ -24,13 +24,13 @@ type UnsuccessfulServerResponse = {
 				| "DUPLICATED_USER"
 				| "DUPLICATED_DESIGN"
 				| "DUPLICATED_ITEM";
-	ResponseTrace: string;
+	responseStackTrace: string;
 }
 
 type SuccessfulServerResponse<T> = {
-	ResponseTime: string;
-	Status: "SUCCESS";
-	Result: T;
+	time: string;
+	status: "SUCCESS";
+	result: T;
 }
 
 type ServerResponse<T> = UnsuccessfulServerResponse | SuccessfulServerResponse<T>;
@@ -42,7 +42,7 @@ export type Auth = {
 
 export type CloudSaveResult = {
 	error: boolean;
-	message?: UnsuccessfulServerResponse["Status"];
+	message?: UnsuccessfulServerResponse["status"];
 }
 
 export type CloudProgress = {
@@ -62,10 +62,10 @@ async function encryptWithPubkey(data: string) {
 	let res = await fetch(BASE_URL + "/Server/GetPublicKey");
 	if (!res.ok) throw new Error("Received HTTP status: " + res.status);
 	const json = await res.json() as ServerResponse<string>;
-	if (json.Status != "SUCCESS") throw new Error("Unsuccessful server response");
+	if (json.status != "SUCCESS") throw new Error("Unsuccessful server response");
 
 	// Do the encryption
-	encrypt.setPublicKey(json.Result);
+	encrypt.setPublicKey(json.result);
 	const encrypted = encrypt.encrypt(data);
 	if (!encrypted) throw new Error("Encryption failed");
 	return encrypted;
@@ -91,6 +91,9 @@ async function normFetch<T>(url: string, queries: Record<string, string | number
 	const urlQueries: string[] = [];
 	for (const [key, value] of Object.entries(queries))
 		urlQueries.push(`${key}=${encodeURIComponent(value)}`);
+
+	// for server debugging
+	console.log(BASE_URL + url + `?${urlQueries.join("&")}`);
 
 	// Make the request
 	const res = await fetch(BASE_URL + url + `?${urlQueries.join("&")}`, {
@@ -123,66 +126,66 @@ export async function login(username: string, password: string) {
 
 	// Make login request
 	const json = await normFetch<string>("/User/Login", { username, hashedPassword, salt }, "POST");
-	if (json.Status != "SUCCESS") throw new Error("Unsuccessful server response");
-	return json.Result;
+	if (json.status != "SUCCESS") throw new Error("Unsuccessful server response");
+	return json.result;
 }
 
 export async function register(username: string, password: string, licenseKey: string) {
 	// Encrypt password
 	const hash = await sha256(password); // Source password. DB stores hash of this
-	const rsaEncryptedPassword = await encryptWithPubkey(hash);
+	password = await encryptWithPubkey(hash);
 
 	// Make register request
-	const json = await normFetch<string>("/User/Register", { username, rsaEncryptedPassword, licenseKey }, "POST");
-	if (json.Status != "SUCCESS") throw new Error("Unsuccessful server response");
-	return json.Result;
+	const json = await normFetch<string>("/User/Register", { username, password, licenseKey }, "POST");
+	if (json.status != "SUCCESS") throw new Error("Unsuccessful server response");
+	return json.result;
 }
 
 export async function validateAccessToken() {
 	const json = await authFetch("/User/ValidateToken");
-	return json.Status == "SUCCESS";
+	return json.status == "SUCCESS";
 }
 
 export async function includeDesign(designID: DesignID) {
 	const json = await authFetch("/User/IncludeDesign", { designID }, "POST");
-	if (json.Status != "SUCCESS") throw new Error("Unsuccessful server response");
+	if (json.status != "SUCCESS") throw new Error("Unsuccessful server response");
 }
 
 // Level
 export async function getLevels() {
 	const json = await authFetch<Level[]>("/LevelTemplate/GetAll");
-	if (json.Status != "SUCCESS") throw new Error("Unsuccessful server response");
-	return json.Result;
+	if (json.status != "SUCCESS") throw new Error("Unsuccessful server response");
+	return json.result;
 }
 
 export async function getLevel(levelID: string | number) {
 	const json = await authFetch<Level>("/LevelTemplate/Get", { levelID });
-	if (json.Status != "SUCCESS") throw new Error("Unsuccessful server response");
-	return json.Result;
+	if (json.status != "SUCCESS") throw new Error("Unsuccessful server response");
+	return json.result;
 }
 
 // Machine Design
 export async function createMachine(machine: SaveableTuringMachine) {
 	const json = await authFetch<DesignID>("/MachineDesign/Create", {}, "POST", machine);
-	if (json.Status != "SUCCESS") throw new Error("Unsuccessful server response");
-	return json.Result;
+	if (json.status != "SUCCESS") throw new Error("Unsuccessful server response");
+	return json.result;
 }
 
 export async function updateMachine(designID: DesignID, machine: SaveableTuringMachine) {
 	const json = await authFetch("/MachineDesign/Update", { designID }, "POST", machine);
-	if (json.Status != "SUCCESS") throw new Error("Unsuccessful server response");
+	if (json.status != "SUCCESS") throw new Error("Unsuccessful server response");
 }
 
 export async function deleteMachine(designID: DesignID) {
 	const json = await authFetch("/MachineDesign/Delete", { designID }, "POST");
-	if (json.Status != "SUCCESS") throw new Error("Unsuccessful server response");
+	if (json.status != "SUCCESS") throw new Error("Unsuccessful server response");
 }
 
 export async function getMachine(designID: DesignID) {
 	try {
 		const json = await authFetch<SaveableTuringMachine>("/MachineDesign/Get", { designID }, "POST");
-		if (json.Status != "SUCCESS") return undefined;
-		return json.Result;
+		if (json.status != "SUCCESS") return undefined;
+		return json.result;
 	} catch (err) {
 		console.error(err);
 		return undefined;
@@ -191,28 +194,28 @@ export async function getMachine(designID: DesignID) {
 
 export async function submitMachine(machine: SaveableTuringMachine, levelID: number) {
 	const json = await authFetch("/Progress/Update", { levelID, isSolved: "true" }, "POST", machine);
-	if (json.Status != "SUCCESS") throw new Error("Unsuccessful server response");
+	if (json.status != "SUCCESS") throw new Error("Unsuccessful server response");
 }
 
 export async function saveMachine(machine: SaveableTuringMachine, levelID: number): Promise<CloudSaveResult> {
 	const json = await authFetch("/Progress/Update", { levelID, isSolved: "false" }, "POST", machine);
-	if (json.Status != "SUCCESS") return { error: true, message: json.Status };
+	if (json.status != "SUCCESS") return { error: true, message: json.status };
 	return { error: false };
 }
 
 export async function createProgress(levelID: number) {
 	const json = await authFetch<DesignID>("/Progress/Create", { levelID }, "POST");
-	if (json.Status != "SUCCESS") throw new Error("Unsuccessful server response");
-	return json.Result;
+	if (json.status != "SUCCESS") throw new Error("Unsuccessful server response");
+	return json.result;
 }
 
 export async function getLevelProgress(levelID: number) {
 	try {
 		const json = await authFetch<CloudProgress & { SubmittedTime: string }>("/Progress/Get", { levelID });
-		if (json.Status != "SUCCESS") return undefined;
+		if (json.status != "SUCCESS") return undefined;
 		// Get timezone from server time, set timezone for save time
-		(json.Result as CloudProgress).SubmittedTime = DateTime.fromISO(json.Result.SubmittedTime).setZone(DateTime.fromISO(json.ResponseTime).zone).toMillis();
-		return json.Result as CloudProgress;
+		(json.result as CloudProgress).SubmittedTime = DateTime.fromISO(json.result.SubmittedTime).setZone(DateTime.fromISO(json.time).zone).toMillis();
+		return json.result as CloudProgress;
 	} catch (err) {
 		console.error(err);
 		return undefined;
@@ -222,10 +225,10 @@ export async function getLevelProgress(levelID: number) {
 export async function getAllProgress() {
 	try {
 		const json = await authFetch<(CloudProgress & { SubmittedTime: string })[]>("/Progress/GetAll");
-		if (json.Status != "SUCCESS") return undefined;
-		return json.Result.map(progress => {
+		if (json.status != "SUCCESS") return undefined;
+		return json.result.map(progress => {
 			// Get timezone from server time, set timezone for save time
-			(progress as CloudProgress).SubmittedTime = DateTime.fromISO(progress.SubmittedTime).setZone(DateTime.fromISO(json.ResponseTime).zone).toMillis();
+			(progress as CloudProgress).SubmittedTime = DateTime.fromISO(progress.SubmittedTime).setZone(DateTime.fromISO(json.time).zone).toMillis();
 			return progress;
 		});
 	} catch (err) {

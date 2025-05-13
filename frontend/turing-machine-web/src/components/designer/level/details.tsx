@@ -24,9 +24,13 @@ export default function DesignerLevelDetails(props: { level: Level, playable?: b
 
 	}, [solved]);
 
-	const play = () => {
+	const play = async () => {
 		save(PersistenceKey.LEVEL, JSON.stringify(props.level));
-		createProgress(props.level.LevelID).catch(console.error);
+		try {
+			await createProgress(props.level.LevelID);
+		} catch (err) {
+			console.error(err);
+		}
 		navigate("/designer");
 	};
 

@@ -26,18 +26,18 @@ export default function LoginPage() {
 		<div className='box'>
 			<h1> {header}</h1>
 			<br></br>
-			<Login_box BoxChange={UserChange} default_holder='Your name' />
+			<Login_box BoxChange={UserChange} default_holder='Your name' type='text' />
 			<br/>
 			<br/>
 
-			<Login_box BoxChange={PwChange} default_holder='Password'/>
+			<Login_box BoxChange={PwChange} default_holder='Password' type='password'/>
 			<br/>
 			<br/>
 			
 			{
 				isToggled ?
 				<div>
-					<Login_box BoxChange={KeyChange} default_holder='License Key'/>
+					<Login_box BoxChange={KeyChange} default_holder='License Key' type='text'/>
 					<br></br>
 					<br></br>
 				</div>

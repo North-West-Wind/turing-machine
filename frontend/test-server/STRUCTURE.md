@@ -17,7 +17,7 @@ User:
 LevelTemplate:
 - Get <LevelID>  => ServerResponse<LevelTemplate>
 - GetAll  => ServerResponse<LevelTemplate[]>
-.
+
 LicenseKey:
 - Create <count>
 
@@ -130,7 +130,7 @@ MachineDesign {
             string: InitialValues
         }]
     }
-    object[]: MachineDesign [{
+    object[]: Machines [{
         object: UI {
             int : Color
             object[]: TransitionLines [{
@@ -168,7 +168,7 @@ MachineDesign {
             object[]: Transitions [{
                 short: SourceNodeID
                 short: TargetNodeID
-                object[]: Statements [{
+                object[0~256]: Statements [{
                     short: TapeID
                     char: Read
                     char: Write
@@ -177,7 +177,6 @@ MachineDesign {
             }]
 
             object[]: Heads [{
-                short: HeadOrderIndex
                 short: TapeID
                 Enum(Read/Write/ReadWrite) HeadType: Type
                 int: Position
