@@ -102,6 +102,10 @@ namespace TuringMachine.Backend.Server.DbInteractions.DbMachineInteraction
         
         public static async Task<ServerResponse<string>> UpdateAndSaveMachineDesign(ResponseMachineDesign design , string designID , DataContext db)
         {
+            ServerResponse deleteMachineDesignResponse = DeleteMachineDesign(designID , db);
+            if (deleteMachineDesignResponse.Status is not SUCCESS)
+                return deleteMachineDesignResponse.WithThisTraceInfo<string>(nameof(UpdateAndSaveMachineDesign) , deleteMachineDesignResponse.Status);
+
             ServerResponse<string> createMachineDesignResponse = CreateMachineDesign(design , designID , db);
             if (createMachineDesignResponse.Status is not SUCCESS)
                 return createMachineDesignResponse.WithThisTraceInfo<string>(nameof(CreateAndSaveMachineDesign) , createMachineDesignResponse.Status);
@@ -161,5 +165,38 @@ namespace TuringMachine.Backend.Server.DbInteractions.DbMachineInteraction
             
             return new ServerResponse<string>(SUCCESS , designID);
         }
-    }
+
+        public static async Task<ServerResponse> DeleteAndCommitMachineDesign(string designID , DataContext db)
+        {
+            ServerResponse deleteMachineDesignResponse = DeleteMachineDesign(designID , db);
+            if (deleteMachineDesignResponse.Status is not SUCCESS)
+                return deleteMachineDesignResponse.WithThisTraceInfo<string>(nameof(DeleteAndCommitMachineDesign) , deleteMachineDesignResponse.Status);
+
+            await db.SaveChangesAsync();
+            return deleteMachineDesignResponse;
+        }
+
+        public static ServerResponse DeleteMachineDesign(string designID , DataContext db)
+        {
+            using IEnumerator<DbMachineDesign> dbMachineDesigns = db.MachineDesigns.Where(machine => machine.DesignID == Guid.Parse(designID)).GetEnumerator();
+            if (!dbMachineDesigns.MoveNext()) return ServerResponse.StartTracing(nameof(DeleteMachineDesign) , NO_SUCH_ITEM);
+            DbMachineDesign dbMachineDesign = dbMachineDesigns.Current;
+            if (dbMachineDesigns.MoveNext()) return ServerResponse.StartTracing(nameof(DeleteMachineDesign) , DUPLICATED_ITEM);
+
+            db.MachineDesigns.Remove(dbMachineDesign);
+
+            ServerResponse deleteMachineResponse = DbMachineInteraction.DeleteMachines(designID , db);
+            if (deleteMachineResponse.Status is not SUCCESS)
+                return deleteMachineResponse.WithThisTraceInfo(nameof(DeleteMachineDesign) , BACKEND_ERROR);
+
+            ServerResponse deleteTapeResponse = DbTapeInteraction.DeleteTapes(designID , db);
+            if (deleteTapeResponse.Status is not SUCCESS)
+                return deleteTapeResponse.WithThisTraceInfo(nameof(DeleteMachineDesign) , BACKEND_ERROR);
+
+            ServerResponse deleteUiResponse = DbUIInfoInteraction.DeleteUIInfos(designID , db);
+            if (deleteUiResponse.Status is not SUCCESS)
+                return deleteUiResponse.WithThisTraceInfo(nameof(DeleteMachineDesign) , BACKEND_ERROR);
+
+            return new ServerResponse<string>(SUCCESS , designID);
+        }
 }
