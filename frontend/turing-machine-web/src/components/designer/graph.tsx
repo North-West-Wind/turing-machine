@@ -81,7 +81,20 @@ export default function DesignerGraph(props: { width: number, height: number, st
 			simulator.removeEventListener(TuringMachineEvent.CHANGE_MACHINE, onTmChangeMachine);
 			simulator.removeEventListener(TuringMachineEvent.DELETE_MACHINE, onTmDeleteMachine);
 			simulator.removeEventListener(TuringMachineEvent.STEP, onTmStep);
+			// reset properties
+			machineId = undefined;
+			graph = undefined;
+			position = Vec2.ZERO;
+			cursorPosition = Vec2.ZERO; // cursor pos relative to translation
+			mousePosition = Vec2.ZERO; // cursor pos relative to window
+			scale = 1;
 			bottomRightText = { text: "", time: 0 };
+			
+			hovered = undefined;
+			grabbed = undefined;
+			lastGrabbed = { time: Date.now(), hovered: undefined as (typeof grabbed) };
+			
+			creatingEdge = undefined;
 		};
 	}, []);
 

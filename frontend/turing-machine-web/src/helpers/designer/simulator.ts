@@ -324,7 +324,7 @@ class RenderingTuringMachineSimulator extends EventTarget {
 		if (!level) return -1;
 		const MAX_STEPS = 1_000_000; // arbitary max step to avoid infinite loop
 		let operations = 0;
-		for (const { input, output } of level.tests) {
+		for (const { input, output } of level.testCases) {
 			this.build(input);
 			TuringMachineSimulator.StartSimulation();
 			let halted = false, steps = 0;
@@ -571,7 +571,7 @@ class RenderingTuringMachineSimulator extends EventTarget {
 
 		const saveable: SaveableTuringMachine = {
 			tapes: this.tapes.map((tape, ii) => ({
-				type: this.tapeTypeToSaveableString(tape.TapeType).toLowerCase(),
+				type: this.tapeTypeToSaveableString(tape.TapeType),
 				values: tape.TapeContent || undefined,
 				isInput: this.inputTape == ii,
 				isOutput: this.outputTape == ii
@@ -581,7 +581,7 @@ class RenderingTuringMachineSimulator extends EventTarget {
 
 		const level = getLevel();
 		if (level) {
-			level.machine = saveable;
+			level.design = saveable;
 			save(PersistenceKey.LEVEL, JSON.stringify(level));
 		} else save(PersistenceKey.MACHINE, JSON.stringify(saveable));
 
@@ -593,9 +593,9 @@ class RenderingTuringMachineSimulator extends EventTarget {
 			// load saved machine. priority: level -> machine
 			let saveable: SaveableTuringMachine | undefined;
 			const level = getLevel();
-			if (level) saveable = level.machine;
+			if (level) saveable = level.design;
 			else saveable = getMachine();
-			if (!saveable) return;
+			if (!saveable) saveable = { tapes: [], machines: [] };
 
 			this.tapes = [];
 			

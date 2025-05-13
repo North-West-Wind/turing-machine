@@ -63,10 +63,10 @@ Salt is used for hashing the password during `/login`.
 ```json
 {
   "tapes": [
-    { "type": "infinite", "isInput": true }, // input
-    { "type": "infinite", "isOutput": true }, // output
+    { "type": "Infinite", "isInput": true }, // input
+    { "type": "Infinite", "isOutput": true }, // output
     { // storage tapes (can have more)
-      "type": "left_limited",
+      "type": "LeftLimited",
       "values": "a" // initial value of storage tape
     }
   ],
@@ -84,8 +84,8 @@ Salt is used for hashing the password during `/login`.
 				}
       ],
       "heads": [ // heads, with their type and tape ref
-        { "type": "r", "tape": 0, "position": 2 }, // type can be r, w or rw. tape is the index of top-level `tapes`. position is the initial position of the head
-        { "type": "rw", "tape": 0, "position": -1 }
+        { "type": "Read", "tape": 0, "position": 2 }, // type can be r, w or rw. tape is the index of top-level `tapes`. position is the initial position of the head
+        { "type": "ReadWrite", "tape": 0, "position": -1 }
       ],
 			"startNode": 0,
 			"label": {
@@ -111,22 +111,22 @@ Salt is used for hashing the password during `/login`.
 ### Simple Level (Used in GET `/levels`)
 ```json
 {
-	"id": "level id",
+	"levelID": 1, // ID in number
 	"title": "level title",
 	"description": "short description",
-	"parent": "another level id"
+	"parent": 0
 }
 ```
 
 ### Level (Used in GET `/level`)
 ```json
 {
-	"id": "level id",
+	"levelID": 1,
 	"title": "level title",
 	"description": "long description",
-	"parent": "another level id",
-	"children": ["another level id"],
-	"tests": [
+	"parents": [0],
+	"children": [2, 3, 4],
+	"testCases": [
 		{
 			"input": "test input",
 			"output": "test output"
@@ -137,10 +137,10 @@ Salt is used for hashing the password during `/login`.
 		"transitions": { "min": 0, "max": 10 },
 		"tapes": { "min": 1, "max": 2 },
 		"heads": { "min": 1, "max": 3 },
-		"tapeTypes": ["infinite", "circular"] // tape types allowed for ANY tape
+		"tapeTypes": ["Infinite", "Circular"] // tape types allowed for ANY tape
 	},
 	"solved": true, // whether this user has solved this level
-	"machine": { /* Turing Machine data structure */ } // the machine this user has last submitted
+	"design": { /* Turing Machine data structure */ } // the machine this user has last submitted
 }
 ```
 
@@ -205,7 +205,7 @@ Response data:
 - `timestamp`: The time this progress is saved
 ```json
 {
-	"level": "level_id",
+	"level": 255, // 255 is a placeholder level
 	"machine": { /* Turing Machine data structure */ },
 	"timestamp": 12345
 }
@@ -250,13 +250,8 @@ Request parameters:
 - `rsaEncryptedPassword`: RSA-encrypted password
 - `licenseKey`: License key for registration
 
-Response data:
-- `access_token`: Access token for client to make further authorized requests
-```json
-{
-	"accessToken": "token for user"
-}
-```
+Response data:  
+String. Access token for client to make further authorized requests
 
 ### GET `/levels`
 - Access token: Required
@@ -267,9 +262,7 @@ No request body.
 
 Response data:
 ```json
-{
-	"levels": [{ /* Simple Level data structure */}]
-}
+[{ /* Simple Level data structure */}]
 ```
 
 ### GET `/level`
@@ -282,9 +275,7 @@ Request parameter:
 
 Response data:
 ```json
-{
-	"level": { /* Level data structure */ }
-}
+{ /* Level data structure */ }
 ```
 
 ### POST `/level`
@@ -294,17 +285,20 @@ Submit a solution for a level.
 
 Request parameters:
 - `levelID`
-- `correct`: Whether client validation yields a correct result
-- `states`: Amount of states in the machine
-- `transitions`: Amount of transitions in the machine
-- `tapes`: Amount of tapes used
 - `operations`: Amount of operations for all the cases
 
-Response data:
-- `rank`: A percentage. Rank of this solution.
+Request body:
+- A Turing Machine data structure
+
+Response data:  
+Ranks of individual parts of the machine.
 ```json
 {
-	"rank": 0.5 // Range: [0, 1]
+	"transitions": { "rank": 1, "max": 10 }, // 1 out of 10,
+	"states": { "rank": 2, "max": 10 }, // 2 out of 10
+	"heads": { "rank": 4, "max": 10 }, // 4 out of 10
+	"tapes": { "rank": 4, "max": 10 }, // 4 out of 10
+	"operations": { "rank": 8, "max": 10 } // 8 out of 10
 }
 ```
 
@@ -314,7 +308,7 @@ Response data:
 Save client's progress to the server.
 
 Request parameter:
-- `level`: Level ID, nullable. If null, means the user is in sandbox mode
+- `levelID`: Level ID, nullable. If null, means the user is in sandbox mode
 Request body:
 ```json
 { /* Turing Machine data structure */ }
@@ -339,7 +333,7 @@ Request body:
 ```
 
 Response data:
-- `id`: Server-generated ID of the Turing Machine. Can be used in `/import/:id`
+- `id`: Server-generated ID of the Turing Machine. Can be used in `/import?designID=1234`
 ```json
 {
 	"id": "machine id"
@@ -352,13 +346,11 @@ Response data:
 Only usable in sandbox mode (client-side duty). Imports a Turing Machine uploaded by `/upload` using an ID.
 
 Request parameter:
-- `id`: Turing Machine ID
+- `designID`: Turing Machine ID
 
 Response data:
 ```json
-{
-	"machine": { /* Turing Machine data structure */ }
-}
+{ /* Turing Machine data structure */ }
 ```
 
 ### GET `/stat`
@@ -369,10 +361,14 @@ Returns the ranking of the user's last submitted machine of a level.
 Request parameter:
 - `levelID`
 
-Response data:
-- `rank`: Rank of the last submitted solution in percentage, or null if user have not solved this level.
+Response data:  
+Ranks of individual parts of the machine.
 ```json
 {
-	"rank": 0.5 // Range: [0, 1] or null
+	"transitions": { "rank": 1, "max": 10 }, // 1 out of 10,
+	"states": { "rank": 2, "max": 10 }, // 2 out of 10
+	"heads": { "rank": 4, "max": 10 }, // 4 out of 10
+	"tapes": { "rank": 4, "max": 10 }, // 4 out of 10
+	"operations": { "rank": 8, "max": 10 } // 8 out of 10
 }
 ```

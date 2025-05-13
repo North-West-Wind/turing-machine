@@ -8,8 +8,8 @@ export type LevelTest = {
 }
 
 export type RangeContraints = {
-	min: number;
-	max: number;
+	min?: number;
+	max?: number;
 }
 
 export type LevelContraints = {
@@ -17,26 +17,27 @@ export type LevelContraints = {
 	transitions?: RangeContraints;
 	tapes?: RangeContraints;
 	heads?: RangeContraints;
-	tapeTypes?: ("infinite" | "left-limited" | "right-limited" | "left-right-limited" | "circular")[];
+	tapeTypes?: ("Infinite" | "LeftLimited" | "RightLimited" | "LeftRightLimited" | "Circular")[];
 }
 
 export type DetailedLevel = {
-	id: string;
+	levelID: number;
 	title: string;
 	description: string;
-	parent: string;
-	children: string[];
-	tests: LevelTest[];
+	parents: number[];
+	children: number[];
+	testCases: LevelTest[];
 	constraints: LevelContraints;
-	solved: boolean;
-	machine?: SaveableTuringMachine;
+	isSolved: boolean;
+	design?: SaveableTuringMachine;
+	operations: number;
 }
 
 export type SimpleLevel = {
-	id: string;
+	levelID: number;
 	title: string;
 	description: string;
-	parent?: string;
+	parent?: number;
 }
 
 // A state to store the constraints of level
@@ -67,8 +68,8 @@ class ConstraintHandler {
 	}
 
 	validRange(val: number, range: RangeContraints) {
-		if (val < range.min) return [-1, range.min, range.max];
-		if (val > range.max) return [1, range.min, range.max];
+		if (range.min !== undefined && val < range.min) return [-1, range.min, range.max === undefined ? Infinity : range.max];
+		if (range.max !== undefined && val > range.max) return [1, range.min === undefined ? Infinity : range.min, range.max];
 		return [0];
 	}
 

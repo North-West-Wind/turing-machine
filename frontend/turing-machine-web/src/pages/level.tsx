@@ -4,7 +4,9 @@ import LevelTreeCanvas from "../components/level/canvas";
 import "../styles/level.css";
 import { useNavigate, useParams } from "react-router-dom";
 import { DetailedLevel, SimpleLevel } from "../helpers/designer/level";
-import { getLevel, getLevels } from "../helpers/network";
+import { getLevel } from "../helpers/network";
+import Loading from "../components/common/loading";
+import { cacheLevel, lazyLevels } from "../helpers/lazy";
 
 export default function LevelPage() {
 	const params = useParams();
@@ -17,7 +19,7 @@ export default function LevelPage() {
 	useEffect(() => {
 		(async () => {
 			try {
-				setLevels(await getLevels());
+				setLevels(await lazyLevels.get());
 			} catch (err) {
 				console.error(err);
 			}
@@ -31,7 +33,9 @@ export default function LevelPage() {
 				return;
 			}
 			try {
-				setLevel(await getLevel(params.id));
+				const level = cacheLevel(parseInt(params.id));
+				if (level) setLevel(level);
+				else setLevel(cacheLevel(await getLevel(params.id)));
 				setDetailed(true);
 			} catch (err) {
 				console.error(err);
@@ -40,12 +44,12 @@ export default function LevelPage() {
 	}, [params.id]);
 
 	if (!levels) return <div className="level-container">
-		Loading
+		<Loading enabled />
 	</div>;
 
-	const openLevel = async (levelId?: string) => {
-		if (!levelId) return;
-		navigate(`/level/${levelId}`, { replace: !!params.id });
+	const openLevel = async (levelId?: number) => {
+		if (levelId === undefined) return;
+		navigate(`/level/${levelId}`, { replace: params.id !== undefined });
 	}
 
 	const closeLevel = () => {

@@ -1,9 +1,9 @@
 {
-	"id": "what",
+	"levelID": 2,
 	"title": "What?",
 	"description": "You don't know the letter \"a\", but you do know the letter \"b\". If an input has more \"a\" than \"b\", you will be confused. When you are confused, repeat the sentence and add a question mark after it.",
-	"parent": "rev-str",
-	"tests": [
+	"parents": [1],
+	"testCases": [
 		{
 			"input": "aabb",
 			"output": "aabb"
@@ -22,5 +22,6 @@
 		}
 	],
 	"constraints": {},
-	"solved": false
+	"isSolved": false,
+	"operations": -1
 }

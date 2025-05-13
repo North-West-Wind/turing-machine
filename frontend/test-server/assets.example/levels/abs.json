@@ -1,10 +1,10 @@
 {
-	"id": "abs",
+	"levelID": 3,
 	"title": "Absolutely!",
 	"description": "For any given integer input, output the absolute value of it. For simplicity, digits are limited to 1 and 2.",
-	"parent": "rev-str",
-	"children": ["div-3"],
-	"tests": [
+	"parents": [1],
+	"children": [5],
+	"testCases": [
 		{
 			"input": "1",
 			"output": "1"
@@ -19,5 +19,6 @@
 		}
 	],
 	"constraints": {},
-	"solved": false
+	"isSolved": false,
+	"operations": -1
 }

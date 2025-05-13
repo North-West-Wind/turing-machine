@@ -43,3 +43,13 @@ export function getAuth() {
 export function getRanks() {
 	return get<Record<string, number>>(PersistenceKey.RANK);
 }
+
+export function invalidateAuth() {
+	save(PersistenceKey.AUTH, undefined, false);
+}
+
+export function getSaveTime() {
+	const value = window.localStorage.getItem(PersistenceKey.TIME);
+	if (!value) return 0;
+	return parseInt(value);
+}
