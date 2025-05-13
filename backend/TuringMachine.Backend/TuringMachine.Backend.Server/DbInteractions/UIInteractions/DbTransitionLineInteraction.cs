@@ -1,3 +1,4 @@
+using System.Buffers;
 using TuringMachine.Backend.Server.Database;
 using TuringMachine.Backend.Server.Models.UserInterface;
 using TuringMachine.Backend.Server.Models.Misc;
@@ -17,15 +18,25 @@ namespace TuringMachine.Backend.Server.DbInteractions.UIInteractions
             
             List<TransitionLine> lines = dbTransitions.Select(v =>
             {
-                List<Vector2<byte>> steps = new List<Vector2<byte>>(v.StepX.Length);
-                for (int i = 0; i < v.StepX.Length; i++)
+                int count = v.StepX.Length / sizeof(float);
+                float[] stepX = ArrayPool<float>.Shared.Rent(count);
+                float[] stepY = ArrayPool<float>.Shared.Rent(count);
+                
+                Buffer.BlockCopy(v.StepX , 0 , stepX , 0 , v.StepX.Length);
+                Buffer.BlockCopy(v.StepY , 0 , stepY , 0 , v.StepY.Length);
+                
+                Vector2<float>[] steps = new Vector2<float>[count];
+                for (int i = 0; i < count; i++)
                 {
-                    steps.Add(new Vector2<byte>
+                    steps[i] = new Vector2<float>
                     {
-                        X = v.StepX[i] ,
-                        Y = v.StepY[i]
-                    });
+                        X = stepX[i] ,
+                        Y = stepY[i]
+                    };
                 }
+                
+                ArrayPool<float>.Shared.Return(stepX);
+                ArrayPool<float>.Shared.Return(stepY);
                 
                 return new TransitionLine
                 {
@@ -46,14 +57,25 @@ namespace TuringMachine.Backend.Server.DbInteractions.UIInteractions
             Guid id = Guid.Parse(labelUUID);
             db.TransitionLines.AddRange(lines.Select(v =>
             {
-                byte[] stepX = new byte[v.Steps.Count];
-                byte[] stepY = new byte[v.Steps.Count];
+                int count = v.Steps.Count;
+                
+                float[] rawStepX = ArrayPool<float>.Shared.Rent(count);
+                float[] rawStepY = ArrayPool<float>.Shared.Rent(count);
 
-                for (int i = 0; i < v.Steps.Count; i++)
+                for (int i = 0; i < count; i++)
                 {
-                    stepX[i] = v.Steps[i].X;
-                    stepY[i] = v.Steps[i].Y;
+                    rawStepX[i] = v.Steps[i].X;
+                    rawStepY[i] = v.Steps[i].Y;
                 }
+
+                byte[] stepX = new byte[v.Steps.Count * sizeof(float)];
+                byte[] stepY = new byte[v.Steps.Count * sizeof(float)];
+                
+                Buffer.BlockCopy(rawStepX , 0 , stepX , 0 , stepX.Length);
+                Buffer.BlockCopy(rawStepY , 0 , stepY , 0 , stepY.Length);
+                
+                ArrayPool<float>.Shared.Return(rawStepX);
+                ArrayPool<float>.Shared.Return(rawStepY);
 
                 return new DbTransitionLine
                 {
