@@ -1,0 +1,90 @@
+using TuringMachine.Backend.Server.Database;
+using TuringMachine.Backend.Server.Database.Entity.UILabels;
+using TuringMachine.Backend.Server.Models.Misc;
+using TuringMachine.Backend.Server.Models.UserInterface;
+using TuringMachine.Backend.Server.Models.UserInterface.HighlightBoxes;
+using TuringMachine.Backend.Server.Models.UserInterface.Nodes;
+using TuringMachine.Backend.Server.ServerResponses;
+
+using TransitionLine = TuringMachine.Backend.Server.Models.UserInterface.TransitionLine;
+
+namespace TuringMachine.Backend.Server.DbInteractions.UserInteractions
+{
+    internal class DbUIInfoInteraction
+    {
+        public static ServerResponse<UI> GetUIInfo(string machineID , DataContext db)
+        {
+             using IEnumerator<UIInfo> uiInfos = db.UiInfos
+                .Where(v => v.DesignID == Guid.Parse(machineID))
+                .GetEnumerator();
+            
+            if (!uiInfos.MoveNext())
+                return ServerResponse.StartTracing<UI>(nameof(GetUIInfo) , ResponseStatus.NO_SUCH_ITEM);
+            
+            UIInfo uiInfo = uiInfos.Current;
+            
+            if (uiInfos.MoveNext())
+                return ServerResponse.StartTracing<UI>(nameof(GetUIInfo) , ResponseStatus.DUPLICATED_ITEM);
+            
+            ServerResponse<IList<Node>> nodesResponse = DbNodeInteraction.GetNode(uiInfo.UILabelID.ToString() , db);
+            if (nodesResponse.Status is not ResponseStatus.SUCCESS)
+                return ServerResponse.StartTracing<UI>(nameof(DbNodeInteraction.GetNode) , nodesResponse.Status);
+            
+            ServerResponse<IList<TransitionLine>> transitionLinesResponse = DbTransitionLineInteraction.GetTransitionLine(uiInfo.UILabelID.ToString() , db);
+            if (transitionLinesResponse.Status is not ResponseStatus.SUCCESS)
+                return ServerResponse.StartTracing<UI>(nameof(DbTransitionLineInteraction.GetTransitionLine) , transitionLinesResponse.Status);
+            
+            ServerResponse<IList<HighlightBox>> highlightBoxesResponse = DbHighlightBoxInteraction.GetHighlightBox(uiInfo.UILabelID.ToString() , db);
+            if (highlightBoxesResponse.Status is not ResponseStatus.SUCCESS)
+                return ServerResponse.StartTracing<UI>(nameof(DbHighlightBoxInteraction.GetHighlightBox) , highlightBoxesResponse.Status);
+            
+            UI ui = new UI
+            {
+                Color          = uiInfo.Color,
+                Nodes          = nodesResponse.Result!,
+                TransitionLines = transitionLinesResponse.Result!,
+                HighlightBoxes  = highlightBoxesResponse.Result!
+            };
+            
+            return new ServerResponse<UI>(ResponseStatus.SUCCESS , ui);
+        }
+        
+        public static ServerResponse InsertUIInfo(string machineID , UI ui, DataContext db)
+        {
+            UIInfo uiInfo = new UIInfo()
+            {
+                UILabelID = Guid.NewGuid() ,
+                DesignID  = Guid.Parse(machineID) ,
+                Color     = ui.Color
+            };
+            
+            db.UiInfos.Add(uiInfo);
+            DbNodeInteraction.InsertNode(uiInfo.UILabelID.ToString() , ui.Nodes , db);
+            DbTransitionLineInteraction.InsertTransitionLine(uiInfo.UILabelID.ToString() , ui.TransitionLines , db);
+            DbHighlightBoxInteraction.InsertHighlightBox(uiInfo.UILabelID.ToString() , ui.HighlightBoxes , db);
+            
+            return new ServerResponse(ResponseStatus.SUCCESS);
+        }
+        
+        public static ServerResponse DeleteUIInfo(string machineID , DataContext db)
+        {
+             using IEnumerator<UIInfo> infos = db.UiInfos.Where(v => v.DesignID == Guid.Parse(machineID))
+                 .GetEnumerator();
+             
+            if (!infos.MoveNext())
+                return ServerResponse.StartTracing(nameof(DeleteUIInfo) , ResponseStatus.NO_SUCH_ITEM);
+            
+            UIInfo uiInfo = infos.Current;
+            
+            if (infos.MoveNext())
+                return ServerResponse.StartTracing(nameof(DeleteUIInfo) , ResponseStatus.DUPLICATED_ITEM);
+
+            DbNodeInteraction.DeleteNode(uiInfo.UILabelID.ToString() , db);
+            DbTransitionLineInteraction.DeleteTransitionLine(uiInfo.UILabelID.ToString() , db);
+            DbHighlightBoxInteraction.DeleteHighlightBox(uiInfo.UILabelID.ToString() , db);
+            db.UiInfos.Remove(uiInfo);
+
+            return new ServerResponse(ResponseStatus.SUCCESS);
+        }
+    }
+}

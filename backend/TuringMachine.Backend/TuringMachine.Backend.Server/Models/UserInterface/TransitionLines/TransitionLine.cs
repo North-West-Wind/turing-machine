@@ -2,7 +2,7 @@ namespace TuringMachine.Backend.Server.Models.UserInterface
 {
     internal class TransitionLine
     {
-        public Vector2f              Source { get; set; }
-        public ICollection<Vector2f> Steps  { get; set; }
+        public Vector2<float>        Source { get; set; }
+        public IList<Vector2<byte>>  Steps  { get; set; }
     }
 }

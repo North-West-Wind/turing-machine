@@ -1,8 +1,8 @@
 namespace TuringMachine.Backend.Server.Models.UserInterface
 {
-    internal class Vector2f
+    internal class Vector2<T> where T : struct
     {
-        public float X { get; set; }
-        public float Y { get; set; }
+        public T X { get; set; }
+        public T Y { get; set; }
     }
 }

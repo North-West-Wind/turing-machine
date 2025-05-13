@@ -55,6 +55,7 @@ namespace TuringMachine.Backend.Server.DbInteractions.DbProgressInteractions
                 : new ServerResponse<ICollection<ResponseProgress>>(SUCCESS , progresses);
         }
 
+        // TODO: progressing
         public static ServerResponse UpdateProgress(string uuid, byte levelID, bool isSolved, ResponseMachineDesign design, DataContext db)
         {
             Guid guid = Guid.Parse(uuid);
