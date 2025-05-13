@@ -4,7 +4,7 @@ using TuringMachine.Backend.Server.Models.UserInterface.Nodes;
 using TuringMachine.Backend.Server.ServerResponses;
 using static TuringMachine.Backend.Server.Models.Misc.ResponseStatus;
 
-namespace TuringMachine.Backend.Server.DbInteractions.UserInteractions
+namespace TuringMachine.Backend.Server.DbInteractions.UIInteractions
 {
     internal class DbNodeInteraction
     {

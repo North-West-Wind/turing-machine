@@ -32,6 +32,7 @@ namespace TuringMachine.Backend.Server.Database
         public DbSet<HighlightBoxesLabel> HighlightBoxes  { get; set; }
         public DbSet<NodeLabel>           Nodes           { get; set; }
         public DbSet<TransitionLine>      TransitionLines { get; set; }
+        public DbSet<TextLabel>           Texts           { get; set; }
         public DbSet<UIInfo>              UiInfos         { get; set; }
         #endregion
 
@@ -100,6 +101,9 @@ namespace TuringMachine.Backend.Server.Database
                 .Entity<TransitionLine>()
                 .ToTable("TransitionLines" , uiLabelsSchema);
             modelBuilder
+                .Entity<TextLabel>()
+                .ToTable("Texts" , uiLabelsSchema);
+            modelBuilder
                 .Entity<UIInfo>()
                 .ToTable("UIInfos" , uiLabelsSchema);
             #endregion
@@ -158,6 +162,9 @@ namespace TuringMachine.Backend.Server.Database
             modelBuilder
                 .Entity<TransitionLine>()
                 .HasKey(label => new { label.UILabelID , label.TransitionIndex });
+            modelBuilder
+                .Entity<TextLabel>()
+                .HasKey(label => new { label.UILabelID , label.TextIndex });
             modelBuilder
                 .Entity<UIInfo>()
                 .HasKey(label => label.UILabelID);
@@ -228,6 +235,11 @@ namespace TuringMachine.Backend.Server.Database
                 .HasMany(ui => ui.Nodes)
                 .WithOne(node => node.BelongedUI)
                 .HasForeignKey(node => node.UILabelID);
+            modelBuilder
+                .Entity<UIInfo>()
+                .HasMany(ui => ui.Texts)
+                .WithOne(text => text.BelongedUI)
+                .HasForeignKey(text => text.UILabelID);
             #endregion
             #endregion
         }

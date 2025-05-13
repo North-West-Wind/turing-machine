@@ -14,6 +14,7 @@ using TuringMachine.Backend.Server.DbInteractions;
 using TuringMachine.Backend.Server.DbInteractions.DbMachineInteraction;
 using TuringMachine.Backend.Server.DbInteractions.DbProgressInteractions;
 using TuringMachine.Backend.Server.DbInteractions.LevelInteractions;
+using TuringMachine.Backend.Server.DbInteractions.UIInteractions;
 using TuringMachine.Backend.Server.DbInteractions.UserInteractions;
 using TuringMachine.Backend.Server.Models.MachineDesigns;
 using TuringMachine.Backend.Server.Models.Progresses;

@@ -10,8 +10,7 @@ namespace TuringMachine.Backend.Server.Models.UserInterface
 
         public ICollection<TransitionLine> TransitionLines { get; set; }
         public IList<HighlightBox>         HighlightBoxes  { get; set; }
-        // TODO: no matched data in database
-        public ICollection<TextLabel>      TextLabels      { get; set; }
+        public IList<TextLabel>            TextLabels      { get; set; }
         public ICollection<Node>           Nodes           { get; set; }
     }
 }
