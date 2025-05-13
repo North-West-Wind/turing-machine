@@ -13,8 +13,8 @@ namespace TuringMachine.Backend.Server.Models.MachineDesigns
 
 
         #region Statistics
-        // [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        // public short? MaxTransition { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public short? MaxTransition { get; set; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? TransitionCount { get; set; }
