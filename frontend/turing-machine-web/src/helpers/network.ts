@@ -114,8 +114,8 @@ export async function getLevels() {
 	if (json.status != "SUCCESS") throw new Error("Unsuccessful server response");
 	return json.result.map(level => {
 		const wrong = level as SimpleLevel & { parent: string };
-		if (!wrong.parent) level.parent = undefined;
-		else level.parent = atob(wrong.parent).charCodeAt(0);
+		if (wrong.parent === undefined) level.parent = undefined;
+		else if (typeof wrong.parent == "string") level.parent = atob(wrong.parent).charCodeAt(0);
 		return level;
 	});
 }
@@ -196,8 +196,12 @@ export async function register(username: string, password: string, licenseKey: s
 }
 
 export async function validateAccessToken() {
-	const json = await authFetch("/validate");
-	return json.status == "SUCCESS";
+	try {
+		const json = await authFetch("/validate");
+		return json.status == "SUCCESS";
+	} catch (err) {
+		return false;
+	}
 }
 
 export async function getProgress() {

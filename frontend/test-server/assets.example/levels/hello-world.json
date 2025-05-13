@@ -1,14 +1,16 @@
 {
-	"id": "hello-world",
+	"levelID": 0,
 	"title": "Hello World!",
 	"description": "You will receive an input \"hello\". All you have to do is output \"world\".",
-	"children": ["rev-str"],
-	"tests": [
+	"parents": [],
+	"children": [1],
+	"testCases": [
 		{
 			"input": "hello",
 			"output": "world"
 		}
 	],
 	"constraints": {},
-	"solved": false
+	"isSolved": false,
+	"operations": -1
 }

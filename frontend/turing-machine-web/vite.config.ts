@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
 	server: {
 		proxy: {
-			"/api": "http://turingmachine.server.legendsofsky.com"
+			"/api": "http://localhost:3100"
 		}
 	}
 })
