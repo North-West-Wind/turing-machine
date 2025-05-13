@@ -233,7 +233,19 @@ namespace TuringMachine.Backend.Server
                 );
 
             app
-                .MapPost("/API/MachineDesign/Create" , (_) => throw new NotImplementedException())
+                .MapPost("/API/MachineDesign/Create" ,
+                         async (string accessToken , MachineDesign design , DataContext db) =>
+                         {
+                             ServerResponse validateAccessToken = DbAccessTokenInteraction.ValidateToken(accessToken , db);
+                             if (validateAccessToken.Status is not SUCCESS)
+                                 return validateAccessToken.WithThisTraceInfo("/API/MachineDesign/Create" , BACKEND_ERROR);
+
+                             ServerResponse<string> createMachineResponse = await DbMachineDesignInteraction.CreateAndSaveMachineDesignAsync(design , db);
+                             if (createMachineResponse.Status is not SUCCESS)
+                                 return createMachineResponse.WithThisTraceInfo<string>("/API/MachineDesign/Create" , BACKEND_ERROR);
+
+                             return createMachineResponse;
+                         })
                 .WithName("CreateMachineDesign")
                 .WithOpenApi();
 

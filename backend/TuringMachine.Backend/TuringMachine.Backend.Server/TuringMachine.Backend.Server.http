@@ -11,3 +11,7 @@ Accept: application/json
 GET {{TuringMachine.Backend.Server_HostAddress}}/API/LevelTemplate/Get?levelID=0
 Accept: application/json
 ###
+
+POST {{TuringMachine.Backend.Server_HostAddress}}/API/User/Register?username=test1&password=y6BVCpVNJam4%2FdKiJHJQZVCseKMHR6ekpEKq4XA7exD%2BTYN9lJ0%2Fvg4Kqi8OfkxBZgCpFHYXjYDBKqkS%2Fs1%2Bbidww7c2ttDx3Mp091t04mxCODjaZ742XhgjNSLTo%2Bg1jD7eYRtqTdxbAQ8VdRwG%2Fq%2FagYxKKqUGcPofJSySgB00mq5UZ3%2FjvmRv54fv5INGZLdedlfX2SpNYA48hyTDYvrZZB3O7PR%2BQsU3OjAwM9y%2BmDGbVc8KDp%2BRvey7V0fUwtvV9m%2BJ1UNAdVWjl6KzGqMWHp2oJ4ddMYopIWPC4PhVTL7FbzEDKWObtwtkS6e35g90YCnO9Qv0ObzTjs5VUg%3D%3D&licenseKey=29EACBC2-C89E-4D1E-8EB1-B44EEF621197
+Accept: application/json
+###

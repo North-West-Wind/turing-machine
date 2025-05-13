@@ -108,17 +108,17 @@ namespace TuringMachine.Backend.Server.DbInteractions.DbMachineInteraction
 
             ServerResponse<string> createMachineDesignResponse = CreateMachineDesign(design , designID , db);
             if (createMachineDesignResponse.Status is not SUCCESS)
-                return createMachineDesignResponse.WithThisTraceInfo<string>(nameof(CreateAndSaveMachineDesign) , createMachineDesignResponse.Status);
+                return createMachineDesignResponse.WithThisTraceInfo<string>(nameof(CreateAndSaveMachineDesignAsync) , createMachineDesignResponse.Status);
 
             await db.SaveChangesAsync();
             return createMachineDesignResponse;
         }
 
-        public static async Task<ServerResponse<string>> CreateAndSaveMachineDesign(ResponseMachineDesign design , DataContext db)
+        public static async Task<ServerResponse<string>> CreateAndSaveMachineDesignAsync(ResponseMachineDesign design , DataContext db)
         {
             ServerResponse<string> createMachineDesignResponse = CreateMachineDesign(design , db);
             if (createMachineDesignResponse.Status is not SUCCESS)
-                return createMachineDesignResponse.WithThisTraceInfo<string>(nameof(CreateAndSaveMachineDesign) , createMachineDesignResponse.Status);
+                return createMachineDesignResponse.WithThisTraceInfo<string>(nameof(CreateAndSaveMachineDesignAsync) , createMachineDesignResponse.Status);
 
             await db.SaveChangesAsync();
             return createMachineDesignResponse;
