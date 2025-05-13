@@ -19,6 +19,10 @@ namespace TuringMachine.Backend.Server.DbInteractions.DbMachineInteraction
 {
     internal static class DbMachineDesignInteraction
     {
+        /// <returns>
+        ///     Return a machine design when "SUCCESS". <br/><br/>
+        ///     Status is either "SUCCESS", "NO_SUCH_ITEM", "DUPLICATED_ITEM", "USER_NOT_FOUND", "DUPLICATED_USER", "ITEM_NUMBER_MISMATCH" or "BACKEND_ERROR".
+        /// </returns>
         public static ServerResponse<ResponseMachineDesign> GetMachineDesign(string designID , DataContext db)
         {
             using IEnumerator<DbMachineDesign> dbMachineDesigns = db.MachineDesigns.Where(machine => machine.DesignID == Guid.Parse(designID)).GetEnumerator();
