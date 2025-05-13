@@ -191,37 +191,6 @@ namespace TuringMachine.Backend.Server
             #region Machine Design
             app
                 .MapGet(
-                    "/API/GetMachineConfigs" ,
-                    (string designID , DataContext db) =>
-                    {
-                        return DbMachineInteraction.GetMachines(designID , db);
-                    }
-                );
-
-            app
-                .MapPost(
-                    "/API/InsertMachineConfigs" ,
-                    async (string designID , IList<MachineConfig> machines , DataContext db) =>
-                    {
-                        var response = DbMachineInteraction.InsertMachines(designID , machines , db);
-                        await db.SaveChangesAsync();
-                        return response;
-                    }
-                );
-
-            app
-                .MapDelete(
-                    "/Api/DeleteMachineConfigs" ,
-                    async (string designID , DataContext db) =>
-                    {
-                        var response = DbMachineInteraction.DeleteMachines(designID , db);
-                        await db.SaveChangesAsync();
-                        return response;
-                    }
-                );
-
-            app
-                .MapGet(
                     "/API/GetUIInfo" ,
                     async (string machineID , DataContext db) =>
                     {
