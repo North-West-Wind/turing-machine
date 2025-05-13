@@ -233,19 +233,19 @@ namespace TuringMachine.Backend.Server
 
             app.MapPost(
                     "/API/UpdateUIInfo" ,
-                    async (string machineID , IList<TuringMachine.Backend.Server.Models.UserInterface.UI> uiInfos , DataContext db) =>
+                    async (string designID , IList<TuringMachine.Backend.Server.Models.UserInterface.UILabel> uiInfos , DataContext db) =>
                     {
-                        var response = DbUIInfoInteraction.InsertUIInfo(machineID , uiInfos , db);
+                        var response = DbUIInfoInteraction.InsertUIInfos(designID , uiInfos , db);
                         await db.SaveChangesAsync();
                         return response;
                     }
                 );
 
             app.MapPost(
-                    "/API/DeleteUIInfo" ,
-                    async (string machineID , DataContext db) =>
+                    "/API/DeleteUIInfos" ,
+                    async (string designID , DataContext db) =>
                     {
-                        var response = DbUIInfoInteraction.DeleteUIInfo(machineID , db);
+                        var response = DbUIInfoInteraction.DeleteUIInfos(designID , db);
                         await db.SaveChangesAsync();
                         return response;
                     }
