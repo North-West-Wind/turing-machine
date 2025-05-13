@@ -189,65 +189,10 @@ namespace TuringMachine.Backend.Server
             #region Machine Design
             app
                 .MapGet(
-                    "/API/GetHead" ,
-                    async (string machineID , DataContext db) =>
+                    "/API/GetMachineConfigs" ,
+                    (string designID , DataContext db) =>
                     {
-                        var response = DbHeadInteraction.GetHead(machineID , db);
-                        await db.SaveChangesAsync();
-                        return response;
-                    }
-                );
-
-            app
-                .MapPost(
-                    "/API/UpdateHead" ,
-                    async (string machineID , IList<TuringMachine.Backend.Server.Models.MachineDesigns.Head> head , DataContext db) =>
-                    {
-                        var response = DbHeadInteraction.InsertHead(machineID , head , db);
-                        await db.SaveChangesAsync();
-                        return response;
-                    }
-                );
-
-            app
-                .MapPost(
-                    "/API/DeleteHead" ,
-                    async (string machineID , DataContext db) =>
-                    {
-                        var response = DbHeadInteraction.DeleteHead(machineID , db);
-                        await db.SaveChangesAsync();
-                        return response;
-                    }
-                );
-
-            app
-                .MapGet(
-                    "/API/GetUIInfo" ,
-                    async (string machineID , DataContext db) =>
-                    {
-                        var response = DbUIInfoInteraction.GetUIInfo(machineID , db);
-                        await db.SaveChangesAsync();
-                        return response;
-                    }
-                );
-
-            app.MapPost(
-                    "/API/UpdateUIInfo" ,
-                    async (string machineID , TuringMachine.Backend.Server.Models.UserInterface.UI uiInfo , DataContext db) =>
-                    {
-                        var response = DbUIInfoInteraction.InsertUIInfo(machineID , uiInfo , db);
-                        await db.SaveChangesAsync();
-                        return response;
-                    }
-                );
-
-            app.MapPost(
-                    "/API/DeleteUIInfo" ,
-                    async (string machineID , DataContext db) =>
-                    {
-                        var response = DbUIInfoInteraction.DeleteUIInfo(machineID , db);
-                        await db.SaveChangesAsync();
-                        return response;
+                        return DbMachineInteraction.GetMachine(designID , db);
                     }
                 );
 

@@ -19,19 +19,22 @@ namespace TuringMachine.Backend.Server.DbInteractions.DbMachineInteraction
             List<ResponseHead> responseHeads = new List<ResponseHead>();
             foreach (DbHead dbHead in db.Heads.Where(head => head.MachineID == Guid.Parse(machineID)))
             {
+                HeadType headType;
+                switch (dbHead.IsReadable , dbHead.IsWriteable)
+                {
+                    case (true , true):   headType = HeadType.ReadWrite; break;
+                    case (true , false):  headType = HeadType.Read; break;
+                    case (false , true):  headType = HeadType.Write; break;
+                    case (false , false): return ServerResponse.StartTracing<IList<ResponseHead>>(nameof(GetHead) , FAILURE);
+                }
+
                 responseHeads.Add(
                     new ResponseHead
                     {
                         HeadOrderIndex = dbHead.HeadIndex ,
                         TapeID         = dbHead.TapeID ,
                         Position       = dbHead.Position ,
-                        Type = (dbHead.IsReadable , dbHead.IsWriteable) switch
-                        {
-                            (true , true)   => HeadType.ReadWrite ,
-                            (true , false)  => HeadType.Read ,
-                            (false , true)  => HeadType.Write ,
-                            (false , false) => throw new UnreachableException() ,
-                        } ,
+                        Type           = headType ,
                     }
                 );
             }
