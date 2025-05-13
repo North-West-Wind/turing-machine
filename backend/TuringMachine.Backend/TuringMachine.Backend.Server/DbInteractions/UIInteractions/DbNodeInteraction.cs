@@ -1,6 +1,6 @@
 using TuringMachine.Backend.Server.Database;
 using TuringMachine.Backend.Server.Database.Entity.UILabels;
-using TuringMachine.Backend.Server.Models.UserInterface.Nodes;
+using TuringMachine.Backend.Server.Models.UserInterface;
 using TuringMachine.Backend.Server.ServerResponses;
 using static TuringMachine.Backend.Server.Models.Misc.ResponseStatus;
 

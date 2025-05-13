@@ -5,10 +5,10 @@
         public Guid   UILabelID { get; set; }
         public short  BoxIndex  { get; set; }
         public string Title     { get; set; }
-        public float  X         { get; set; }
-        public float  Y         { get; set; }
-        public float  Width     { get; set; }
-        public float  Height    { get; set; }
+        public double X         { get; set; }
+        public double Y         { get; set; }
+        public double Width     { get; set; }
+        public double Height    { get; set; }
         public int    Color     { get; set; }
 
 

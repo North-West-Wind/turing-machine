@@ -1,4 +1,4 @@
-namespace TuringMachine.Backend.Server.Models.UserInterface
+namespace TuringMachine.Backend.Server.Models.Misc
 {
     internal class Vector2<T> where T : struct
     {

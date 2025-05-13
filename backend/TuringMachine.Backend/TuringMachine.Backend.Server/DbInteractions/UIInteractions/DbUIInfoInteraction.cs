@@ -2,12 +2,10 @@ using TuringMachine.Backend.Server.Database;
 using TuringMachine.Backend.Server.Database.Entity.UILabels;
 using TuringMachine.Backend.Server.Models.Misc;
 using TuringMachine.Backend.Server.Models.UserInterface;
-using TuringMachine.Backend.Server.Models.UserInterface.HighlightBoxes;
-using TuringMachine.Backend.Server.Models.UserInterface.Nodes;
 using TuringMachine.Backend.Server.ServerResponses;
 
 using TransitionLine = TuringMachine.Backend.Server.Models.UserInterface.TransitionLine;
-using TextLabel = TuringMachine.Backend.Server.Models.UserInterface.TextLabels.TextLabel;
+using TextLabel = TuringMachine.Backend.Server.Models.UserInterface.TextLabel;
 
 namespace TuringMachine.Backend.Server.DbInteractions.UIInteractions
 {

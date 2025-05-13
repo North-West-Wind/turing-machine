@@ -2,7 +2,7 @@ using TuringMachine.Backend.Server.Database;
 using TuringMachine.Backend.Server.ServerResponses;
 using static TuringMachine.Backend.Server.Models.Misc.ResponseStatus;
 
-using ResponseTextLabel = TuringMachine.Backend.Server.Models.UserInterface.TextLabels.TextLabel;
+using ResponseTextLabel = TuringMachine.Backend.Server.Models.UserInterface.TextLabel;
 using DbTextLabel = TuringMachine.Backend.Server.Database.Entity.UILabels.TextLabel;
 
 namespace TuringMachine.Backend.Server.DbInteractions.UIInteractions

@@ -18,29 +18,29 @@ namespace TuringMachine.Backend.Server.DbInteractions.UIInteractions
             
             List<TransitionLine> lines = dbTransitions.Select(v =>
             {
-                int count = v.StepX.Length / sizeof(float);
-                float[] stepX = ArrayPool<float>.Shared.Rent(count);
-                float[] stepY = ArrayPool<float>.Shared.Rent(count);
+                int count = v.StepX.Length / sizeof(double);
+                double[] stepX = ArrayPool<double>.Shared.Rent(count);
+                double[] stepY = ArrayPool<double>.Shared.Rent(count);
                 
                 Buffer.BlockCopy(v.StepX , 0 , stepX , 0 , v.StepX.Length);
                 Buffer.BlockCopy(v.StepY , 0 , stepY , 0 , v.StepY.Length);
                 
-                Vector2<float>[] steps = new Vector2<float>[count];
+                Vector2<double>[] steps = new Vector2<double>[count];
                 for (int i = 0; i < count; i++)
                 {
-                    steps[i] = new Vector2<float>
+                    steps[i] = new Vector2<double>
                     {
                         X = stepX[i] ,
                         Y = stepY[i]
                     };
                 }
                 
-                ArrayPool<float>.Shared.Return(stepX);
-                ArrayPool<float>.Shared.Return(stepY);
+                ArrayPool<double>.Shared.Return(stepX);
+                ArrayPool<double>.Shared.Return(stepY);
                 
                 return new TransitionLine
                 {
-                    Source = new Vector2<float>
+                    Source = new Vector2<double>
                     {
                         X = v.SourceX ,
                         Y = v.SourceY
@@ -59,8 +59,8 @@ namespace TuringMachine.Backend.Server.DbInteractions.UIInteractions
             {
                 int count = v.Steps.Count;
                 
-                float[] rawStepX = ArrayPool<float>.Shared.Rent(count);
-                float[] rawStepY = ArrayPool<float>.Shared.Rent(count);
+                double[] rawStepX = ArrayPool<double>.Shared.Rent(count);
+                double[] rawStepY = ArrayPool<double>.Shared.Rent(count);
 
                 for (int i = 0; i < count; i++)
                 {
@@ -68,14 +68,14 @@ namespace TuringMachine.Backend.Server.DbInteractions.UIInteractions
                     rawStepY[i] = v.Steps[i].Y;
                 }
 
-                byte[] stepX = new byte[v.Steps.Count * sizeof(float)];
-                byte[] stepY = new byte[v.Steps.Count * sizeof(float)];
+                byte[] stepX = new byte[v.Steps.Count * sizeof(double)];
+                byte[] stepY = new byte[v.Steps.Count * sizeof(double)];
                 
                 Buffer.BlockCopy(rawStepX , 0 , stepX , 0 , stepX.Length);
                 Buffer.BlockCopy(rawStepY , 0 , stepY , 0 , stepY.Length);
                 
-                ArrayPool<float>.Shared.Return(rawStepX);
-                ArrayPool<float>.Shared.Return(rawStepY);
+                ArrayPool<double>.Shared.Return(rawStepX);
+                ArrayPool<double>.Shared.Return(rawStepY);
 
                 return new DbTransitionLine
                 {

@@ -4,8 +4,8 @@
     {
         public short  TransitionIndex { get; set; }
         public Guid   UILabelID       { get; set; }
-        public float  SourceX         { get; set; }
-        public float  SourceY         { get; set; }
+        public double SourceX         { get; set; }
+        public double SourceY         { get; set; }
         public byte[] StepX           { get; set; }
         public byte[] StepY           { get; set; }
 

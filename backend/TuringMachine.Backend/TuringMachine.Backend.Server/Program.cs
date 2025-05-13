@@ -194,7 +194,7 @@ namespace TuringMachine.Backend.Server
                     "/API/GetMachineConfigs" ,
                     (string designID , DataContext db) =>
                     {
-                        return DbMachineInteraction.GetMachine(designID , db);
+                        return DbMachineInteraction.GetMachines(designID , db);
                     }
                 );
 
@@ -203,7 +203,7 @@ namespace TuringMachine.Backend.Server
                     "/API/InsertMachineConfigs" ,
                     async (string designID , IList<MachineConfig> machines , DataContext db) =>
                     {
-                        var response = DbMachineInteraction.InsertMachine(designID , machines , db);
+                        var response = DbMachineInteraction.InsertMachines(designID , machines , db);
                         await db.SaveChangesAsync();
                         return response;
                     }
@@ -214,7 +214,7 @@ namespace TuringMachine.Backend.Server
                     "/Api/DeleteMachineConfigs" ,
                     async (string designID , DataContext db) =>
                     {
-                        var response = DbMachineInteraction.DeleteMachine(designID , db);
+                        var response = DbMachineInteraction.DeleteMachines(designID , db);
                         await db.SaveChangesAsync();
                         return response;
                     }

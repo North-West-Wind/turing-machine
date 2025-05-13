@@ -2,11 +2,11 @@
 {
     internal class NodeLabel
     {
-        public Guid  UILabelID { get; set; }
-        public short NodeID    { get; set; }
-        public float X         { get; set; }
-        public float Y         { get; set; }
-        public bool  IsFinal   { get; set; }
+        public Guid   UILabelID { get; set; }
+        public short  NodeID    { get; set; }
+        public double X         { get; set; }
+        public double Y         { get; set; }
+        public bool   IsFinal   { get; set; }
 
 
         #region Relationship
