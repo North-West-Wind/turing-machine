@@ -233,9 +233,9 @@ namespace TuringMachine.Backend.Server
 
             app.MapPost(
                     "/API/UpdateUIInfo" ,
-                    async (string machineID , TuringMachine.Backend.Server.Models.UserInterface.UI uiInfo , DataContext db) =>
+                    async (string machineID , IList<TuringMachine.Backend.Server.Models.UserInterface.UI> uiInfos , DataContext db) =>
                     {
-                        var response = DbUIInfoInteraction.InsertUIInfo(machineID , uiInfo , db);
+                        var response = DbUIInfoInteraction.InsertUIInfo(machineID , uiInfos , db);
                         await db.SaveChangesAsync();
                         return response;
                     }
