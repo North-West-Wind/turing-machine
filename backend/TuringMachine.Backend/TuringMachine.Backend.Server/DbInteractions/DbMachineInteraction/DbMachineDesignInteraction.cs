@@ -2,6 +2,7 @@
 using TuringMachine.Backend.Server.Database.Entity.UserManagement;
 using TuringMachine.Backend.Server.DbInteractions.UIInteractions;
 using TuringMachine.Backend.Server.Models.MachineDesigns;
+using TuringMachine.Backend.Server.Models.Misc;
 using TuringMachine.Backend.Server.ServerResponses;
 using static TuringMachine.Backend.Server.Models.Misc.ResponseStatus;
 
@@ -96,6 +97,69 @@ namespace TuringMachine.Backend.Server.DbInteractions.DbMachineInteraction
             #endregion
 
             return new ServerResponse<ResponseMachineDesign>(SUCCESS , responseMachineDesign);
+        }
+
+        
+        public static async Task<ServerResponse<string>> UpdateAndSaveMachineDesign(ResponseMachineDesign design , string designID , DataContext db)
+        {
+            ServerResponse<string> createMachineDesignResponse = CreateMachineDesign(design , designID , db);
+            if (createMachineDesignResponse.Status is not SUCCESS)
+                return createMachineDesignResponse.WithThisTraceInfo<string>(nameof(CreateAndSaveMachineDesign) , createMachineDesignResponse.Status);
+
+            await db.SaveChangesAsync();
+            return createMachineDesignResponse;
+        }
+
+        public static async Task<ServerResponse<string>> CreateAndSaveMachineDesign(ResponseMachineDesign design , DataContext db)
+        {
+            ServerResponse<string> createMachineDesignResponse = CreateMachineDesign(design , db);
+            if (createMachineDesignResponse.Status is not SUCCESS)
+                return createMachineDesignResponse.WithThisTraceInfo<string>(nameof(CreateAndSaveMachineDesign) , createMachineDesignResponse.Status);
+
+            await db.SaveChangesAsync();
+            return createMachineDesignResponse;
+        }
+
+        public static ServerResponse<string> CreateMachineDesign(ResponseMachineDesign design , DataContext db) => CreateMachineDesign(design , Guid.NewGuid().ToString() , db);
+
+        private static ServerResponse<string> CreateMachineDesign(ResponseMachineDesign design , string designID , DataContext db)
+        {
+            // find the author
+            using IEnumerator<DbUser> users = db.Users.Where(user => user.Username == design.Author).GetEnumerator();
+            if (!users.MoveNext()) return ServerResponse.StartTracing<string>(nameof(CreateMachineDesign) , USER_NOT_FOUND);
+            DbUser author = users.Current;
+            if (users.MoveNext()) return ServerResponse.StartTracing<string>(nameof(CreateMachineDesign) , DUPLICATED_USER);
+
+            DbMachineDesign machineDesign = new DbMachineDesign
+            {
+                DesignID = Guid.Parse(designID) ,
+                Author   = author.UUID ,
+
+                LevelID         = design.LevelID ,
+                TransitionCount = design.TransitionCount ?? 0 ,
+                StateCount      = design.StateCount      ?? 0 ,
+                HeadCount       = design.HeadCount       ?? 0 ,
+                TapeCount       = design.TapeCount       ?? 0 ,
+                OperationCount  = design.OperationCount  ?? 0 ,
+
+                InputTapeIndex  = design.TapeInfo.InputTape ,
+                OutputTapeIndex = design.TapeInfo.OutputTape ,
+            };
+            db.MachineDesigns.Add(machineDesign);
+
+            ServerResponse insertTapesResponse = DbTapeInteraction.InsertTapes(designID , design.TapeInfo.Tapes , db);
+            if (insertTapesResponse.Status is not SUCCESS)
+                return insertTapesResponse.WithThisTraceInfo<string>(nameof(CreateMachineDesign) , BACKEND_ERROR);
+
+            ServerResponse insertMachinesResponse = DbMachineInteraction.InsertMachines(designID , design.Machines.Select(machine => machine.MachineConfig).ToList() , db);
+            if (insertMachinesResponse.Status is not SUCCESS)
+                return insertMachinesResponse.WithThisTraceInfo<string>(nameof(CreateMachineDesign) , BACKEND_ERROR);
+
+            ServerResponse insertUiInfosResponse = DbUIInfoInteraction.InsertUIInfos(designID , design.Machines.Select(machine => machine.UILabel).ToList() , db);
+            if (insertUiInfosResponse.Status is not SUCCESS)
+                return insertUiInfosResponse.WithThisTraceInfo<string>(nameof(CreateMachineDesign) , BACKEND_ERROR);
+            
+            return new ServerResponse<string>(SUCCESS , designID);
         }
     }
 }
