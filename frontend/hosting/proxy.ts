@@ -9,7 +9,7 @@ if (!BACKEND) throw new Error("No backend host provided");
 const app = express();
 app.use(cors());
 app.use(express.static(__dirname + "/dist"));
-app.use("/api", proxy(BACKEND, { proxyReqPathResolver: (req) => "/api" + req.path }));
+app.use("/api", proxy(BACKEND, { proxyReqPathResolver: (req) => "/api" + req.url }));
 
 app.get("/", (_req, res) => {
 	res.sendFile(__dirname + "/dist/index.html");
