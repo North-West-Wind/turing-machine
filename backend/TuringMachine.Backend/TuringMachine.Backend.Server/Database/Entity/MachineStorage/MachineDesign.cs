@@ -8,11 +8,12 @@ namespace TuringMachine.Backend.Server.Database.Entity.MachineStorage
         public Guid  Author          { get; set; }
         public byte? LevelID         { get; set; }
         public int   TransitionCount { get; set; }
-        public int   StateCount      { get; set; }
-        public int   HeadCount       { get; set; }
-        public int   TapeCount       { get; set; }
-        public int   InputTapeIndex  { get; set; }
-        public int   OutputTapeIndex { get; set; }
+        public short StateCount      { get; set; }
+        public short HeadCount       { get; set; }
+        public short TapeCount       { get; set; }
+        public int   OperationCount  { get; set; }
+        public short InputTapeIndex  { get; set; }
+        public short OutputTapeIndex { get; set; }
 
 
         #region Relationship

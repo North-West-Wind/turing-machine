@@ -5,6 +5,6 @@ namespace TuringMachine.Backend.Server.Models.MachineDesigns
         public short InputTape  { get; set; }
         public short OutputTape { get; set; }
 
-        public List<Tape> Tapes { get; set; }
+        public IList<Tape> Tapes { get; set; }
     }
 }

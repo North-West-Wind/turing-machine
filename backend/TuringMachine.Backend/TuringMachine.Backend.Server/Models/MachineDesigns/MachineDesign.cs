@@ -4,11 +4,11 @@ namespace TuringMachine.Backend.Server.Models.MachineDesigns
 {
     internal class MachineDesign
     {
-        public Guid Author  { get; set; }
-        public byte LevelID { get; set; }
+        public string Author  { get; set; }
+        public byte?   LevelID { get; set; }
 
-        public TapeInfo                   TapeInfo { get; set; }
-        public ICollection<MachineConfig> Machines { get; set; }
+        public TapeInfo                         TapeInfo { get; set; }
+        public ICollection<MachineUIConfigPair> Machines { get; set; }
 
 
         #region Statistics

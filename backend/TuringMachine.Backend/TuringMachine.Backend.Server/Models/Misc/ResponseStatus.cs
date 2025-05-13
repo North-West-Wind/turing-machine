@@ -20,6 +20,7 @@ namespace TuringMachine.Backend.Server.Models.Misc
         DESIGN_NOT_FOUND ,
 
         TOO_MUCH_ITEM ,
+        ITEM_NUMBER_MISMATCH ,
 
         TOO_MANY_REQUEST ,
         BACKEND_ERROR ,

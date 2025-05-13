@@ -188,7 +188,7 @@ namespace TuringMachine.Backend.Server
                 .WithOpenApi();
             #endregion
 
-            #region Machine Design
+            #region MachineConfig Design
             app
                 .MapGet(
                     "/API/GetUIInfo" ,

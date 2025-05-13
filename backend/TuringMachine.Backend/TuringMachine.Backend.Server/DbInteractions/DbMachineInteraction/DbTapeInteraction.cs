@@ -16,13 +16,13 @@ namespace TuringMachine.Backend.Server.DbInteractions.DbMachineInteraction
         ///     Return a list of tapes when "SUCCESS". <br/><br/>
         ///     Status is either "SUCCESS", "NO_SUCH_ITEM" or "BACKEND_ERROR".
         /// </returns>
-        public static ServerResponse<IList<ResponseTape?>> GetTapes(string designID , DataContext db)
+        public static ServerResponse<IList<ResponseTape>> GetTapes(string designID , DataContext db)
         {
             IQueryable<DbTape> dbTapes       = db.TapeInfos.Where(tape => tape.DesignID == Guid.Parse(designID));
-            ResponseTape?[]    responseTapes = new ResponseTape?[dbTapes.Count()];
+            ResponseTape[]    responseTapes = new ResponseTape[dbTapes.Count()];
 
             if (!dbTapes.Any())
-                return ServerResponse.StartTracing<IList<ResponseTape?>>(nameof(GetTapes) , NO_SUCH_ITEM);
+                return ServerResponse.StartTracing<IList<ResponseTape>>(nameof(GetTapes) , NO_SUCH_ITEM);
 
             foreach (DbTape dbTape in dbTapes)
                 responseTapes[dbTape.TapeIndex] = new ResponseTape
@@ -31,7 +31,7 @@ namespace TuringMachine.Backend.Server.DbInteractions.DbMachineInteraction
                     InitialValues = dbTape.InitialValues ,
                 };
 
-            return new ServerResponse<IList<ResponseTape?>>(SUCCESS , responseTapes);
+            return new ServerResponse<IList<ResponseTape>>(SUCCESS , responseTapes);
         }
 
         /// <returns>

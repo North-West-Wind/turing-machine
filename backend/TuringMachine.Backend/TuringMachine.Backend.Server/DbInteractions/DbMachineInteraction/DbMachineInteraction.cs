@@ -2,6 +2,7 @@
 using TuringMachine.Backend.Server.Models.MachineDesigns;
 using TuringMachine.Backend.Server.ServerResponses;
 using static TuringMachine.Backend.Server.Models.Misc.ResponseStatus;
+using Head = TuringMachine.Backend.Server.Models.MachineDesigns.Head;
 
 #region Type Alias
 using DbMachine = TuringMachine.Backend.Server.Database.Entity.MachineStorage.Machine;
@@ -20,32 +21,36 @@ namespace TuringMachine.Backend.Server.DbInteractions.DbMachineInteraction
         ///     Return a list of machine config when "SUCCESS". <br/><br/>
         ///     Status is either "SUCCESS", "NO_SUCH_ITEM" or "BACKEND_ERROR".
         /// </returns>
-        public static ServerResponse<ICollection<MachineConfig>> GetMachines(string designID , DataContext db)
+        public static ServerResponse<IList<MachineConfig>> GetMachines(string designID , DataContext db)
         {
-            List<MachineConfig> responseMachines = new List<MachineConfig>();
-            foreach (DbMachine dbMachine in db.Machines.Where(machine => machine.DesignID == Guid.Parse(designID)))
+            IQueryable<DbMachine> dbMachines       = db.Machines.Where(machine => machine.DesignID == Guid.Parse(designID));
+            int                   size             = dbMachines.Count();
+            if (size == 0) return ServerResponse.StartTracing<IList<MachineConfig>>(nameof(GetMachines) , NO_SUCH_ITEM);
+
+            MachineConfig[]              responseMachines     = new MachineConfig[size];
+            using IEnumerator<DbMachine> dbMachinesEnumerator = dbMachines.GetEnumerator();
+            int                          index                = -1;
+            while (dbMachinesEnumerator.MoveNext())
             {
+                index++;
+                DbMachine dbMachine = dbMachinesEnumerator.Current;
+
                 ServerResponse<IList<Head>> getHeadResponse = DbHeadInteraction.GetHeads(dbMachine.MachineID.ToString() , db);
                 if (getHeadResponse.Status is not SUCCESS)
-                    return getHeadResponse.WithThisTraceInfo<ICollection<MachineConfig>>(nameof(GetMachines) , BACKEND_ERROR);
+                    return getHeadResponse.WithThisTraceInfo<IList<MachineConfig>>(nameof(GetMachines) , BACKEND_ERROR);
 
                 ServerResponse<ICollection<ResponseTransition>> getTransitionResponse = DbTransitionInteraction.GetTransition(dbMachine.MachineID.ToString() , db);
                 if (getTransitionResponse.Status is not SUCCESS)
-                    return getTransitionResponse.WithThisTraceInfo<ICollection<MachineConfig>>(nameof(GetMachines) , BACKEND_ERROR);
+                    return getTransitionResponse.WithThisTraceInfo<IList<MachineConfig>>(nameof(GetMachines) , BACKEND_ERROR);
 
-                responseMachines.Add(
-                    new MachineConfig
-                    {
-                        Transitions = getTransitionResponse.Result! ,
-                        Heads       = getHeadResponse.Result! ,
-                    }
-                );
+                responseMachines[index] = new MachineConfig
+                {
+                    Transitions = getTransitionResponse.Result! ,
+                    Heads       = getHeadResponse.Result! ,
+                };
             }
 
-            if (responseMachines.Count == 0)
-                return ServerResponse.StartTracing<ICollection<MachineConfig>>(nameof(GetMachines) , NO_SUCH_ITEM);
-
-            return new ServerResponse<ICollection<MachineConfig>>(SUCCESS , responseMachines);
+            return new ServerResponse<IList<MachineConfig>>(SUCCESS , responseMachines);
         }
 
         /// <returns>
