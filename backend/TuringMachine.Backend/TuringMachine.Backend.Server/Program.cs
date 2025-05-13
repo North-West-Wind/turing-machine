@@ -197,6 +197,37 @@ namespace TuringMachine.Backend.Server
                 );
 
             app
+                .MapGet(
+                    "/API/GetUIInfo" ,
+                    async (string machineID , DataContext db) =>
+                    {
+                        var response = DbUIInfoInteraction.GetUIInfo(machineID , db);
+                        await db.SaveChangesAsync();
+                        return response;
+                    }
+                );
+
+            app.MapPost(
+                    "/API/UpdateUIInfo" ,
+                    async (string machineID , IList<TuringMachine.Backend.Server.Models.UserInterface.UI> uiInfos , DataContext db) =>
+                    {
+                        var response = DbUIInfoInteraction.InsertUIInfo(machineID , uiInfos , db);
+                        await db.SaveChangesAsync();
+                        return response;
+                    }
+                );
+
+            app.MapPost(
+                    "/API/DeleteUIInfo" ,
+                    async (string machineID , DataContext db) =>
+                    {
+                        var response = DbUIInfoInteraction.DeleteUIInfo(machineID , db);
+                        await db.SaveChangesAsync();
+                        return response;
+                    }
+                );
+
+            app
                 .MapPost("/API/MachineDesign/Create" , (_) => throw new NotImplementedException())
                 .WithName("CreateMachineDesign")
                 .WithOpenApi();
