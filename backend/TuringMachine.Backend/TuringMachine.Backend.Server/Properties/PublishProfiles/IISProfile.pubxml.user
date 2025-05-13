@@ -3,17 +3,17 @@
 <Project>
   <PropertyGroup>
     <TimeStampOfAssociatedLegacyPublishXmlFile />
-    <History>True|2025-05-13T05:21:51.8000224Z||;True|2025-05-12T10:01:47.6351254+08:00||;True|2025-05-11T22:54:59.5798511+08:00||;True|2025-05-11T19:07:15.0207482+08:00||;True|2025-05-11T18:44:42.7677822+08:00||;True|2025-05-11T17:00:13.2496562+08:00||;True|2025-05-11T16:34:17.4005089+08:00||;</History>
+    <History>True|2025-05-13T05:44:50.6978884Z||;True|2025-05-13T13:35:23.8932531+08:00||;True|2025-05-13T13:32:31.4258263+08:00||;</History>
     <LastFailureDetails />
   </PropertyGroup>
   <ItemGroup>
     <DestinationConnectionStrings Include="DatabaseConnection">
-      <Value>Data Source=turingmachine.server.legendsofsky.com%3bInitial Catalog=TuringMachineGame%3bPersist Security Info=True%3bUser ID=TuringMachineDev%3bPassword=CSCI3100%3bEncrypt=False%3bTrust Server Certificate=True%3bMultipleActiveResultSets=True</Value>
+      <Value>Data Source=turingmachine.server.legendsofsky.com%3bInitial Catalog=TuringMachineGameRework%3bPersist Security Info=True%3bUser ID=TuringMachineDev%3bPassword=CSCI3100%3bEncrypt=False%3bTrust Server Certificate=True%3bMultipleActiveResultSets=True</Value>
     </DestinationConnectionStrings>
   </ItemGroup>
   <ItemGroup>
     <EFMigrations Include="TuringMachine.Backend.Server.Database.DataContext">
-      <Value>Data Source=turingmachine.server.legendsofsky.com%3bInitial Catalog=TuringMachineGame%3bPersist Security Info=True%3bUser ID=TuringMachineDev%3bPassword=CSCI3100%3bEncrypt=False%3bTrust Server Certificate=True%3bMultipleActiveResultSets=True</Value>
+      <Value>Data Source=turingmachine.server.legendsofsky.com%3bInitial Catalog=TuringMachineGameRework%3bPersist Security Info=True%3bUser ID=TuringMachineDev%3bPassword=CSCI3100%3bEncrypt=False%3bTrust Server Certificate=True%3bMultipleActiveResultSets=True</Value>
     </EFMigrations>
   </ItemGroup>
 </Project>
