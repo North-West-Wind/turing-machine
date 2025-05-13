@@ -23,7 +23,7 @@ namespace TuringMachine.Backend.Server.DbInteractions.UserInteractions
         public static ServerResponse ValidateToken(string accessToken , DataContext db)
         {
             ServerResponse<string> validateTokenAndGetUuidResponse = ValidateTokenAndGetUUID(accessToken , db);
-            if (validateTokenAndGetUuidResponse.Status is not SUCCESS)
+            if (validateTokenAndGetUuidResponse.Status is not (SUCCESS or TOKEN_EXPIRED))
                 return validateTokenAndGetUuidResponse.WithThisTraceInfo(nameof(ValidateToken) , BACKEND_ERROR);
 
             return validateTokenAndGetUuidResponse;
