@@ -50,21 +50,21 @@ namespace TuringMachine.Backend.Server.DbInteractions.DbMachineInteraction
         ///     Insert a list of transition when "SUCCESS". <br/><br/>
         ///     Status is either "SUCCESS" or "BACKEND_ERROR".
         /// </returns>
-        public static ServerResponse InsertTransition(string machineID , IList<ResponseTransition> transitions , DataContext db)
+        public static ServerResponse InsertTransition(string machineID , ICollection<ResponseTransition> transitions , DataContext db)
         {
             if (transitions.Count > byte.MaxValue)
                 return ServerResponse.StartTracing(nameof(InsertTransition) , BACKEND_ERROR);
 
-            for (byte i = 0; i < transitions.Count; i++)
+            foreach (ResponseTransition transition in transitions)
             {
                 DbTransition dbTransition = new DbTransition
                 {
-                    MachineID = Guid.Parse(machineID) ,
-                    SourceNodeIndex = transitions[i].SourceNodeID ,
-                    TargetNodeIndex = transitions[i].TargetNodeID ,
+                    MachineID       = Guid.Parse(machineID) ,
+                    SourceNodeIndex = transition.SourceNodeID ,
+                    TargetNodeIndex = transition.TargetNodeID ,
                 };
                 db.Transitions.Add(dbTransition);
-                ServerResponse insertTransitionStatementsResponse = InsertTransitionStatements(dbTransition.TransitionID.ToString() , transitions[i].Statements , db);
+                ServerResponse insertTransitionStatementsResponse = InsertTransitionStatements(dbTransition.TransitionID.ToString() , transition.Statements , db);
                 if (insertTransitionStatementsResponse.Status is not SUCCESS)
                     return insertTransitionStatementsResponse.WithThisTraceInfo(nameof(InsertTransition) , BACKEND_ERROR);
             }

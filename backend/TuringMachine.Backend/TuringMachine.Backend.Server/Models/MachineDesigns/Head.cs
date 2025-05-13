@@ -2,7 +2,6 @@ namespace TuringMachine.Backend.Server.Models.MachineDesigns
 {
     internal class Head
     {
-        public short HeadOrderIndex { get; set; }
         public short TapeID { get; set; }
 
         public HeadType Type { get; set; }

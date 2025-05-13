@@ -3,7 +3,6 @@
     internal class Head
     {
         public Guid  MachineID   { get; set; }
-        public short HeadIndex   { get; set; }
         public short TapeID      { get; set; }
         public bool  IsReadable  { get; set; }
         public bool  IsWriteable { get; set; }

@@ -15,6 +15,7 @@ using TuringMachine.Backend.Server.DbInteractions.DbMachineInteraction;
 using TuringMachine.Backend.Server.DbInteractions.DbProgressInteractions;
 using TuringMachine.Backend.Server.DbInteractions.LevelInteractions;
 using TuringMachine.Backend.Server.DbInteractions.UserInteractions;
+using TuringMachine.Backend.Server.Models.MachineDesigns;
 using TuringMachine.Backend.Server.Models.Progresses;
 using TuringMachine.Backend.Server.ServerResponses;
 using static TuringMachine.Backend.Server.Models.Misc.ResponseStatus;
@@ -193,6 +194,28 @@ namespace TuringMachine.Backend.Server
                     (string designID , DataContext db) =>
                     {
                         return DbMachineInteraction.GetMachine(designID , db);
+                    }
+                );
+
+            app
+                .MapPost(
+                    "/API/InsertMachineConfigs" ,
+                    async (string designID , IList<MachineConfig> machines , DataContext db) =>
+                    {
+                        var response = DbMachineInteraction.InsertMachine(designID , machines , db);
+                        await db.SaveChangesAsync();
+                        return response;
+                    }
+                );
+
+            app
+                .MapDelete(
+                    "/Api/DeleteMachineConfigs" ,
+                    async (string designID , DataContext db) =>
+                    {
+                        var response = DbMachineInteraction.DeleteMachine(designID , db);
+                        await db.SaveChangesAsync();
+                        return response;
                     }
                 );
 

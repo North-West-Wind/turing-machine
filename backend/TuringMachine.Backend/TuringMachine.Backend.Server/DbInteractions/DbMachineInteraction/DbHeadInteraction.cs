@@ -31,7 +31,6 @@ namespace TuringMachine.Backend.Server.DbInteractions.DbMachineInteraction
                 responseHeads.Add(
                     new ResponseHead
                     {
-                        HeadOrderIndex = dbHead.HeadIndex ,
                         TapeID         = dbHead.TapeID ,
                         Position       = dbHead.Position ,
                         Type           = headType ,
@@ -42,22 +41,21 @@ namespace TuringMachine.Backend.Server.DbInteractions.DbMachineInteraction
             return new ServerResponse<IList<ResponseHead>>(SUCCESS , responseHeads);
         }
 
-        public static ServerResponse InsertHead(string machineID , IList<ResponseHead> head , DataContext db)
+        public static ServerResponse InsertHeads(string machineID , ICollection<ResponseHead> heads , DataContext db)
         {
-            if (head.Count > short.MaxValue)
-                return ServerResponse.StartTracing(nameof(InsertHead) , BACKEND_ERROR);
+            if (heads.Count > short.MaxValue)
+                return ServerResponse.StartTracing(nameof(InsertHeads) , BACKEND_ERROR);
 
-            for (byte i = 0; i < head.Count; i++)
+            foreach (ResponseHead head in heads)
                 db.Heads.Add(
                     new DbHead
                     {
                         MachineID = Guid.Parse(machineID) ,
-                        HeadIndex = i ,
-                        TapeID    = head[i].TapeID ,
-                        Position  = head[i].Position ,
+                        TapeID    = head.TapeID ,
+                        Position  = head.Position ,
 
-                        IsReadable  = head[i].Type is (HeadType.Read or HeadType.ReadWrite) ,
-                        IsWriteable = head[i].Type is (HeadType.Write or HeadType.ReadWrite) ,
+                        IsReadable  = head.Type is (HeadType.Read or HeadType.ReadWrite) ,
+                        IsWriteable = head.Type is (HeadType.Write or HeadType.ReadWrite) ,
                     }
                 );
 

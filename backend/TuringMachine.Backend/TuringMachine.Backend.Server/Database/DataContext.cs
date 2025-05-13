@@ -125,7 +125,7 @@ namespace TuringMachine.Backend.Server.Database
 
             modelBuilder
                 .Entity<Head>()
-                .HasKey(head => new { head.MachineID , head.HeadIndex });
+                .HasKey(head => new { head.MachineID , head.TapeID });
             modelBuilder
                 .Entity<MachineDesign>()
                 .HasKey(design => design.DesignID);
