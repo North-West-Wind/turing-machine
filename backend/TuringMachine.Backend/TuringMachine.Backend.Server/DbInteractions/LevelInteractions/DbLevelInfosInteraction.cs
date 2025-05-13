@@ -15,6 +15,10 @@ namespace TuringMachine.Backend.Server.DbInteractions.LevelInteractions
 {
     internal static class DbLevelInfosInteraction
     {
+        /// <returns>
+        ///     Return a list of level templates when "SUCCESS". <br/><br/>
+        ///     Status is either "SUCCESS", "DUPLICATED_ITEM" or "BACKEND_ERROR".
+        /// </returns>
         public static ServerResponse<ICollection<ResponseLevelTemplate?>> GetAllLevelTemplates(DataContext db)
         {
             ResponseLevelTemplate?[] responseLevelTemplates = new ResponseLevelTemplate?[db.LevelTemplates.Count()];

@@ -19,6 +19,8 @@ namespace TuringMachine.Backend.Server.Models.Misc
         USER_NOT_FOUND ,
         DESIGN_NOT_FOUND ,
 
+        TOO_MUCH_ITEM ,
+
         TOO_MANY_REQUEST ,
         BACKEND_ERROR ,
 

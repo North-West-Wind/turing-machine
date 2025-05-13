@@ -14,9 +14,17 @@ namespace TuringMachine.Backend.Server.DbInteractions.DbMachineInteraction
 {
     internal class DbHeadInteraction
     {
-        public static ServerResponse<IList<ResponseHead>> GetHead(string machineID , DataContext db)
+        /// <returns>
+        ///     Return a list of machine heads when "SUCCESS". <br/><br/>
+        ///     Status is either "SUCCESS", "TOO_MUCH_ITEM" or "BACKEND_ERROR".
+        /// </returns>
+        public static ServerResponse<IList<ResponseHead>> GetHeads(string machineID , DataContext db)
         {
             List<ResponseHead> responseHeads = new List<ResponseHead>();
+
+            if (responseHeads.Count > short.MaxValue)
+                return ServerResponse.StartTracing<IList<ResponseHead>>(nameof(GetHeads) , TOO_MUCH_ITEM);
+
             foreach (DbHead dbHead in db.Heads.Where(head => head.MachineID == Guid.Parse(machineID)))
             {
                 HeadType headType;
@@ -25,7 +33,7 @@ namespace TuringMachine.Backend.Server.DbInteractions.DbMachineInteraction
                     case (true , true):   headType = HeadType.ReadWrite; break;
                     case (true , false):  headType = HeadType.Read; break;
                     case (false , true):  headType = HeadType.Write; break;
-                    case (false , false): return ServerResponse.StartTracing<IList<ResponseHead>>(nameof(GetHead) , FAILURE);
+                    case (false , false): return ServerResponse.StartTracing<IList<ResponseHead>>(nameof(GetHeads) , BACKEND_ERROR);
                 }
 
                 responseHeads.Add(
@@ -38,13 +46,20 @@ namespace TuringMachine.Backend.Server.DbInteractions.DbMachineInteraction
                 );
             }
 
+            if (responseHeads.Count == 0)
+                return ServerResponse.StartTracing<IList<ResponseHead>>(nameof(GetHeads) , NO_SUCH_ITEM);
+
             return new ServerResponse<IList<ResponseHead>>(SUCCESS , responseHeads);
         }
 
+        /// <returns>
+        ///     Insert a list of machine heads when "SUCCESS". <br/><br/>
+        ///     Status is either "SUCCESS" or "TOO_MUCH_ITEM".
+        /// </returns>
         public static ServerResponse InsertHeads(string machineID , ICollection<ResponseHead> heads , DataContext db)
         {
             if (heads.Count > short.MaxValue)
-                return ServerResponse.StartTracing(nameof(InsertHeads) , BACKEND_ERROR);
+                return ServerResponse.StartTracing(nameof(InsertHeads) , TOO_MUCH_ITEM);
 
             foreach (ResponseHead head in heads)
                 db.Heads.Add(
@@ -62,10 +77,14 @@ namespace TuringMachine.Backend.Server.DbInteractions.DbMachineInteraction
             return new ServerResponse(SUCCESS);
         }
 
-        public static ServerResponse DeleteHead(string machineID , DataContext db)
+        /// <returns>
+        ///     Delete a list of machine heads when "SUCCESS". <br/><br/>
+        ///     Status will always be "SUCCESS". But still include status comparison in case implementation changes (with error arise).
+        /// </returns>
+        public static ServerResponse DeleteHeads(string machineID , DataContext db)
         {
-            foreach (DbHead head1 in db.Heads.Where(head => head.MachineID == Guid.Parse(machineID)))
-                db.Heads.Remove(head1);
+            foreach (DbHead head in db.Heads.Where(head => head.MachineID == Guid.Parse(machineID)))
+                db.Heads.Remove(head);
 
             return new ServerResponse(SUCCESS);
         }
