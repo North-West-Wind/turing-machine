@@ -44,21 +44,22 @@ namespace TuringMachine.Backend.Server.DbInteractions.DbProgressInteractions
         /// </returns>
         public static async Task<ServerResponse<ICollection<ResponseProgress>>> GetAllProgressAsync(DataContext db)
         {
-            var progresses = await db.Progresses
+            List<ResponseProgress> progresses = await db.Progresses
                 .Select(
-                    p => new ResponseProgress
+                    bnProgress => new ResponseProgress
                     {
-                        UUID          = p.UUID ,
-                        LevelID       = p.LevelID ,
-                        SubmittedTime = p.SubmittedTime ,
-                        DesignID      = p.DesignID ,
-                        IsSolved      = p.IsSolved ,
+                        UUID          = bnProgress.UUID ,
+                        LevelID       = bnProgress.LevelID ,
+                        SubmittedTime = bnProgress.SubmittedTime ,
+                        DesignID      = bnProgress.DesignID ,
+                        IsSolved      = bnProgress.IsSolved ,
                     }
                 ).ToListAsync();
 
-            return progresses.Count == 0
-                ? ServerResponse.StartTracing<ICollection<ResponseProgress>>(nameof(GetAllProgressAsync) , NO_SUCH_ITEM)
-                : new ServerResponse<ICollection<ResponseProgress>>(SUCCESS , progresses);
+            if (progresses.Count == 0) 
+                return ServerResponse.StartTracing<ICollection<ResponseProgress>>(nameof(GetAllProgressAsync) , NO_SUCH_ITEM);
+
+            return new ServerResponse<ICollection<ResponseProgress>>(SUCCESS , progresses);
         }
 
         // TODO: progressing
@@ -68,9 +69,8 @@ namespace TuringMachine.Backend.Server.DbInteractions.DbProgressInteractions
         /// </returns>
         public static ServerResponse UpdateProgress(string uuid, byte levelID, bool isSolved, ResponseMachineDesign design, DataContext db)
         {
-            Guid guid = Guid.Parse(uuid);
             using IEnumerator<DbProgress> progress = db.Progresses
-                .Where(progress => progress.LevelID == levelID && progress.UUID == guid)
+                .Where(progress => progress.LevelID == levelID && progress.UUID == Guid.Parse(uuid))
                 .GetEnumerator();
 
             if (!progress.MoveNext()) return ServerResponse.StartTracing(nameof(UpdateProgress) , NO_SUCH_ITEM);
