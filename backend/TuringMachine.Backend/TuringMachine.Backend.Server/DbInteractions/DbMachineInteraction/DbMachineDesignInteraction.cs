@@ -33,7 +33,7 @@ namespace TuringMachine.Backend.Server.DbInteractions.DbMachineInteraction
 
             // find the associated author
             using IEnumerator<DbUser> dbUsers = db.Users.Where(user => user.UUID == dbMachineDesign.Author).GetEnumerator();
-            if (!dbUsers.MoveNext()) return ServerResponse.StartTracing<ResponseMachineDesign>(nameof(GetMachineDesign) , USER_NOT_FOUND);  // BUG: when user not found, should return unknown in the author field (in json)
+            if (!dbUsers.MoveNext()) return ServerResponse.StartTracing<ResponseMachineDesign>(nameof(GetMachineDesign) , USER_NOT_FOUND); // BUG: when user not found, should return unknown in the author field (in json)
             DbUser author = dbUsers.Current;
             if (dbUsers.MoveNext()) return ServerResponse.StartTracing<ResponseMachineDesign>(nameof(GetMachineDesign) , DUPLICATED_USER);
 
@@ -91,7 +91,7 @@ namespace TuringMachine.Backend.Server.DbInteractions.DbMachineInteraction
                 machineUiConfigPairs[i] = new ResponseMachineUIConfigPair
                 {
                     MachineConfig = machineEnumerator.Current ,
-                    UILabel      = uiEnumerator.Current ,
+                    UILabel       = uiEnumerator.Current ,
                 };
             responseMachineDesign.Machines = machineUiConfigPairs;
             #endregion
@@ -99,7 +99,7 @@ namespace TuringMachine.Backend.Server.DbInteractions.DbMachineInteraction
             return new ServerResponse<ResponseMachineDesign>(SUCCESS , responseMachineDesign);
         }
 
-        
+
         public static async Task<ServerResponse<string>> UpdateAndSaveMachineDesign(ResponseMachineDesign design , string designID , DataContext db)
         {
             ServerResponse deleteMachineDesignResponse = DeleteMachineDesign(designID , db);
@@ -162,7 +162,7 @@ namespace TuringMachine.Backend.Server.DbInteractions.DbMachineInteraction
             ServerResponse insertUiInfosResponse = DbUIInfoInteraction.InsertUIInfos(designID , design.Machines.Select(machine => machine.UILabel).ToList() , db);
             if (insertUiInfosResponse.Status is not SUCCESS)
                 return insertUiInfosResponse.WithThisTraceInfo<string>(nameof(CreateMachineDesign) , BACKEND_ERROR);
-            
+
             return new ServerResponse<string>(SUCCESS , designID);
         }
 
@@ -199,4 +199,5 @@ namespace TuringMachine.Backend.Server.DbInteractions.DbMachineInteraction
 
             return new ServerResponse<string>(SUCCESS , designID);
         }
+    }
 }

@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using NotImplementedException = System.NotImplementedException;
 
 namespace TuringMachine.Backend.Server.Models.MachineDesigns
 {
@@ -30,5 +31,11 @@ namespace TuringMachine.Backend.Server.Models.MachineDesigns
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? OperationCount { get; set; }
         #endregion
+
+
+        public static MachineDesign CreateTemplate()
+        {
+            throw new NotImplementedException();
+        }
     }
 }
