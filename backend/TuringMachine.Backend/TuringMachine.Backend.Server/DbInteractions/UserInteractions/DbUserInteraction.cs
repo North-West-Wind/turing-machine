@@ -83,5 +83,15 @@ namespace TuringMachine.Backend.Server.DbInteractions.UserInteractions
             await db.SaveChangesAsync();
             return registerUserResponse;
         }
+        
+        public static ServerResponse<string> GetUserName(string uuid, DataContext db)
+        {
+            using IEnumerator<DbUser> users = db.Users.Where(user => user.UUID == Guid.Parse(uuid)).GetEnumerator();
+            if (!users.MoveNext()) return ServerResponse.StartTracing<string>(nameof(GetUserName) , USER_NOT_FOUND);
+            DbUser dbUser = users.Current;
+            if (users.MoveNext()) return ServerResponse.StartTracing<string>(nameof(GetUserName) , DUPLICATED_USER);
+
+            return new ServerResponse<string>(SUCCESS , dbUser.Username);
+        }
     }
 }

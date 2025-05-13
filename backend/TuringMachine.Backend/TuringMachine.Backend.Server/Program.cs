@@ -73,7 +73,19 @@ namespace TuringMachine.Backend.Server
 
             #region Progress
             app
-                .MapPost("/API/Progress/Create" , (_) => throw new NotImplementedException())
+                .MapPost("/API/Progress/Create" ,
+                    async (string accessToken , byte levelID , DataContext db) =>
+                    {
+                        ServerResponse<string> validateAndSaveTokenAndGetUUIDResponse = await DbAccessTokenInteraction.ValidateAndSaveTokenAndGetUUIDAsync(accessToken , db);
+                        if (validateAndSaveTokenAndGetUUIDResponse.Status is not SUCCESS)
+                            return validateAndSaveTokenAndGetUUIDResponse.WithThisTraceInfo("/API/Progress/Create" , BACKEND_ERROR);
+                        
+                        ServerResponse<Guid> createProgressResponse = DbLevelProgressInteraction.CreateProgress(validateAndSaveTokenAndGetUUIDResponse.Result! , levelID , db);
+                        if (createProgressResponse.Status is not SUCCESS)
+                            return createProgressResponse.WithThisTraceInfo("/API/Progress/Create" , BACKEND_ERROR);
+                        
+                        return createProgressResponse;
+                    })
                 .WithName("CreateProgress")
                 .WithOpenApi();
 

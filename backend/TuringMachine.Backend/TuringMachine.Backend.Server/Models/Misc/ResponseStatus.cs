@@ -33,5 +33,7 @@ namespace TuringMachine.Backend.Server.Models.Misc
         DUPLICATED_DESIGN ,
         DUPLICATED_ITEM ,
         DUPLICATED_MACHINE_LABEL ,
+        
+        ITEM_EXISTED
     }
 }

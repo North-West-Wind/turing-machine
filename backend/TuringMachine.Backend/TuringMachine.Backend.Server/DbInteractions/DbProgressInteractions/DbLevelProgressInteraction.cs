@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using TuringMachine.Backend.Server.Database;
+using TuringMachine.Backend.Server.DbInteractions.DbMachineInteraction;
+using TuringMachine.Backend.Server.DbInteractions.UserInteractions;
 using TuringMachine.Backend.Server.ServerResponses;
 using static TuringMachine.Backend.Server.Models.Misc.ResponseStatus;
 
@@ -36,6 +39,48 @@ namespace TuringMachine.Backend.Server.DbInteractions.DbProgressInteractions
             };
             
             return new ServerResponse<ResponseProgress>(SUCCESS, responseProgress);
+        }
+
+        public static ServerResponse<Guid> CreateProgress(string userUUID, byte levelID , DataContext db)
+        {
+            string userName;
+            try
+            {
+                ServerResponse<string> getUserNameResponse = DbUserInteraction.GetUserName(userUUID , db);
+                if (getUserNameResponse.Status is not SUCCESS)
+                    return getUserNameResponse.WithThisTraceInfo<Guid>(nameof(CreateProgress) , USER_NOT_FOUND);
+                
+                userName = getUserNameResponse.Result!;
+            }
+            catch (Exception)
+            {
+                return ServerResponse.StartTracing<Guid>(nameof(CreateProgress) , BACKEND_ERROR);
+            }
+            
+            if (db.Progresses.Any(p => p.LevelID == levelID))
+                return ServerResponse.StartTracing<Guid>(nameof(CreateProgress) , ITEM_EXISTED);
+
+            ResponseMachineDesign machineDesign = new ResponseMachineDesign()
+            {
+                LevelID = levelID ,
+                Author = userName
+            };
+            
+            ServerResponse<string> designIDResponse = DbMachineDesignInteraction.CreateMachineDesign(machineDesign , db);
+            if (designIDResponse.Status is not SUCCESS)
+                return designIDResponse.WithThisTraceInfo<Guid>(nameof(CreateProgress) , BACKEND_ERROR);
+
+            DbProgress dbProgress = new DbProgress
+            {
+                UUID          = Guid.NewGuid() ,
+                LevelID       = levelID ,
+                SubmittedTime = DateTime.Now ,
+                DesignID      = Guid.Parse(designIDResponse.Result!) ,
+                IsSolved      = false ,
+            };
+            
+            db.Progresses.Add(dbProgress);
+            return new ServerResponse<Guid>(SUCCESS , dbProgress.DesignID);
         }
 
         /// <returns>
@@ -79,6 +124,8 @@ namespace TuringMachine.Backend.Server.DbInteractions.DbProgressInteractions
 
             dbProgress.IsSolved      = isSolved;
             dbProgress.SubmittedTime = DateTime.Now;
+            
+            db.Progresses.Update(dbProgress);
 
             return new ServerResponse(SUCCESS);
         }
