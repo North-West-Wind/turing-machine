@@ -333,4 +333,4 @@ app.get("/api/stat", (req, res) => {
 	sendResponse(res, "SUCCESS", (submissions.length - rank) / submissions.length);
 });
 
-app.listen(3100, () => console.log("Listening..."));
+app.listen(process.env.PORT || 3100, () => console.log("Listening..."));
