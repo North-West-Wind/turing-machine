@@ -5,7 +5,7 @@ using TuringMachine.Backend.Server.ServerResponses;
 
 using DbTransitionLine = TuringMachine.Backend.Server.Database.Entity.UILabels.TransitionLine;
 
-namespace TuringMachine.Backend.Server.DbInteractions.UserInteractions
+namespace TuringMachine.Backend.Server.DbInteractions.UIInteractions
 {
     internal class DbTransitionLineInteraction
     {

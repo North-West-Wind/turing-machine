@@ -7,8 +7,9 @@ using TuringMachine.Backend.Server.Models.UserInterface.Nodes;
 using TuringMachine.Backend.Server.ServerResponses;
 
 using TransitionLine = TuringMachine.Backend.Server.Models.UserInterface.TransitionLine;
+using TextLabel = TuringMachine.Backend.Server.Models.UserInterface.TextLabels.TextLabel;
 
-namespace TuringMachine.Backend.Server.DbInteractions.UserInteractions
+namespace TuringMachine.Backend.Server.DbInteractions.UIInteractions
 {
     internal class DbUIInfoInteraction
     {
@@ -30,12 +31,17 @@ namespace TuringMachine.Backend.Server.DbInteractions.UserInteractions
                 if (highlightBoxesResponse.Status is not ResponseStatus.SUCCESS)
                     return ServerResponse.StartTracing<IList<UI>>(nameof(DbHighlightBoxInteraction.GetHighlightBox) , highlightBoxesResponse.Status);
                 
+                ServerResponse<IList<TextLabel>> textLabelResponse = DbTextInteraction.GetTextLabel(uiInfo.UILabelID.ToString() , db);
+                if (textLabelResponse.Status is not ResponseStatus.SUCCESS)
+                    return ServerResponse.StartTracing<IList<UI>>(nameof(DbTextInteraction.GetTextLabel) , textLabelResponse.Status);
+                
                 uis.Add(new UI
                 {
-                    Color           = uiInfo.Color,
-                    Nodes           = nodesResponse.Result!,
-                    TransitionLines = transitionLinesResponse.Result!,
-                    HighlightBoxes  = highlightBoxesResponse.Result!
+                    Color           = uiInfo.Color ,
+                    Nodes           = nodesResponse.Result! ,
+                    TransitionLines = transitionLinesResponse.Result! ,
+                    HighlightBoxes  = highlightBoxesResponse.Result! ,
+                    TextLabels      = textLabelResponse.Result!
                 });
             }
             
@@ -57,6 +63,7 @@ namespace TuringMachine.Backend.Server.DbInteractions.UserInteractions
                 DbNodeInteraction.InsertNode(uiInfo.UILabelID.ToString() , ui.Nodes , db);
                 DbTransitionLineInteraction.InsertTransitionLine(uiInfo.UILabelID.ToString() , ui.TransitionLines , db);
                 DbHighlightBoxInteraction.InsertHighlightBox(uiInfo.UILabelID.ToString() , ui.HighlightBoxes , db);
+                DbTextInteraction.InsertTextLabel(uiInfo.UILabelID.ToString() , ui.TextLabels , db);
             }
             
             
@@ -70,6 +77,7 @@ namespace TuringMachine.Backend.Server.DbInteractions.UserInteractions
                 DbNodeInteraction.DeleteNode(uiInfo.UILabelID.ToString() , db);
                 DbTransitionLineInteraction.DeleteTransitionLine(uiInfo.UILabelID.ToString() , db);
                 DbHighlightBoxInteraction.DeleteHighlightBox(uiInfo.UILabelID.ToString() , db);
+                DbTextInteraction.DeleteTextLabel(uiInfo.UILabelID.ToString() , db);
                 db.UiInfos.Remove(uiInfo);
             }
 
